@@ -1,0 +1,23 @@
+/* Hanji Studio tokens, shared by index.html and mini.html. Light by default, dark from Windows or data-theme=dark on <html>. */
+@font-face{font-family:"Gowun Batang";src:url(fonts/gowun-batang-bold.woff2) format("woff2");font-weight:700;font-display:swap}
+:root{
+  --paper:#F4EEE2;--paper-2:#ECE4D4;--card:#FFFCF5;--ink:#1E1A16;--ink-2:#463F37;--muted:#776D60;--hair:#D9CCB6;--hair-2:#E7DDCB;
+  --red:#B3322B;--red-bg:#F5E1DC;--blue:#22477E;--blue-bg:#E1E8F2;--jade:#2A7558;--jade-bg:#DBEDE3;--gold:#B8860B;--gold-bg:#F3E8C9;
+  --serif:"Gowun Batang","Batang","Noto Serif KR",Georgia,serif;
+  --sans:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,"Malgun Gothic",sans-serif;
+  --ko:"Malgun Gothic","Apple SD Gothic Neo","Segoe UI",sans-serif;
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='a'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .34 0 0 0 0 .22 0 0 0 .10 0'/%3E%3C/filter%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.008 .16' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .47 0 0 0 0 .35 0 0 0 .16 -.04'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E");
+  --on-accent:#FFFFFF;--ease:cubic-bezier(.2,.8,.2,1);
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){
+  --paper:#17140F;--paper-2:#201B15;--card:#231E18;--ink:#F2EADB;--ink-2:#D8CDBB;--muted:#A3988A;--hair:#3D352B;--hair-2:#2F2922;
+  --on-accent:#17140F;--red:#DA5A4F;--red-bg:#3A1F1B;--blue:#9AB6E6;--blue-bg:#1F2A3D;--jade:#62BF94;--jade-bg:#1A3027;--gold:#E0B54E;--gold-bg:#372D1B;
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='a'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .95 0 0 0 0 .85 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E");
+}}
+:root[data-theme=dark]{color-scheme:dark;
+  --paper:#17140F;--paper-2:#201B15;--card:#231E18;--ink:#F2EADB;--ink-2:#D8CDBB;--muted:#A3988A;--hair:#3D352B;--hair-2:#2F2922;
+  --on-accent:#17140F;--red:#DA5A4F;--red-bg:#3A1F1B;--blue:#9AB6E6;--blue-bg:#1F2A3D;--jade:#62BF94;--jade-bg:#1A3027;--gold:#E0B54E;--gold-bg:#372D1B;
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='a'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .95 0 0 0 0 .85 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E");
+}
+:root[data-theme=light]{color-scheme:light}

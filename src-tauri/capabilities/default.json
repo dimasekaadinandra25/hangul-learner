@@ -1,0 +1,6 @@
+{
+  "identifier": "default",
+  "description": "Main window and mini player: events between them, dragging the frameless mini window, Windows notifications (word of the day), checking for and installing updates.",
+  "windows": ["main", "mini"],
+  "permissions": ["core:default", "core:window:allow-start-dragging", "notification:default", "updater:default", "process:allow-restart"]
+}

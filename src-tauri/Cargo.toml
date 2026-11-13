@@ -1,0 +1,23 @@
+[package]
+name = "hangul-learner"
+version = "1.4.0"
+description = "Learn to read, write and hear Korean Hangul"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-autostart = "2"
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+serde_json = "1" # used by the code tauri generates for plugin settings (updater)
+arboard = { version = "3", default-features = false }
+
+[profile.release]
+strip = true
+lto = true
+opt-level = "s"

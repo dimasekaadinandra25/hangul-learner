@@ -1,0 +1,6 @@
+# dependencies and build output
+node_modules/
+src-tauri/target/
+src-tauri/gen/schemas/
+# the updater signing key lives in %USERPROFILE%\.tauri and must never be committed
+*.key

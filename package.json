@@ -1,0 +1,15 @@
+{
+  "name": "hangul-learner",
+  "private": true,
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "node tools/release.js",
+    "audio": "node tools/gen-audio.js",
+    "check": "node tools/check.js",
+    "e2e": "node --experimental-websocket --no-warnings tools/e2e/e2e.js",
+    "release": "node tools/release.js --publish"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.4"
+  }
+}
