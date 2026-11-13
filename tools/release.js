@@ -1,13 +1,13 @@
 // Build and publish a version that installed apps update to by themselves.
 //   npm run build                    -> signed installer in src-tauri/target/release/bundle/nsis (no upload)
-//   npm run release -- "What's new"  -> build, then publish it on the public releases repository
+//   npm run release -- "What's new"  -> build, then publish it on GitHub Releases of this (public) repository
 // Version: bump "version" in src-tauri/tauri.conf.json and src-tauri/Cargo.toml first.
 // Signing key: %USERPROFILE%\.tauri\hangul-learner.key (never commit it; without it installed apps can't be updated).
 const {execFileSync}=require('child_process');
 const fs=require('fs'),path=require('path'),os=require('os');
 
 const ROOT=path.join(__dirname,'..');
-const RELEASES='dimasekaadinandra25/hangul-learner-releases'; // public: holds only installers + latest.json
+const RELEASES='dimasekaadinandra25/hangul-learner'; // must stay public: installed apps download latest.json + installer from it
 const KEY=path.join(os.homedir(),'.tauri','hangul-learner.key');
 const version=JSON.parse(fs.readFileSync(path.join(ROOT,'src-tauri','tauri.conf.json'),'utf8')).version;
 const publish=process.argv[2]==='--publish';
