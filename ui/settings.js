@@ -94,6 +94,7 @@ async function installUpdate(){
     await tauri.process.relaunch();
   }catch(e){setMsg('updMsg','Update failed: '+e,true);$('updBtn').disabled=false}
 }
+$('logBtn').onclick=()=>tauri?tauri.core.invoke('open_external',{url:'https://github.com/dimasekaadinandra25/hangul-learner/blob/main/CHANGELOG.md'}):open('https://github.com/dimasekaadinandra25/hangul-learner/blob/main/CHANGELOG.md');
 $('updBtn').onclick=()=>updFound?installUpdate():checkUpdate(true);
 setTimeout(()=>checkUpdate(false),15000); // a little after start-up, then every 6 hours while the app runs (it often sits in the tray for days)
 setInterval(()=>checkUpdate(false),6*3600e3);
@@ -117,6 +118,17 @@ $('exportBtn').onclick=async()=>{
     $('showBackup').onclick=()=>tauri.core.invoke('show_in_folder',{path:lastExport}).catch(e=>setMsg('backupMsg',String(e),true));
   }catch(e){setMsg('backupMsg','Could not save the backup: '+e,true)}
 };
+// ---- Automatic backup: once a week to Documents\Hangul Learner; the newest 4 are kept ----
+async function autoBackup(){
+  if(!tauri||!loaded||!lsGet('autoBackup',true)||!P.xp||lsGet('autoBackupWeek','')===weekKey())return false;
+  try{
+    await tauri.core.invoke('export_backup',{name:`auto-backup-${stamp()}.json`,data:backupJson()});lsSet('autoBackupWeek',weekKey());
+    await tauri.core.invoke('prune_backups',{prefix:'auto-backup-',keep:4});return true;
+  }catch(e){console.error('automatic backup failed',e);return false}
+}
+setTimeout(autoBackup,30000);setInterval(autoBackup,6*3600e3);
+swSet('autoBkSw',lsGet('autoBackup',true));$('autoBkSw').closest('.set-row').hidden=!tauri;
+$('autoBkSw').onclick=()=>{lsSet('autoBackup',!lsGet('autoBackup',true));swSet('autoBkSw',lsGet('autoBackup',true))};
 // A backup file comes from outside the app: check its shape and keep only plain data before using it.
 function cleanBackup(obj){
   const p=obj?.progress;

@@ -48,7 +48,21 @@ function soundQ(ref){
   const[w,pron,mean,bad]=r.ex[ei];
   return makeQ({kind:'sound',ref:`${r.id}|${ei}`,kicker:`${r.ko} · ${r.name}`,big:w,bigKo:true,sub:`“${mean}”. How is it said?`,say:w,ko:true,right:`[${pron}]`,wrong:[`[${w}]`,`[${bad}]`],note:r.rule});
 }
-const BUILD={num:numQ,verb:verbQ,part:partQ,sound:soundQ};
+// Tricky words: words you have missed 3+ times (and not mastered yet), with a hint to make them stick:
+// their Hanja family, how they sound in romanization, and a look-alike word not to confuse them with.
+const trickyWords=()=>VOCAB.filter(w=>{const s=P.stats[w.ch];return s&&s.tries-s.right>=3&&!isMastered(P,w.ch)});
+function trickyHint(w){
+  const fam=familiesOf(w.ch)[0],first=[...w.ch][0],look=VOCAB.find(v=>v.ch!==w.ch&&v.ch.startsWith(first)&&v.meaning!==w.meaning);
+  return[fam&&`${fam.han} ${fam.ko} = ${fam.en}, as in ${fam.words.filter(x=>x!==w.ch).slice(0,2).join(', ')}`,`sounds like “${romanize(w.ch)}”`,look&&`not ${look.ch} (${look.meaning})`].filter(Boolean).join(' · ');
+}
+function trickyQ(ref){
+  const list=trickyWords();if(!list.length)return null;
+  const w=list.find(x=>x.ch===ref)||pickOne(list.length>1&&DQ?.kind==='tricky'?list.filter(x=>x.ch!==DQ.ref):list),s=P.stats[w.ch];
+  const pool=shuffle(VOCAB.filter(v=>v.section===w.section&&v.meaning!==w.meaning)).map(v=>v.meaning);
+  return makeQ({kind:'tricky',ref:w.ch,kicker:`Tricky word · missed ${s.tries-s.right} times`,big:w.ch,bigKo:true,sub:'Hint: '+trickyHint(w),say:w.say,
+    right:w.meaning,wrong:pool,note:`${w.ch} = ${w.meaning}. Get it right a few times and it leaves this list.`});
+}
+const BUILD={num:numQ,verb:verbQ,part:partQ,sound:soundQ,tricky:trickyQ};
 function newQ(kind){
   if(PX.miss){const l=missList(kind);if(l.length)return BUILD[kind](pickOne(l.length>1&&DQ?.kind===kind?l.filter(r=>r!==DQ.ref):l));PX.miss=false}
   return BUILD[kind]();
@@ -71,6 +85,7 @@ function answerDrill(i){
   if(!DQ||DQ.picked!=null)return;
   DQ.picked=i;const good=i===DQ.answer,s=drillStats(DQ.kind),say=DQ.say,day=dayKey();
   s.tries++;
+  if(DQ.kind==='tricky'){const ws=stat(DQ.ref);ws.tries++;if(good)ws.right++} // counts toward mastering the word itself
   if(good){s.right++;const d=todayStats(P);d.drill=(d.drill||0)+1;P.xp+=1;P.days[day]=(P.days[day]||0)+1;dropMiss(DQ.kind,DQ.ref)}
   else addMiss(DQ.kind,DQ.ref);
   sfx(good?'ok':'bad');setTimeout(()=>speak(say,PX.slow?SLOW:1),good?200:450);save();
@@ -83,6 +98,7 @@ const chips=(name,list,cur)=>`<div class="chips" role="group" aria-label="${name
 function renderPractice(){
   $('pTabs').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.ptab===PT));
   let html='';
+  if(PT==='tricky'&&!trickyWords().length){DQ=null;$('pBody').innerHTML='<div class="panel" style="padding:20px"><b>No tricky words right now.</b><p class="muted" style="margin:6px 0 0">Words you miss 3 or more times in lessons, reviews and tests show up here with a hint, until you know them.</p></div>';return}
   if(BUILD[PT]&&(PT!=='sound'||PX.sound)){
     if(DQ?.kind!==PT)DQ=newQ(PT);
     const bar=PT==='num'?chips('numType',[['all','All'],...Object.entries(NUM_TYPES).map(([k,t])=>[k,t.label])],PX.numType)+chips('numMode',[['read','Read'],['listen','Listen']],PX.numMode)

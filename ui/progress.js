@@ -7,11 +7,11 @@ const pct=(a,b)=>b?Math.round(a/b*100):0;
 const bestOf=si=>{const t=(P.tests||[]).filter(x=>x.level===si);return t.length?Math.max(...t.map(x=>pct(x.score,x.total))):null};
 function renderTest(){
   if(!TS)return renderPicker();
-  if(TS.done)return renderResult();
+  if(TS.done)return TS.place?renderPlacement():renderResult();
   renderQuestion();
 }
 function renderPicker(){
-  $('testBody').innerHTML=`<div class="levels-grid">${SECTIONS.map((s,si)=>{const b=bestOf(si);
+  $('testBody').innerHTML=`<div class="panel place-cta"><div><b>Not sure where to start?</b><small>The placement test checks one level at a time (8 questions each) and stops at the first one that’s new to you.</small></div><button class="btn btn-ink" data-tplace>${icon('target')}Find my level</button></div><div class="levels-grid">${SECTIONS.map((s,si)=>{const b=bestOf(si);
     return`<button class="lvl-card" data-tlevel="${si}">${seal(LEVEL_SEAL[si],'s')}<b>${s.title}</b><small>${si?s.tag:'Letters, syllables and first words'}</small><small>${b==null?'Not taken yet':`Best: ${b}%`}</small></button>`}).join('')}</div>
     <p class="muted" style="margin-top:20px;font-size:.88rem">Questions come from every unit of the level, including ones you have not studied yet. Wrong answers go to Review mistakes and Smart review.</p>`;
 }
@@ -36,7 +36,7 @@ function tickTest(){
 }
 function renderQuestion(){
   const q=TS.qs[TS.i],n=TS.qs.length,pick=TS.picks[TS.i];
-  $('testBody').innerHTML=`<div class="test-top"><span class="muted">Question ${TS.i+1} of ${n}</span><div class="line" role="progressbar" aria-valuenow="${TS.i}" aria-valuemax="${n}" aria-label="Test progress"><i style="width:${TS.i/n*100}%"></i></div><span class="test-timer" id="testTime"></span></div>
+  $('testBody').innerHTML=`<div class="test-top"><span class="muted">${TS.place?`Placement · ${SECTIONS[TS.si].title} · `:''}Question ${TS.i+1} of ${n}</span><div class="line" role="progressbar" aria-valuenow="${TS.i}" aria-valuemax="${n}" aria-label="Test progress"><i style="width:${TS.i/n*100}%"></i></div><span class="test-timer" id="testTime"></span></div>
     <div class="test-q"><span class="kicker">${AREA_NAME[q.area]}</span><h2 class="prompt">${q.prompt}</h2>
       ${q.passage?`<p class="test-passage" lang="ko">${esc(q.passage)}</p>`:''}
       ${q.big?`<div class="glyph${long(q.big)?' long':''}" lang="ko">${q.big}</div>`:''}
@@ -48,6 +48,8 @@ function renderQuestion(){
 }
 $('testBody').addEventListener('click',async e=>{
   const lv=e.target.closest('[data-tlevel]');if(lv)return startTest(+lv.dataset.tlevel);
+  if(e.target.closest('[data-tplace]'))return startPlacement();
+  if(e.target.closest('[data-tgolearn]')){TS=null;renderTest();return show('learn')}
   if(!TS)return;
   const o=e.target.closest('[data-tv]');
   if(o&&!TS.done){TS.picks[TS.i]=o.dataset.tv;$('testBody').querySelectorAll('[data-tv]').forEach(b=>b.setAttribute('aria-pressed',b===o));$('tqNext').disabled=false;return}
@@ -65,7 +67,32 @@ document.addEventListener('keydown',e=>{
   else if((e.key==='r'||e.key==='R')&&q.play)speak(q.play);
 });
 function stopTest(){clearInterval(testTimer);TS=null;renderTest()}
+// ---- Placement test: levels in order, 8 questions each; 75% moves on. The first level not passed becomes the
+// starting level on Learn. No XP, reviews or mistakes: it only finds where to begin. ----
+const PLACE_N=8,PLACE_PASS=75;
+function startPlacement(){
+  TS={si:0,qs:buildTest(0,PLACE_N),i:0,picks:[],start:Date.now(),done:false,place:[]};
+  clearInterval(testTimer);testTimer=setInterval(tickTest,1000);renderQuestion();
+}
+function finishPlacement(){
+  clearInterval(testTimer);
+  const p=pct(TS.qs.filter((q,k)=>TS.picks[k]===q.answer).length,TS.qs.length);TS.place.push([TS.si,p]);
+  if(p>=PLACE_PASS&&TS.si<SECTIONS.length-1){
+    const si=TS.si+1;Object.assign(TS,{si,qs:buildTest(si,PLACE_N),i:0,picks:[],start:Date.now()});
+    testTimer=setInterval(tickTest,1000);return renderQuestion();
+  }
+  TS.done=true;TS.level=p>=PLACE_PASS?TS.si:TS.si; // the level being learned now (TOPIK 6 if everything passed)
+  P.section=TS.level;P.placed=TS.level;save();renderTest();
+}
+function renderPlacement(){
+  const s=SECTIONS[TS.level];
+  $('testBody').innerHTML=`<div class="result-head">${seal(LEVEL_SEAL[TS.level],'l','jade')}<div><span class="kicker">Placement test</span><div class="score-big">${s.title}</div>
+    <p style="margin:6px 0 0">Start here. Learn now opens at this level; earlier levels stay open for review.</p></div></div>
+    <div class="chart-card"><h3>By level</h3><div class="hbars">${TS.place.map(([si,p])=>`<div><span>${SECTIONS[si].title}</span><div class="line" role="progressbar" aria-valuenow="${p}" aria-valuemax="100" aria-label="${SECTIONS[si].title}"><i style="width:${p}%"></i></div><em>${p}%${p>=PLACE_PASS?' ✓':''}</em></div>`).join('')}</div></div>
+    <div class="btn-row"><button class="btn btn-ink" data-tgolearn>${icon('map')}Start learning</button><button class="btn" data-tlevels>All tests</button></div>`;
+}
 function finishTest(){
+  if(TS.place)return finishPlacement();
   clearInterval(testTimer);
   const day=dayKey(),d=todayStats(P,day),areas={},wrong=[];
   TS.qs.forEach((q,k)=>{

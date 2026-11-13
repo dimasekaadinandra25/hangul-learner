@@ -81,6 +81,26 @@ fn export_backup(app: AppHandle, name: String, data: String) -> Result<String, S
     Ok(path.to_string_lossy().into_owned())
 }
 
+/// Automatic backups: keeps the newest `keep` files named <prefix>…json in the backup folder and deletes older ones
+/// (names carry the date, so name order is age order).
+#[tauri::command]
+fn prune_backups(app: AppHandle, prefix: String, keep: usize) -> Result<usize, String> {
+    if prefix.is_empty() || !prefix.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+        return Err("bad prefix".into());
+    }
+    let mut files: Vec<PathBuf> = fs::read_dir(backup_dir(&app)?)
+        .map_err(|e| e.to_string())?
+        .filter_map(|e| e.ok().map(|e| e.path()))
+        .filter(|p| p.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.starts_with(&prefix) && n.ends_with(".json")))
+        .collect();
+    files.sort();
+    let old = files.len().saturating_sub(keep);
+    for p in &files[..old] {
+        fs::remove_file(p).map_err(|e| e.to_string())?;
+    }
+    Ok(old)
+}
+
 /// Opens Explorer with the backup file selected (only files inside the backup folder).
 #[tauri::command]
 fn show_in_folder(app: AppHandle, path: String) -> Result<(), String> {
@@ -448,7 +468,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             load_progress, save_progress, fetch_text, open_external, close_to_tray, toggle_mini, hide_mini, show_main, mini_video, mini_visible,
-            set_shortcuts, autostart, export_backup, show_in_folder, clip_watch, alarm, sync_default, sync_read, sync_write, recognize
+            set_shortcuts, autostart, export_backup, show_in_folder, clip_watch, alarm, sync_default, sync_read, sync_write, recognize, prune_backups
         ])
         .run(tauri::generate_context!())
         .expect("failed to start Hangul Learner");

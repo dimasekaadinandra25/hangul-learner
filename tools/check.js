@@ -122,7 +122,7 @@ for(const g of GRAMMAR_ITEMS){
   assert(RECORDED.includes(fillQ(g.q)),'no audio for '+fillQ(g.q));
 }
 assert.strictEqual(new Set(GRAMMAR_ITEMS.map(g=>g.ch)).size,GRAMMAR_ITEMS.length,'duplicate grammar pattern');
-assert(SECTIONS.slice(1).every(s=>s.units.filter(u=>u.kind==='grammar').length===2),'2 grammar units per TOPIK level');
+assert(SECTIONS.slice(1).every(s=>s.units.filter(u=>u.kind==='grammar').length===4),'4 grammar units per TOPIK level');
 
 // smart review: first right answer -> tomorrow, then growing; early answers don't move it; wrong -> today
 {const S={srs:{}},day='2026-11-10';

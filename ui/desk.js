@@ -92,7 +92,17 @@ async function checkWeekly(now=new Date()){
   const r=weekReport(weekKey(now));try{await notify(r.title,r.body)}catch(e){}
   return true;
 }
-setInterval(()=>{if(loaded)checkWeekly()},60000);
+// ---- Review reminder: one evening notification when Smart review words are due and nothing was reviewed today ----
+async function checkReviewReminder(now=new Date()){
+  if(!lsGet('reviewRemind',true)||now.getHours()<18||lsGet('reviewSent','')===dayKey(now))return false;
+  const due=dueKeys(P).length;if(!due||(todayStats(P).srs||0)>0)return false;
+  lsSet('reviewSent',dayKey(now));
+  try{await notify('복습 · Review time',`${due} word${due===1?'':'s'} due for Smart review. A few minutes keeps them fresh.`)}catch(e){}
+  return true;
+}
+swSet('reviewSw',lsGet('reviewRemind',true));
+$('reviewSw').onclick=()=>{lsSet('reviewRemind',!lsGet('reviewRemind',true));swSet('reviewSw',lsGet('reviewRemind',true))};
+setInterval(()=>{if(loaded){checkWeekly();checkReviewReminder()}},60000);
 swSet('weekSw',lsGet('weekly',true));
 $('weekSw').onclick=()=>{lsSet('weekly',!lsGet('weekly',true));swSet('weekSw',lsGet('weekly',true))};
 $('weekTry').onclick=()=>{const r=weekReport();notify(r.title,r.body).then(()=>setMsg('wotdMsg','Sent this week’s report.'),e=>setMsg('wotdMsg',String(e.message||e),true))};

@@ -54,6 +54,7 @@ class Page {
 const HELPERS = `
 // Windows notifications are recorded, not shown, so testing doesn't pop banners on your screen
 if(window.__TAURI__?.notification){window.sentNotes=[];__TAURI__.notification.sendNotification=o=>{sentNotes.push(o)}}
+try{localStorage.setItem('placeAsked','true')}catch(e){} // no first-launch placement offer while testing
 window.T={
   sleep:ms=>new Promise(r=>setTimeout(r,ms)),
   async until(f,ms=10000,what='condition'){const t=Date.now();while(Date.now()-t<ms){const v=f();if(v)return v;await T.sleep(60)}throw Error('timed out: '+what)},
@@ -128,7 +129,7 @@ const visible = t => win('state', t).visible;
     await launch();
     savedStorage = await main.run(`return JSON.stringify(Object.fromEntries(Object.entries(localStorage)))`);
     fs.writeFileSync(BACKUP + '.storage', savedStorage);
-    await main.run(`localStorage.clear();setTheme('auto');return true`);
+    await main.run(`localStorage.clear();localStorage.setItem('placeAsked','true');setTheme('auto');return true`);
 
     group('Start-up');
     await test('main window opens, mini window starts hidden', async () => {
@@ -184,9 +185,9 @@ const visible = t => win('state', t).visible;
         return {before,isReview,passed:res.passed,after:Object.keys(P.mistakes).length,reviews:P.totals.reviews,slip:!!document.querySelector('[data-review]')}`);
       ok(r.before > 0, 'no mistakes to review'); ok(r.isReview, 'not a review lesson'); ok(r.passed, 'review failed'); eq(r.after, 0, 'mistakes left'); eq(r.reviews, 1, 'reviews'); ok(!r.slip, 'review slip still shown');
     });
-    await test('level tabs switch to TOPIK 3 (8 word + 2 grammar units, first open) and back', async () => {
+    await test('level tabs switch to TOPIK 3 (8 word + 4 grammar units, first open) and back', async () => {
       const r = await main.run(`T.click('#levels [data-sec="3"]');const a={hero:document.querySelector('.hero h2').textContent,units:document.querySelectorAll('#path details.unit').length,firstOpen:!document.querySelector('#path details.unit').classList.contains('locked')};T.click('#levels [data-sec="0"]');return {...a,back:document.querySelector('.hero h2').textContent}`);
-      eq(r, {hero: 'TOPIK 3', units: 10, firstOpen: true, back: 'Hangul basics'}, 'tabs');
+      eq(r, {hero: 'TOPIK 3', units: 12, firstOpen: true, back: 'Hangul basics'}, 'tabs');
     });
     await test('units fold and unfold, and stay open after the page redraws', async () => {
       const r = await main.run(`const d=()=>document.querySelectorAll('#path details.unit')[4];const was=d().open;T.click(d().querySelector('summary'));await T.sleep(50);save();await T.sleep(50);const kept=d().open;T.click(d().querySelector('summary'));await T.sleep(50);save();return {was,kept,closed:!d().open}`);
@@ -269,7 +270,7 @@ const visible = t => win('state', t).visible;
     await test('TOPIK 1 has a Grammar track whose first unit is open on its own', async () => {
       const r = await main.run(`show('learn');T.click('#levels [data-sec="1"]');const g=[...document.querySelectorAll('#path details.unit.grammar')];
         return {track:[...document.querySelectorAll('#path .track')].map(t=>t.textContent),n:g.length,firstOpen:!g[0].classList.contains('locked'),secondLocked:g[1].classList.contains('locked'),units:document.querySelectorAll('#path details.unit').length}`);
-      eq(r.track, ['단어Words', '문법Grammar'], 'track headings'); eq(r.n, 2, 'grammar units'); ok(r.firstOpen, 'first grammar unit locked'); ok(r.secondLocked, 'second grammar unit should wait'); eq(r.units, 11, 'units in TOPIK 1');
+      eq(r.track, ['단어Words', '문법Grammar'], 'track headings'); eq(r.n, 4, 'grammar units'); ok(r.firstOpen, 'first grammar unit locked'); ok(r.secondLocked, 'second grammar unit should wait'); eq(r.units, 13, 'units in TOPIK 1');
     });
     await test('grammar Learn 1: pattern cards with an example, then questions; all pass', async () => {
       const r = await main.run(`const gi=UNITS.findIndex(u=>u.id==='g1-0');T.start(gi,0);const intro={kicker:document.querySelector('.intro-card .kicker').textContent,ex:!!document.querySelector('.intro-ex')};
@@ -814,6 +815,35 @@ const visible = t => win('state', t).visible;
       const r = await main.run(`const items=await uploadsViaPlayer(CHANNELS[0]).catch(e=>String(e));return Array.isArray(items)?{n:items.length,titled:items.every(v=>v.title&&/^[\\w-]{11}$/.test(v.id))}:{err:items}`);
       if (r.err) throw new Error('SKIP: YouTube player list unavailable: ' + r.err);
       ok(r.n >= 5, 'videos: ' + r.n); ok(r.titled, 'titles');
+    });
+
+    group('Grammar reference, placement, tricky words, reminders, automatic backup'); await fresh();
+    await test('Words › Grammar lists every pattern with examples; search finds by meaning', async () => {
+      const r = await main.run(`show('vocab');T.click('[data-vtab=gram]');vSec=-1;$('vSearch').value='';renderVocab();const all=document.querySelectorAll('.gref-item').length,ex=document.querySelectorAll('.gref-ex[data-say]').length;
+        $('vSearch').value='topic marker';renderVocab();const hit=$('vList').textContent.includes('은/는');$('vSearch').value='';T.click('[data-vtab=all]');return {all,n:GRAMMAR_ITEMS.length,ex:ex>=all*2,hit}`);
+      eq(r.all, r.n, 'patterns shown'); ok(r.n >= 144, 'patterns: ' + r.n); ok(r.ex, 'examples'); ok(r.hit, 'search');
+    });
+    await test('placement test: passing a level moves to the next; the first level not passed becomes the starting level', async () => {
+      const r = await main.run(`const sec=P.section;show('test');T.click('[data-tplace]');const first=TS.si,n=TS.qs.length;TS.picks=TS.qs.map(q=>q.answer);finishTest();const next=TS.si;
+        TS.picks=[];finishTest();const r={first,n,next,done:TS.done,level:P.section,head:$('testBody').textContent.includes('TOPIK 1')};T.click('[data-tlevels]');P.section=sec;delete P.placed;save();return r`);
+      eq(r, {first: 0, n: 8, next: 1, done: true, level: 1, head: true}, 'placement');
+    });
+    await test('Tricky words: a word missed 3+ times is drilled with a hint; answering counts for the word', async () => {
+      const r = await main.run(`const old=P.stats['학교'];P.stats['학교']={heard:0,right:0,tries:4,written:0};show('practice');T.click('[data-ptab=tricky]');DQ=trickyQ('학교');renderPractice();
+        const q={kind:DQ.kind,hint:DQ.sub.startsWith('Hint:')&&DQ.sub.includes('hakgyo'),opts:DQ.opts.length};T.click('[data-dopt="'+DQ.answer+'"]');const right=P.stats['학교'].right;
+        if(old)P.stats['학교']=old;else delete P.stats['학교'];T.click('[data-ptab=num]');return {...q,right}`);
+      eq(r, {kind: 'tricky', hint: true, opts: 4, right: 1}, 'tricky');
+    });
+    await test('review reminder: one evening notification when words are due and none reviewed today', async () => {
+      const r = await main.run(`const k='__e2e';(P.srs??={})[k]={u:'x',iv:1,ease:2.3,due:'2000-01-01'};const s=todayStats(P).srs;todayStats(P).srs=0;lsSet('reviewSent',null);sentNotes.length=0;
+        const ev=new Date();ev.setHours(19,0,0,0);const a=await checkReviewReminder(ev),b=await checkReviewReminder(ev);delete P.srs[k];todayStats(P).srs=s;lsSet('reviewSent',null);return {a,b,t:sentNotes[0]?.title||''}`);
+      eq(r, {a: true, b: false, t: '복습 · Review time'}, 'reminder');
+    });
+    await test('automatic backup: once a week to Documents › Hangul Learner, keeping the last 4', async () => {
+      ok(await main.run(`lsSet('autoBackupWeek','');return await autoBackup()&&!(await autoBackup())`), 'weekly backup');
+      const docs = path.join(os.homedir(), 'Documents', 'Hangul Learner'), f = fs.readdirSync(docs).filter(x => x.startsWith('auto-backup-'));
+      ok(f.length >= 1 && f.length <= 4, 'auto backups: ' + f.length);
+      const mine = f.map(x => path.join(docs, x)).filter(p => Date.now() - fs.statSync(p).mtimeMs < 120000); mine.forEach(p => exported.push(p));
     });
 
     group('Tray and closing'); await fresh();
