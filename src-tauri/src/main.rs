@@ -110,7 +110,32 @@ fn show_in_folder(app: AppHandle, path: String) -> Result<(), String> {
         return Err("not a backup file".into());
     }
     let shown = file.to_string_lossy().trim_start_matches(r"\\?\").to_string();
-    Command::new("explorer.exe").arg(format!("/select,{shown}")).spawn().map(|_| ()).map_err(|e| e.to_string())
+    #[cfg(windows)]
+    let mut cmd = {
+        let mut c = Command::new("explorer.exe");
+        c.arg(format!("/select,{shown}"));
+        c
+    };
+    #[cfg(target_os = "macos")]
+    let mut cmd = {
+        let mut c = Command::new("open");
+        c.args(["-R", &shown]);
+        c
+    };
+    #[cfg(all(not(windows), not(target_os = "macos")))]
+    let mut cmd = {
+        let _ = &shown;
+        let mut c = Command::new("xdg-open"); // Linux file managers can't select a file: open its folder
+        c.arg(&dir);
+        c
+    };
+    cmd.spawn().map(|_| ()).map_err(|e| e.to_string())
+}
+
+/// Opens a link in the default browser: explorer.exe on Windows, open on macOS, xdg-open on Linux.
+fn open_with_system(target: &str) -> Result<(), String> {
+    let opener = if cfg!(windows) { "explorer.exe" } else if cfg!(target_os = "macos") { "open" } else { "xdg-open" };
+    Command::new(opener).arg(target).spawn().map(|_| ()).map_err(|e| e.to_string())
 }
 
 /// %APPDATA%\com.hangul.learner\progress.json
@@ -151,7 +176,7 @@ fn https_only(url: &str) -> Result<(), String> {
 #[tauri::command(async)]
 fn fetch_text(url: String) -> Result<String, String> {
     https_only(&url)?;
-    let mut cmd = Command::new("curl.exe");
+    let mut cmd = Command::new(if cfg!(windows) { "curl.exe" } else { "curl" }); // built into Windows 10+, macOS and Linux
     cmd.args(["-sSL", "--fail", "--compressed", "--max-time", "60", "--max-filesize", "40000000", "-A", "Mozilla/5.0 HangulLearner", &url]);
     #[cfg(windows)]
     cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW: no console flash
@@ -166,7 +191,7 @@ fn fetch_text(url: String) -> Result<String, String> {
 #[tauri::command]
 fn open_external(url: String) -> Result<(), String> {
     https_only(&url)?;
-    Command::new("explorer.exe").arg(&url).spawn().map(|_| ()).map_err(|e| e.to_string())
+    open_with_system(&url)
 }
 
 #[tauri::command]
@@ -318,6 +343,36 @@ fn watch_clipboard(app: AppHandle) {
     });
 }
 
+/// macOS / Linux have no change counter, so while the setting is on the text is read once a second and compared.
+/// Whatever was on the clipboard when the setting turned on is ignored.
+#[cfg(not(windows))]
+fn watch_clipboard(app: AppHandle) {
+    std::thread::spawn(move || {
+        let mut board: Option<arboard::Clipboard> = None;
+        let mut last: Option<String> = None;
+        loop {
+            std::thread::sleep(std::time::Duration::from_millis(1000));
+            if !CLIP_ON.load(Ordering::Relaxed) {
+                last = None;
+                continue;
+            }
+            if board.is_none() {
+                board = arboard::Clipboard::new().ok();
+            }
+            let Some(b) = board.as_mut() else { continue };
+            let Ok(text) = b.get_text() else { continue };
+            if last.as_deref() == Some(text.as_str()) {
+                continue;
+            }
+            let first = last.is_none();
+            last = Some(text.clone());
+            if !first && text.len() <= 20_000 && text.chars().any(|c| ('가'..='힣').contains(&c)) {
+                let _ = app.emit_to("main", "clip", text);
+            }
+        }
+    });
+}
+
 #[tauri::command]
 fn close_to_tray(on: bool) {
     CLOSE_TO_TRAY.store(on, Ordering::Relaxed);
@@ -449,7 +504,6 @@ fn main() {
                     }
                 })
                 .build(app)?;
-            #[cfg(windows)]
             watch_clipboard(app.handle().clone());
             Ok(())
         })

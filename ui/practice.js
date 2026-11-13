@@ -128,7 +128,7 @@ function lookAlikes(ch,n=6){
   const near=shuffle(pool.filter(v=>[...v.ch].some(c=>syl.has(c))));
   return[...near,...shuffle(pool)].map(v=>v.ch).filter((c,i,a)=>a.indexOf(c)===i).slice(0,n);
 }
-$('wsCheck').hidden=!tauri;
+$('wsCheck').hidden=!tauri||!navigator.userAgent.includes('Windows'); // Windows speech recognition only
 $('wsCheck').onclick=async()=>{
   const w=wsW;if(!w||mediaRec?.state==='recording')return;
   $('wsCheck').disabled=true;setMsg('wsMsg','Listening… say the word now.');

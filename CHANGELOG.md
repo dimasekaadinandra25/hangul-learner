@@ -2,6 +2,11 @@
 
 What changed in each version of Hangul Learner. Newest first. Installed apps update themselves; Settings › Updates shows your version.
 
+## 1.6.1
+
+- **Mac and Linux versions:** Hangul Learner now also comes for macOS (Apple Silicon and Intel; the first launch needs right-click › Open) and Linux (AppImage and .deb). They update themselves like the Windows version.
+- On Mac and Linux, the pronunciation check is hidden (it uses Windows speech recognition) and the sync folder is typed in Settings.
+
 ## 1.6.0
 
 - **More grammar:** 72 new patterns, so every TOPIK level now has 24 (4 units) instead of 12, each with examples you can hear.
