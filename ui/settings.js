@@ -7,6 +7,14 @@ const setMsg=(id,text,bad)=>{$(id).textContent=text;$(id).classList.toggle('bad'
 function openSettings(){renderSettings();$('settings').showModal();$('setClose').focus({focusVisible:false})}
 document.addEventListener('click',e=>{if(e.target.closest('[data-settings]'))openSettings()});
 $('setClose').onclick=()=>$('settings').close();
+// ? anywhere (except while typing) shows every keyboard shortcut
+const openKeys=()=>{document.querySelectorAll('dialog[open]').forEach(d=>d.close());$('keysSheet').showModal();$('keysClose').focus({focusVisible:false})};
+$('keysClose').onclick=()=>$('keysSheet').close();$('keysOpen').onclick=openKeys;
+document.addEventListener('keydown',e=>{
+  if(e.key!=='?'||e.ctrlKey||e.altKey||e.metaKey||$('keysSheet').open)return;
+  const el=document.activeElement;if(el?.matches('input,textarea,select,[contenteditable],.type-box')||view==='write'&&wTab!=='trace'||L&&!$('lesson').hidden)return; // not during a lesson: its keys stay its own
+  e.preventDefault();openKeys();
+});
 $('settings').addEventListener('click',e=>{if(e.target===$('settings'))$('settings').close()}); // click outside
 
 function renderSettings(){
@@ -57,6 +65,10 @@ tauri?.event.listen('player-cmd',e=>{
   tauri.core.invoke('show_main');show('learn');
   if(dueKeys(P).length&&!L)startLesson(()=>buildSmart(P),{step:null,smart:true});
 });
+
+// ---- Korean text size: a zoom on Korean text only (CSS --ko-size); per device ----
+$('koSize').value=String(lsGet('koSize',1));
+$('koSize').onchange=e=>{const k=+e.target.value||1;lsSet('koSize',k);document.documentElement.style.setProperty('--ko-size',k)};
 
 // ---- Updates: Tauri's updater reads latest.json from the public releases page; installers are signed and checked ----
 const upd=tauri?.updater;
@@ -111,7 +123,7 @@ function cleanBackup(obj){
   if(obj?.app!=='hangul-learner'||!p||typeof p!=='object'||!Number.isFinite(p.xp)||!p.stats||typeof p.stats!=='object'||Array.isArray(p.stats))return null;
   const str=(v,n)=>String(v??'').slice(0,n);
   return{...p,inbox:[],inboxSeen:Date.now(),
-    notebook:(Array.isArray(p.notebook)?p.notebook:[]).slice(0,2000).map(w=>({ch:str(w?.ch,40),meaning:str(w?.meaning,80),added:+w?.added||0})).filter(w=>w.ch&&w.meaning),
+    notebook:(Array.isArray(p.notebook)?p.notebook:[]).slice(0,2000).map(w=>({ch:str(w?.ch,120),meaning:str(w?.meaning,200),added:+w?.added||0})).filter(w=>w.ch&&w.meaning),
     tests:(Array.isArray(p.tests)?p.tests:[]).slice(-50).filter(t=>Number.isFinite(t?.score)&&Number.isFinite(t?.total)&&t.total>0),
     drills:Object.fromEntries(['num','verb','part','sound','read'].map(k=>[k,{right:Math.max(0,+p.drills?.[k]?.right||0),tries:Math.max(0,+p.drills?.[k]?.tries||0)}])),
     stories:Object.fromEntries(STORIES.filter(s=>p.stories?.[s.id]).map(s=>[s.id,{best:Math.max(0,Math.min(s.qs.length,+p.stories[s.id].best||0)),at:+p.stories[s.id].at||0}])),

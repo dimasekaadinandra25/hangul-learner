@@ -25,7 +25,10 @@ function numQ(ref){
 function verbQ(ref){
   let v,form;
   if(ref){const[ch,f]=ref.split('|');v=VERBS.find(w=>w.ch===ch);form=f}
-  if(!v){v=pickOne(VERBS.filter(w=>PX.verbLevel==='all'||w.section===+PX.verbLevel));const fs=formsFor(v.ch);form=PX.verbForm!=='all'&&fs.includes(PX.verbForm)?PX.verbForm:pickOne(fs)}
+  if(!v){ // with an ending chosen, only verbs that have it (있다/없다 words have no honorific)
+    const pool=VERBS.filter(w=>PX.verbLevel==='all'||w.section===+PX.verbLevel),fit=PX.verbForm==='all'?pool:pool.filter(w=>formsFor(w.ch).includes(PX.verbForm));
+    v=pickOne(fit.length?fit:pool);const fs=formsFor(v.ch);form=fs.includes(PX.verbForm)?PX.verbForm:pickOne(fs);
+  }
   const F=VERB_FORMS[form],irr=irrOf(v.ch),right=conj(v.ch,form),others=formsFor(v.ch).filter(f=>f!==form).map(f=>conj(v.ch,f));
   return makeQ({kind:'verb',ref:`${v.ch}|${form}`,kicker:`${F.label} · ${SECTIONS[v.section].title}`,big:v.ch,bigKo:true,sub:`${v.meaning} → ${F.ask}`,say:right,ko:true,
     right,wrong:[...shuffle(verbWrongs(v.ch,form)),...shuffle(others)],note:(irr?IRR_NOTE[irr]+' ':'')+F.note});
@@ -108,7 +111,7 @@ function storyView(s){
   return`<button class="link back" data-story="">${icon('back')}All stories</button>
   <div class="story-head"><div><span class="kicker">TOPIK ${s.level} · 읽기</span><h2 class="ko" lang="ko">${s.title}</h2><p class="muted">${s.en}</p></div>
     <div class="btn-row"><button class="btn" data-sall>${icon(sQueue.on?'pause':'play')}${sQueue.on?'Stop':'Hear all'}</button>${slowChip()}<button class="btn" data-sen aria-pressed="${PX.en}">${PX.en?'Hide':'Show'} English</button></div></div>
-  <div class="panel story-text">${s.lines.map((l,i)=>`<button class="sent${PX.en||PX.shown.has(i)?' open':''}${sQueue.on&&sQueue.i===i?' now':''}" data-sline="${i}"><span class="ko" lang="ko">${esc(l[0])}</span><small>${esc(l[1])}</small></button>`).join('')}</div>
+  <div class="panel story-text">${s.lines.map((l,i)=>`<div class="sent-row"><button class="sent${PX.en||PX.shown.has(i)?' open':''}${sQueue.on&&sQueue.i===i?' now':''}" data-sline="${i}"><span class="ko" lang="ko">${esc(l[0])}</span><small>${esc(l[1])}</small></button>${saveBtn('s'+i,l[0])}</div>`).join('')}</div>
   <p class="muted" style="font-size:.9rem;margin:8px 0 0">Tap a sentence to hear it and see what it means.</p>
   <h2 class="section-title">Words in this story</h2>
   <div class="wchips">${words.map(w=>`<button class="wc" data-word="${esc(w.ch)}" title="Hear it, save it or say it"><b class="ko">${esc(w.ch)}</b><small>${esc(w.meaning)}</small></button>`).join('')}
@@ -128,6 +131,8 @@ function checkStory(s){
 }
 // One audio element for stories and dialogues: plays a recorded line, resolves when it ends
 const sAudio=new Audio(),sQueue={on:false,i:-1,run:0};
+// ☆ next to a story or conversation sentence: saves it to My words
+const saveBtn=(key,ko)=>{const on=inNotebook(ko);return`<button class="icon-btn sm s-save${on?' on':''}" data-ssave="${key}" aria-pressed="${on}" title="${on?'Saved in My words: tap to remove':'Save this sentence to My words'}" aria-label="Save sentence">${icon('star')}</button>`};
 const playLine=(text,male)=>new Promise(r=>{sAudio.src='audio/'+(male?'m-':'')+audioName(text);sAudio.playbackRate=PX.slow?SLOW:1;sAudio.onended=sAudio.onerror=()=>setTimeout(r,350);sAudio.play().catch(r)});
 async function hearAll(s){
   const run=++sQueue.run;sQueue.on=true;
@@ -156,7 +161,7 @@ function talkView(d){
   <div class="panel talk">${d.lines.map(([r,ko,en],i)=>{const me=r===TK.role,now=i===TK.i;
     return`<div class="bubble${me?' me':''}${now?' now':''}${TK.role&&i>TK.i&&!ended?' later':''}"><small>${esc(who(r))}${me?' · you':''}</small>
       <button class="b-line" data-tline="${i}" title="Hear it"><span class="ko" lang="ko">${esc(ko)}</span>${PX.en||now&&me?`<em>${esc(en)}</em>`:''}</button>
-      ${TK.urls[i]?`<button class="link" data-tmine="${i}">${icon('play')}My recording</button>`:''}</div>`}).join('')}</div>
+      ${TK.urls[i]?`<button class="link" data-tmine="${i}">${icon('play')}My recording</button>`:''}${saveBtn('t'+i,ko)}</div>`}).join('')}</div>
   <div class="talk-bar">${!TK.role?'<span class="muted">Choose your part to start.</span>'
     :ended?`<b>Conversation done!</b><button class="btn" data-tstart>${icon('rotate')}Again</button>`
     :TK.i<0?`<button class="btn btn-ink" data-tstart>${icon('play')}Start</button>`
@@ -205,6 +210,11 @@ $('pBody').addEventListener('click',e=>{
   if(t.dataset.story!=null){stopHearAll();Object.assign(PX,{story:t.dataset.story||null,shown:new Set(),pick:{},checked:false});renderPractice();return scrollTo(0,0)}
   if(t.dataset.talk!=null){talkReset();Object.assign(TK,{id:t.dataset.talk||null,role:null});renderPractice();return scrollTo(0,0)}
   if(t.hasAttribute('data-sen')){PX.en=!PX.en;return renderPractice()}
+  if(t.dataset.ssave){ // save a whole sentence to My words (with its English); again removes it
+    const k=t.dataset.ssave,i=+k.slice(1),line=k[0]==='s'?STORIES.find(x=>x.id===PX.story)?.lines[i]:DIALOGUES.find(x=>x.id===TK.id)?.lines[i]?.slice(1);if(!line)return;
+    const[ko,en]=line;if(inNotebook(ko))removeFromNotebook(ko);else{addToNotebook(ko,en);toast('sync','Sentence saved','In My words, and in Smart review from today','star')}
+    save();return renderPractice();
+  }
   const d=DIALOGUES.find(x=>x.id===TK.id);
   if(PT==='talk'&&d){
     if(t.dataset.role){talkReset();TK.role=t.dataset.role;return renderPractice()}

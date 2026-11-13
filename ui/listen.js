@@ -59,9 +59,40 @@ async function fetchFeed(src){
     catch(e){if(k===2)throw e;await new Promise(r=>setTimeout(r,1200*(k+1)))}
   }
 }
+// When YouTube's feed is down (it has answered 404 for every channel at times), the list comes from YouTube's own embedded
+// player instead: it is asked to cue the channel's uploads playlist and reports the video ids (getPlaylist); each title
+// comes from YouTube's public oEmbed endpoint. Official interfaces only, no key. Dates aren't available that way.
+// The player sometimes stays silent, so up to 3 tries (12 s each), alternating the two ways of loading a list.
+function playlistIds(list,cue){
+  const box=document.createElement('div');box.style.cssText='position:fixed;left:0;top:0;width:320px;height:320px;opacity:0;pointer-events:none'; // invisible; a tiny or off-screen player never loads the list
+  const el=document.createElement('div');box.append(el);document.body.append(box);
+  let p=null,poll=0,t=0;
+  return new Promise((res,rej)=>{
+    t=setTimeout(()=>rej(Error('YouTube did not answer')),12000);
+    p=new YT.Player(el,{host:'https://www.youtube-nocookie.com',width:320,height:320,...(cue?{}:{playerVars:{listType:'playlist',list}}),events:{
+      onReady:()=>{if(cue)p.cuePlaylist({listType:'playlist',list});poll=setInterval(()=>{const l=p.getPlaylist?.();if(l?.length)res(l)},300)},
+      onError:e=>rej(Error('YouTube player error '+e.data))}});
+  }).finally(()=>{clearTimeout(t);clearInterval(poll);try{p?.destroy()}catch{}box.remove()});
+}
+async function uploadsViaPlayer(src){
+  await ytApi();
+  const list='UU'+src.id.slice(2);let ids=null,err;
+  for(let k=0;k<3&&!ids;k++)ids=await playlistIds(list,k%2===0).catch(e=>{err=e;return null});
+  if(!ids)throw err;
+  const items=await Promise.all(ids.filter(id=>/^[\w-]{11}$/.test(id)).slice(0,20).map(id=>
+    fetchText(`https://www.youtube.com/oembed?format=json&url=https://www.youtube.com/watch?v=${id}`).then(t=>({id,title:String(JSON.parse(t).title||''),desc:'',date:0}),()=>null)));
+  return items.filter(v=>v?.title);
+}
 async function loadFeed(src){
-  const xml=await fetchFeed(src);
-  const f={at:Date.now(),...(src.feed?parsePodcast(xml):parseYouTube(xml))};
+  let f;
+  if(src.feed)f=parsePodcast(await fetchFeed(src));
+  else try{f=parseYouTube(await fetchFeed(src))}
+  catch(e){
+    const items=await uploadsViaPlayer(src).catch(()=>[]);
+    if(!items.length)throw Error('YouTube’s video list is down right now (their side, not the app or your internet)');
+    f={items,about:'Latest videos from this channel. YouTube’s list service is down, so this list comes from YouTube’s player (no dates).',viaPlayer:true};
+  }
+  f={at:Date.now(),...f};
   if(!f.items.length)throw Error('no episodes found');
   lsSet('feed:'+src.id,f);epKey='';return feeds[src.id]=f; // epKey: re-read the playing episode's words
 }
@@ -240,13 +271,16 @@ function renderListen(){
     $('lBody').innerHTML=`<div class="shows">${list.map(s=>`<button class="show${NP?.src===s.id?' now':''}" data-show="${s.id}">${seal(esc(s.seal),'m',s.color)}<span><b>${esc(s.name)}</b><small>${esc(s.level)}</small></span>${NP?.src===s.id?`<span class="eq" aria-label="Playing">${icon('headphones')}</span>`:''}</button>`).join('')}</div>`;
     return;
   }
+  const kept=savedFeed(src);
+  if(LV.fetched!==src.id&&!LV.force&&!src.feed&&kept&&!kept.viaPlayer&&Date.now()-kept.at<6*3600e3)LV.fetched=src.id; // YouTube: a list from the last 6 hours is fresh enough
+  LV.force=false;
   if(LV.fetched!==src.id&&LV.loading!==src.id){ // opened (or Refresh): get the newest episodes
     const lv=LV;lv.fetched=src.id;lv.loading=src.id;lv.err='';
     loadFeed(src).catch(e=>{if(lv.fetched===src.id)lv.err=String(e?.message||e).slice(0,120)}).finally(()=>{if(lv.loading===src.id)lv.loading=false;if(view==='listen'&&LV===lv)renderListen()});
   }
   const f=savedFeed(src);
   const status=LV.loading===src.id?`<span class="loading">${f?'Checking for new episodes…':'Loading episodes…'}</span>`
-    :LV.err?`Couldn’t ${f?'check for new episodes':'load this feed'} (${esc(LV.err)}).${f?' Showing the last saved list.':' Check your internet connection.'} <button class="link" data-refresh>Try again</button>`
+    :LV.err?`Couldn’t ${f?'check for new episodes':'load this feed'} (${esc(LV.err)}).${f?' Showing the last saved list.':src.feed?' Check your internet connection.':''} <button class="link" data-refresh>Try again</button>`
     :f?`Updated ${timeAgo(f.at)} · <button class="link" data-refresh>Refresh</button>`:'';
   const head=`<button class="link back" data-show="">${icon('back')}All ${LV.tab==='pod'?'podcasts':'channels'}</button>
     <div class="show-head">${seal(esc(src.seal),'m',src.color)}<div><h2>${esc(src.name)}</h2><p class="muted">${esc(f?.about||src.level)}</p></div></div>
@@ -261,7 +295,7 @@ function renderListen(){
 $('listen').addEventListener('click',e=>{
   const t=e.target.closest('[data-ltab]');if(t){LV={tab:t.dataset.ltab,open:null,err:'',loading:false};return renderListen()}
   const s=e.target.closest('[data-show]');if(s){LV.open=s.dataset.show||null;LV.err='';LV.fetched=null;renderListen();return scrollTo(0,0)}
-  if(e.target.closest('[data-refresh]')){LV.fetched=null;return renderListen()}
+  if(e.target.closest('[data-refresh]')){LV.fetched=null;LV.force=true;return renderListen()}
   const src=(LV.tab==='pod'?PODCASTS:CHANNELS).find(x=>x.id===LV.open),f=src&&savedFeed(src);if(!f)return;
   const ep=e.target.closest('[data-ep]');
   if(ep){const it=f.items[+ep.dataset.ep];return NP?.url===it.url?PL.toggle():playEp(src,it)}

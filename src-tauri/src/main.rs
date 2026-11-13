@@ -73,7 +73,7 @@ fn backup_dir(app: &AppHandle) -> Result<PathBuf, String> {
 
 #[tauri::command]
 fn export_backup(app: AppHandle, name: String, data: String) -> Result<String, String> {
-    if !name.ends_with(".json") || !name.chars().all(|c| c.is_ascii_alphanumeric() || "-_.".contains(c)) {
+    if !(name.ends_with(".json") || name.ends_with(".csv")) || !name.chars().all(|c| c.is_ascii_alphanumeric() || "-_.".contains(c)) {
         return Err("bad file name".into());
     }
     let path = backup_dir(&app)?.join(name);

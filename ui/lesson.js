@@ -227,6 +227,17 @@ const stepXp=(step,heartsLeft)=>step==null?10:STEPS[step].xp+heartsLeft*(step===
 
 const dayKey=(d=new Date())=>d.toLocaleDateString('sv'); // local YYYY-MM-DD
 // A streak survives until a full day is missed, so if today isn't done yet count from yesterday.
+// Rest days (streak freeze): finishing all 3 weekly quests earns one (up to 2 kept). A missed day is covered by one
+// automatically, so the streak goes on; rest days count for the streak only, never as XP or study days.
+const activeDays=P=>({...(P.frozen||{}),...P.days});
+function useRestDays(P,today=new Date()){
+  const used=[];
+  for(let k=2;k>=1;k--){ // the day before yesterday, then yesterday (today can still be studied)
+    const d=new Date(today);d.setDate(d.getDate()-k);const day=dayKey(d),before=new Date(d);before.setDate(before.getDate()-1);
+    if((P.freezes||0)>0&&!activeDays(P)[day]&&streak(activeDays(P),before)>0){(P.frozen??={})[day]=1;P.freezes--;used.push(day)}
+  }
+  return used;
+}
 function streak(days,today=new Date()){
   const d=new Date(today);let n=0;
   if(!days[dayKey(d)])d.setDate(d.getDate()-1);

@@ -93,7 +93,7 @@ function renderResult(){
 // ---------------- Stats ----------------
 function renderStatsPage(){
   const days=Object.entries(P.days).filter(([,x])=>x>0),gram=GRAMMAR_ITEMS.filter(g=>isMastered(P,g.ch)).length;
-  const tiles=[[P.xp.toLocaleString(),'total XP'],[P.bestStreak||streak(P.days),'best streak (days)'],[days.length,'study days'],
+  const tiles=[[P.xp.toLocaleString(),'total XP'],[P.bestStreak||streak(activeDays(P)),'best streak (days)'],[days.length,'study days'],
     [`${wordsMastered(P)}<small>/${VOCAB.length}</small>`,'words mastered'],[`${gram}<small>/${GRAMMAR_ITEMS.length}</small>`,'grammar patterns mastered'],
     [((P.totals.listenSec||0)/3600).toFixed(1),'hours listened'],[P.totals.smart||0,'Smart reviews'],[(P.tests||[]).length,'practice tests']];
   // heatmap: 26 weeks, Monday first

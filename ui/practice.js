@@ -54,6 +54,18 @@ tauri?.event.listen('mini-save',e=>{
   const ch=String(e.payload?.ch||'').slice(0,40),meaning=String(e.payload?.meaning||'').slice(0,80);if(!ch||!meaning)return;
   inNotebook(ch)?removeFromNotebook(ch):addToNotebook(ch,meaning);save();update();
 });
+// Export My words as CSV (Korean,English; UTF-8 with BOM so Excel shows Hangul). Anki: File › Import, comma separated.
+const csvCell=v=>/[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;
+$('exportWords').onclick=async()=>{
+  const list=P.notebook||[];if(!list.length)return setMsg('exportMsg','My words is empty.',true);
+  const name=`hangul-my-words-${dayKey()}.csv`,data='\ufeff'+list.map(w=>csvCell(w.ch)+','+csvCell(w.meaning)).join('\r\n')+'\r\n';
+  if(!tauri){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'text/csv'}));a.download=name;a.click();return}
+  try{
+    const path=await tauri.core.invoke('export_backup',{name,data});
+    $('exportMsg').innerHTML=`${list.length} words saved · <button class="link" id="showWords">Show in folder</button>`;$('exportMsg').classList.remove('bad');
+    $('showWords').onclick=()=>tauri.core.invoke('show_in_folder',{path});
+  }catch(e){setMsg('exportMsg','Could not save: '+e,true)}
+};
 // Import a word list into My words (parseWordList is in practice-data.js)
 $('importWords').onchange=async e=>{
   const f=e.target.files[0];e.target.value='';if(!f)return;

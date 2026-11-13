@@ -487,7 +487,7 @@ const visible = t => win('state', t).visible;
       for (const [id, name] of list) await test(`${kind === 'pod' ? 'podcast' : 'YouTube'} "${name}" loads and lists episodes`, async () => {
         const r = await main.run(`LV={tab:'${kind}',open:'${id}',err:'',loading:false};renderListen();await T.until(()=>feeds['${id}']||LV.err,40000,'feed');
           renderListen();const it=feeds['${id}']?.items||[];return {err:LV.err,n:it.length,rows:document.querySelectorAll('#lBody .ep,#lBody .vid').length,sorted:it.every((e,i)=>!i||it[i-1].date>=e.date),newest:it[0]?.date}`);
-        if (kind === 'yt' && /returned error: (404|5\d\d)/.test(r.err)) throw new Error('SKIP: YouTube feed service answered ' + r.err.match(/error: (\d{3})/)[1]);
+        if (kind === 'yt' && /video list is down/.test(r.err)) throw new Error('SKIP: YouTube feed and its player list are both down right now');
         ok(!r.err, r.err); ok(r.n > 0, 'no episodes'); eq(r.rows, r.n, 'rows shown'); ok(r.sorted, 'not newest first');
       });
     }
@@ -780,6 +780,40 @@ const visible = t => win('state', t).visible;
     await test('pronunciation check: Windows listens; without the Korean speech pack it explains how to add it', async () => {
       const r = await main.run(`openWord('학교');T.click('#wsCheck');await T.until(()=>!$('wsCheck').disabled,15000,'check finished');const m=$('wsMsg').textContent;closeSheet();return m`);
       ok(/Korean speech pack|Recognised|heard|catch/.test(r), 'message: ' + r);
+    });
+
+    group('Rest days, text size, saved sentences, export, shortcuts'); await fresh();
+    await test('weekly quests explain rest days', async () => {
+      ok(/rest day.*You have \d/.test(await main.run(`show('quests');return $('restNote').textContent`)), 'rest day note');
+    });
+    await test('Korean text size zooms Korean text only', async () => {
+      const r = await main.run(`show('vocab');$('koSize').value='1.3';$('koSize').dispatchEvent(new Event('change'));await T.sleep(100);
+        const ko=getComputedStyle(document.querySelector('#vList [lang=ko],#vList .ko')||document.querySelector('[lang=ko]')).zoom,en=getComputedStyle($('vCount')).zoom;
+        $('koSize').value='1';$('koSize').dispatchEvent(new Event('change'));return {ko,en,saved:lsGet('koSize',1)}`);
+      eq([r.ko, r.en, r.saved], ['1.3', '1', 1], 'zoom');
+    });
+    await test('☆ next to a story sentence saves it to My words; again removes it', async () => {
+      const r = await main.run(`show('practice');T.click('[data-ptab=read]');T.click('[data-story=family]');const s=STORIES.find(x=>x.id==='family').lines[0][0];
+        T.click('[data-ssave=s0]');const saved=inNotebook(s),star=document.querySelector('[data-ssave=s0]').classList.contains('on');T.click('[data-ssave=s0]');
+        const gone=!inNotebook(s);T.click('[data-story=""]');return {saved,star,gone}`);
+      eq(r, {saved: true, star: true, gone: true}, 'sentence');
+    });
+    await test('Export My words writes a CSV (Korean,English) to Documents › Hangul Learner', async () => {
+      const r = await main.run(`addToNotebook('학교','school, place');show('vocab');T.click('[data-vtab=mine]');T.click('#exportWords');await T.until(()=>$('exportMsg').textContent,5000,'export');
+        removeFromNotebook('학교');save();return $('exportMsg').textContent`);
+      ok(/words saved/.test(r), 'message: ' + r);
+      const docs = path.join(os.homedir(), 'Documents', 'Hangul Learner'), f = fs.readdirSync(docs).filter(x => /^hangul-my-words-.*\.csv$/.test(x)).map(x => path.join(docs, x));
+      ok(f.length, 'no csv'); ok(fs.readFileSync(f[0], 'utf8').includes('학교,"school, place"'), 'csv content'); f.forEach(x => exported.push(x));
+    });
+    await test('? opens the keyboard shortcut list; not while typing', async () => {
+      const r = await main.run(`show('learn');document.dispatchEvent(new KeyboardEvent('keydown',{key:'?'}));const open=$('keysSheet').open,rows=document.querySelectorAll('#keysSheet .key-row').length;$('keysSheet').close();
+        show('write');T.click('[data-wtab=type]');document.dispatchEvent(new KeyboardEvent('keydown',{key:'?'}));const typing=$('keysSheet').open;$('keysSheet').close();show('learn');return {open,rows:rows>=12,typing}`);
+      eq(r, {open: true, rows: true, typing: false}, 'shortcuts');
+    });
+    await test('YouTube: when the feed fails, the list comes from YouTube’s player (ids) and oEmbed (titles)', async () => {
+      const r = await main.run(`const items=await uploadsViaPlayer(CHANNELS[0]).catch(e=>String(e));return Array.isArray(items)?{n:items.length,titled:items.every(v=>v.title&&/^[\\w-]{11}$/.test(v.id))}:{err:items}`);
+      if (r.err) throw new Error('SKIP: YouTube player list unavailable: ' + r.err);
+      ok(r.n >= 5, 'videos: ' + r.n); ok(r.titled, 'titles');
     });
 
     group('Tray and closing'); await fresh();

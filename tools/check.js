@@ -66,6 +66,10 @@ assert(strokeScore(STROKES['ㅏ'],STROKES['ㅏ'].map(s=>s.map(([x,y])=>[x+3,y-2]
 assert.strictEqual(strokeScore(STROKES['ㅏ'],[]),0);
 `+`
 const keys=VOCAB.map(w=>w.ch); // a word may equal a practice syllable (코, 비); that's fine
+assert.strictEqual(parseWordList('\\ufeff학교,school\\r\\n"책, 공책","book, notebook"\\r\\n').length,2,'exported CSV reads back');
+// rest days: a missed yesterday is covered while the streak is alive; none left = streak breaks
+{const t=new Date(2026,10,13,12),P={days:{'2026-11-10':10,'2026-11-11':10},freezes:1};assert.deepStrictEqual(useRestDays(P,t),['2026-11-12']);assert.strictEqual(P.freezes,0);assert.strictEqual(streak(activeDays(P),t),3);
+  const Q={days:{'2026-11-10':10},freezes:0};assert.deepStrictEqual(useRestDays(Q,t),[]);const R={days:{},freezes:2};assert.deepStrictEqual(useRestDays(R,t),[],'no streak to save')}
 // sync merge: both PCs studied since they last agreed
 {const base={xp:100,days:{'2026-11-10':100},stats:{가:{heard:2,right:1,tries:2,written:0}},totals:{lessons:3},units:{t1:1},srs:{가:{u:'a',iv:1,ease:2.3,due:'2026-11-11'}},
     notebook:[{ch:'사과',meaning:'apple'},{ch:'책',meaning:'book'}],tasks:['t1'],badges:[],mistakes:{x:'u1',y:'u2'},log:{'2026-11-10':{lessons:3,claimed:['q1']}},section:1,tests:[],stories:{},drillMiss:{num:['a','b']},weekClaims:{},bestStreak:2};

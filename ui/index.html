@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hangul Learner</title>
-<script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;const k=+localStorage.getItem('koSize');if(k)document.documentElement.style.setProperty('--ko-size',k)}catch(e){}</script>
 <link rel="stylesheet" href="theme.css">
 <style>
 /* Hanji Studio: hanji paper, ink, obangsaek accents (red 적, indigo 청, gold 황), seal stamps (도장) */
@@ -246,6 +246,9 @@ h2.section-title{font-size:1.25rem;margin:30px 0 12px}
 .fam{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.fam>b{font-size:.92rem;margin-right:2px}.fam>b span{font-family:serif;font-size:1.15rem;margin-right:4px}
 .fam .wc{min-height:32px;padding:4px 10px}.fam .wc[aria-current]{background:var(--ink);color:var(--paper)}
 .test-passage{max-width:640px;margin:0 0 18px;padding:16px 18px;border:1px solid var(--hair);border-radius:12px;background:var(--paper);font-family:var(--ko);font-size:1.12rem;line-height:1.8}
+/* Korean text size (Settings › Text): zooms Korean text only, once (not again inside nested Korean text) */
+:root{--ko-size:1}
+:is([lang=ko],.ko):not(:is([lang=ko],.ko) *){zoom:var(--ko-size)}
 .search{position:relative;margin-bottom:14px}
 .search .i{position:absolute;left:2px;top:50%;translate:0 -50%;color:var(--muted)}
 .search input{width:100%;min-height:50px;padding:10px 4px 10px 34px;border:0;border-bottom:1px solid var(--hair);background:none;font-size:1.05rem}
@@ -459,6 +462,7 @@ dialog.sheet::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
 .switch[aria-checked=true]{background:var(--jade);border-color:var(--jade)}
 .switch[aria-checked=true]::after{translate:18px 0}
 .set-row input[type=time]{min-height:40px;padding:6px 10px;border-radius:10px;border:1px solid var(--hair);background:var(--card);font-size:1rem}
+.key-row{display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--hair-2)}.key-row:last-child{border-bottom:0}.key-row>span:last-child{margin-left:auto;color:var(--ink-2);text-align:right}
 .kbd{display:inline-block;padding:1px 7px;border:1px solid var(--hair);border-bottom-width:2px;border-radius:6px;font-size:.8rem;font-family:var(--sans);color:var(--ink);background:var(--paper)}
 .set-msg{margin:4px 0 0;font-size:.85rem;color:var(--muted)}
 .set-msg.bad{color:var(--red)}
@@ -643,6 +647,9 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
 .story-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:14px;margin:4px 0 14px}
 .story-head h2{font-size:1.9rem}
 .story-text{display:grid;gap:2px;padding:10px}
+.sent-row{display:flex;align-items:flex-start;gap:4px}.sent-row .sent{flex:1}
+.s-save{flex:none;width:34px;height:34px;color:var(--muted);opacity:.55}.s-save:hover,.s-save:focus-visible{opacity:1}.s-save.on{color:var(--gold);opacity:1}.s-save.on svg{fill:currentColor}
+.bubble .s-save{float:right;margin:-4px -6px 0 4px}
 .sent{display:block;text-align:left;padding:10px 12px;border-radius:10px;border:0;background:none}
 .sent:hover{background:var(--paper-2)}
 .sent.now{background:var(--blue-bg)}
@@ -732,7 +739,7 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
       <div class="page-head"><span class="kicker">과제</span><h1>Quests</h1><p>Daily, weekly and one-time tasks. Rewards are added automatically when you finish.</p></div>
       <div class="qsum" id="qSummary"></div>
       <div class="qsec"><div class="qsec-head"><span class="kicker">오늘</span><h2>Daily quests</h2><span class="muted" id="qReset"></span></div><div class="panel" id="questList"></div></div>
-      <div class="qsec"><div class="qsec-head"><span class="kicker">이번 주</span><h2>Weekly quests</h2><span class="muted" id="wReset"></span></div><div class="panel" id="weeklyList"></div></div>
+      <div class="qsec"><div class="qsec-head"><span class="kicker">이번 주</span><h2>Weekly quests</h2><span class="muted" id="wReset"></span></div><div class="panel" id="weeklyList"></div><p class="muted" id="restNote" style="margin:10px 2px 0;font-size:.88rem"></p></div>
       <div class="qsec"><div class="qsec-head"><span class="kicker">할 일</span><h2>Tasks</h2><span class="muted" id="tCount"></span></div><div class="panel" id="taskList"></div></div>
       <div class="qsec"><div class="qsec-head"><span class="kicker">도장 모음</span><h2>Stamp collection</h2><span class="muted" id="bCount"></span></div><div class="stamps" id="badgeList"></div></div>
     </section>
@@ -741,7 +748,7 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
       <div class="page-head"><span class="kicker">단어</span><h1>Words</h1><p>Tap a word to hear it, practise saying it, or save it to My words. A red stamp means mastered (3+ right answers, 75%+ accuracy).</p></div>
       <div class="vtabs"><div class="seg seg-text" id="vTabs" role="group" aria-label="Word list"><button data-vtab="all">All words</button><button data-vtab="mine">My words <span id="mineCount"></span></button></div></div>
       <form class="add-word" id="addWord" hidden><input id="awKo" placeholder="Korean, e.g. 고구마" aria-label="Korean word" required class="ko" lang="ko"><input id="awEn" placeholder="Meaning, e.g. sweet potato" aria-label="Meaning" required><button class="btn btn-ink" type="submit"><i data-icon="plus"></i>Add</button></form>
-      <div class="import-row" id="importRow" hidden><label class="btn" for="importWords"><i data-icon="upload"></i>Import a word list</label><small class="muted">A .csv or .txt file with one word per line: Korean, meaning. Anki “Notes in plain text” exports work too.</small><input type="file" id="importWords" accept=".csv,.txt,.tsv,text/plain,text/csv" hidden></div>
+      <div class="import-row" id="importRow" hidden><label class="btn" for="importWords"><i data-icon="upload"></i>Import a word list</label><small class="muted">A .csv or .txt file with one word per line: Korean, meaning. Anki “Notes in plain text” exports work too.</small><input type="file" id="importWords" accept=".csv,.txt,.tsv,text/plain,text/csv" hidden><button class="btn" id="exportWords"><i data-icon="download"></i>Export</button><span class="set-msg" id="exportMsg"></span></div>
       <div class="search"><i data-icon="search"></i><input type="search" id="vSearch" placeholder="Search Korean, English or romanization (hakgyo)" aria-label="Search words"></div>
       <div class="tabs scroller" id="vLevels" aria-label="Filter by level"></div>
       <p class="muted" id="vCount"></p>
@@ -882,12 +889,14 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
 <dialog class="sheet" id="settings" aria-labelledby="setTitle">
   <div class="sheet-head"><h2 id="setTitle">Settings</h2><button class="icon-btn" id="setClose" aria-label="Close settings"><i data-icon="x"></i></button></div>
   <div class="sheet-body">
+    <div class="set-group"><h3>Text</h3>
+      <div class="set-row"><div><b>Korean text size</b><small>Makes Hangul bigger everywhere: words, stories, conversations. Handy for dense syllables like 읽 and 됐.</small></div><select id="koSize" aria-label="Korean text size"><option value="1">Normal</option><option value="1.15">Large</option><option value="1.3">Larger</option><option value="1.5">Largest</option></select></div></div>
     <div class="set-group"><h3>Sound</h3>
       <div class="set-row"><div><b>Sound effects</b><small>Bell, wood block and stamp sounds in lessons</small></div><button class="link" id="sfxToggle"></button></div></div>
     <div class="set-group"><h3>Desktop</h3>
       <div class="set-row"><div><b>Close to tray</b><small>The close button keeps the app (and audio) running in the tray</small></div><button class="link" id="trayToggle"></button></div>
       <div class="set-row"><div><b>Start with Windows</b><small>Opens quietly in the tray when you sign in</small></div><button class="switch" id="autoSw" role="switch" aria-checked="false" aria-label="Start with Windows"></button></div>
-      <div class="set-row"><div><b>Keyboard shortcuts</b><small>Work from any app: <span class="kbd">Ctrl+Alt+Space</span> play / pause · <span class="kbd">Ctrl+Alt+P</span> mini player · <span class="kbd">Ctrl+Alt+K</span> open the app</small></div><button class="switch" id="keySw" role="switch" aria-checked="false" aria-label="Keyboard shortcuts"></button></div>
+      <div class="set-row"><div><b>Keyboard shortcuts</b><small>Work from any app: <span class="kbd">Ctrl+Alt+Space</span> play / pause · <span class="kbd">Ctrl+Alt+P</span> mini player · <span class="kbd">Ctrl+Alt+K</span> open the app · <button class="link" id="keysOpen">All shortcuts (press ?)</button></small></div><button class="switch" id="keySw" role="switch" aria-checked="false" aria-label="Keyboard shortcuts"></button></div>
       <div class="set-row"><div><b>Words in copied Korean</b><small>When you copy Korean text in any app, the mini player shows the app words in it. The text stays on this computer and is never saved.</small></div><button class="switch" id="clipSw" role="switch" aria-checked="false" aria-label="Words in copied Korean"></button></div>
       <p class="set-msg" id="keyMsg"></p></div>
     <div class="set-group"><h3>Focus timer</h3>
@@ -930,6 +939,31 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
       <div class="wave-key"><span><i style="background:var(--ink)"></i>Native speaker</span><span><i style="background:var(--red)"></i>You</span><span id="wsLen"></span></div>
       <p class="set-msg" id="wsMsg"></p>
     </div>
+  </div>
+</dialog>
+<dialog class="sheet" id="keysSheet" aria-labelledby="keysTitle">
+  <div class="sheet-head"><h2 id="keysTitle">Keyboard shortcuts</h2><button class="icon-btn" id="keysClose" aria-label="Close"><i data-icon="x"></i></button></div>
+  <div class="sheet-body">
+    <div class="set-group"><h3>Anywhere in Windows</h3>
+      <div class="key-row"><span class="kbd">Ctrl</span>+<span class="kbd">Alt</span>+<span class="kbd">Space</span><span>Play / pause</span></div>
+      <div class="key-row"><span class="kbd">Ctrl</span>+<span class="kbd">Alt</span>+<span class="kbd">P</span><span>Mini player</span></div>
+      <div class="key-row"><span class="kbd">Ctrl</span>+<span class="kbd">Alt</span>+<span class="kbd">K</span><span>Open the app</span></div></div>
+    <div class="set-group"><h3>Lessons and tests</h3>
+      <div class="key-row"><span class="kbd">1</span> / <span class="kbd">2</span> / <span class="kbd">3</span> / <span class="kbd">4</span><span>Choose an answer</span></div>
+      <div class="key-row"><span class="kbd">Enter</span><span>Check, then continue</span></div>
+      <div class="key-row"><span class="kbd">R</span><span>Hear it again</span></div>
+      <div class="key-row"><span class="kbd">Esc</span><span>Leave the lesson</span></div></div>
+    <div class="set-group"><h3>Practice page</h3>
+      <div class="key-row"><span class="kbd">1</span> / <span class="kbd">2</span> / <span class="kbd">3</span> / <span class="kbd">4</span><span>Choose an answer</span></div>
+      <div class="key-row"><span class="kbd">Enter</span><span>Next question</span></div>
+      <div class="key-row"><span class="kbd">R</span><span>Hear it again</span></div></div>
+    <div class="set-group"><h3>Typing (Write page)</h3>
+      <div class="key-row"><span class="kbd">Your keyboard</span><span>Type Korean (2-beolsik layout)</span></div>
+      <div class="key-row"><span class="kbd">Backspace</span><span>Delete a letter</span></div>
+      <div class="key-row"><span class="kbd">Enter</span><span>Next word</span></div></div>
+    <div class="set-group"><h3>Everywhere in the app</h3>
+      <div class="key-row"><span class="kbd">?</span><span>Show this list</span></div>
+      <div class="key-row"><span class="kbd">Esc</span><span>Close a window or card</span></div></div>
   </div>
 </dialog>
 <dialog class="ask" id="ask" aria-labelledby="askTitle" aria-describedby="askText">
@@ -1032,8 +1066,9 @@ function checkRewards(notify){
     for(const q of dailyQuests(day))if(!d.claimed.includes(q.id)&&questProgress(P,q,day)>=q.target){
       d.claimed.push(q.id);P.totals.quests++;if(d.claimed.length===4)P.totals.fullDays++;give(QUEST_XP,'quest',q.text,q.icon);again=true}
     for(const q of weeklyQuests(wk))if(!wc.includes(q.id)&&weekProgress(P,q,wk)>=q.target){
-      wc.push(q.id);P.totals.weekly++;give(WEEKLY_XP,'weekly',q.text,q.icon);again=true}
-    P.bestStreak=Math.max(P.bestStreak||0,streak(P.days));
+      wc.push(q.id);P.totals.weekly++;give(WEEKLY_XP,'weekly',q.text,q.icon);again=true
+      if(wc.length===3&&(P.freezes||0)<2){P.freezes=(P.freezes||0)+1;events.push(['stamp','Rest day earned','A missed day won’t break your streak','flame'])}}
+    P.bestStreak=Math.max(P.bestStreak||0,streak(activeDays(P)));
     for(const t of TASKS){if(P.tasks.includes(t.id))continue;const[c,n]=t.get(P);if(c>=n){P.tasks.push(t.id);give(t.xp,'task',t.text,'check');again=true}}
     for(const a of ACHIEVEMENTS){if(P.badges.includes(a.id))continue;const[c,n]=a.get(P);if(c>=n){P.badges.push(a.id);events.push(['stamp',a.name,a.desc,a.icon]);again=true}}
   }
@@ -1042,6 +1077,7 @@ function checkRewards(notify){
   if(shown.length)shown.splice(0).slice(0,4).forEach(e=>toast(...e));
   return events;
 }
+function restCheck(){const r=useRestDays(P);if(r.length){save();toast('sync','Streak saved',r.length===1?'A rest day covered the day you missed.':'Rest days covered the 2 days you missed.','flame')}}
 // In-app confirm dialog. Resolves true when the main action is chosen; Esc, Cancel or the backdrop = false.
 function ask({title,text,ok,cancel='Cancel',danger=false,sealText='?'}){
   const d=$('ask');
@@ -1188,7 +1224,7 @@ function taskRows(){
 }
 const nextTask=()=>TASKS.find(t=>!P.tasks.includes(t.id));
 function renderStats(){
-  const day=dayKey(),today=P.days[day]||0,s=streak(P.days);
+  const day=dayKey(),today=P.days[day]||0,s=streak(activeDays(P));
   setStat('streak',s);setStat('xp',P.xp.toLocaleString());setStat('words',wordsMastered(P));
   setStat('today',`${Math.min(today,DAILY_GOAL)}/${DAILY_GOAL}`);
   document.querySelectorAll('.ring-fg').forEach(c=>c.style.strokeDashoffset=100-Math.min(1,today/DAILY_GOAL)*100);
@@ -1444,6 +1480,7 @@ function renderQuests(){
   $('wReset').textContent=`New in ${Math.floor(msWeek/864e5)}d ${Math.floor(msWeek/3.6e6)%24}h`;
   $('questList').innerHTML=dailyRows(false);
   $('weeklyList').innerHTML=weeklyRows(false);
+  $('restNote').textContent=`Finish all 3 to earn a rest day: it covers a missed day so your streak continues (up to 2). You have ${P.freezes||0}.`;
   $('tCount').textContent=`${P.tasks.length} of ${TASKS.length} done`;
   $('taskList').innerHTML=taskRows();
   $('bCount').textContent=`${P.badges.length} of ${ACHIEVEMENTS.length} collected`;
@@ -1525,6 +1562,7 @@ store.load().then(json=>{
     seedSrs(P); // learners from before Smart review: what they know joins the schedule
   }catch(e){console.error('progress file unreadable, starting fresh',e)}
   const ev=checkRewards(false);loaded=true;render();
+  restCheck();setInterval(restCheck,1800000); // a missed day is covered by a rest day (also when the app stays open overnight)
   if(ev.length)toast('sync',`${ev.length} reward${ev.length===1?'':'s'} from your progress`,'Open the bell to see them all.');
 }).catch(e=>console.error('load failed',e));
 </script>
