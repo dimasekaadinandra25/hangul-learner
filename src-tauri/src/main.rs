@@ -154,6 +154,113 @@ fn clip_watch(on: bool) {
     CLIP_ON.store(on, Ordering::Relaxed);
 }
 
+/// Wakes the page after `ms` (focus timer). Page timers are slowed while the window is hidden; this thread is not.
+/// Stale alarms are harmless: the page checks the real end time.
+#[tauri::command]
+fn alarm(app: AppHandle, ms: u64) {
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(ms.min(4 * 3600 * 1000)));
+        let _ = app.emit_to("main", "alarm", ());
+    });
+}
+
+/// Pronunciation check: Windows speech recognition listens once and returns which of `phrases` it heard ("" = nothing
+/// clear). The first phrase is the word being practised; the others are similar words, so a wrong sound doesn't match it.
+/// Needs Windows' Korean speech pack; without it the error is "NO_KOREAN".
+#[tauri::command]
+async fn recognize(phrases: Vec<String>) -> Result<String, String> {
+    if phrases.is_empty() || phrases.len() > 20 || phrases.iter().any(|p| p.trim().is_empty() || p.chars().count() > 40) {
+        return Err("bad phrases".into());
+    }
+    #[cfg(windows)]
+    return tauri::async_runtime::spawn_blocking(move || speech::recognize(phrases))
+        .await
+        .map_err(|e| e.to_string())?;
+    #[cfg(not(windows))]
+    Err("NO_KOREAN".into())
+}
+
+#[cfg(windows)]
+mod speech {
+    use windows::{
+        core::HSTRING,
+        Foundation::TimeSpan,
+        Globalization::Language,
+        Media::SpeechRecognition::*,
+        Win32::System::WinRT::{RoInitialize, RO_INIT_MULTITHREADED},
+    };
+
+    fn e(err: windows::core::Error) -> String {
+        err.message().to_string()
+    }
+
+    pub fn recognize(phrases: Vec<String>) -> Result<String, String> {
+        let _ = unsafe { RoInitialize(RO_INIT_MULTITHREADED) }; // already initialised is fine
+        let korean = SpeechRecognizer::SupportedGrammarLanguages()
+            .map_err(e)?
+            .into_iter()
+            .any(|l| l.LanguageTag().map(|t| t.to_string().starts_with("ko")).unwrap_or(false));
+        if !korean {
+            return Err("NO_KOREAN".into());
+        }
+        let rec = SpeechRecognizer::Create(&Language::CreateLanguage(&HSTRING::from("ko-KR")).map_err(e)?).map_err(e)?;
+        let list: windows_collections::IIterable<HSTRING> = phrases.iter().map(HSTRING::from).collect::<Vec<_>>().into();
+        rec.Constraints().map_err(e)?.Append(&SpeechRecognitionListConstraint::Create(&list).map_err(e)?).map_err(e)?;
+        if rec.CompileConstraintsAsync().map_err(e)?.join().map_err(e)?.Status().map_err(e)? != SpeechRecognitionResultStatus::Success {
+            return Err("NO_KOREAN".into());
+        }
+        let t = rec.Timeouts().map_err(e)?;
+        t.SetInitialSilenceTimeout(TimeSpan { Duration: 50_000_000 }).map_err(e)?; // 5 s to start speaking
+        t.SetEndSilenceTimeout(TimeSpan { Duration: 8_000_000 }).map_err(e)?; // 0.8 s of quiet ends it
+        let r = rec.RecognizeAsync().map_err(e)?.join().map_err(e)?;
+        let status = r.Status().map_err(e)?;
+        if status == SpeechRecognitionResultStatus::MicrophoneUnavailable {
+            return Err("No microphone found".into());
+        }
+        if status != SpeechRecognitionResultStatus::Success || r.Confidence().map_err(e)? == SpeechRecognitionConfidence::Rejected {
+            return Ok(String::new());
+        }
+        Ok(r.Text().map_err(e)?.to_string())
+    }
+}
+
+/// Progress sync: <folder>\Hangul Learner\progress.json inside a folder OneDrive / Google Drive already syncs.
+fn sync_file(dir: &str) -> Result<PathBuf, String> {
+    let root = PathBuf::from(dir.trim());
+    if !root.is_absolute() || !root.is_dir() {
+        return Err("That folder does not exist".into());
+    }
+    Ok(root.join("Hangul Learner").join("progress.json"))
+}
+
+/// The OneDrive folder, if OneDrive is set up on this PC ("" otherwise).
+#[tauri::command]
+fn sync_default() -> String {
+    ["OneDrive", "OneDriveConsumer", "OneDriveCommercial"]
+        .iter()
+        .filter_map(|k| std::env::var(k).ok())
+        .find(|p| PathBuf::from(p).is_dir())
+        .unwrap_or_default()
+}
+
+#[tauri::command]
+fn sync_read(dir: String) -> Result<String, String> {
+    match fs::read_to_string(sync_file(&dir)?) {
+        Ok(json) => Ok(json),
+        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(String::new()),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+#[tauri::command]
+fn sync_write(dir: String, data: String) -> Result<(), String> {
+    let path = sync_file(&dir)?;
+    fs::create_dir_all(path.parent().unwrap()).map_err(|e| e.to_string())?;
+    let tmp = path.with_extension("json.tmp");
+    fs::write(&tmp, data).map_err(|e| e.to_string())?;
+    fs::rename(&tmp, &path).map_err(|e| e.to_string())
+}
+
 #[cfg(windows)]
 #[link(name = "user32")]
 extern "system" {
@@ -341,7 +448,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             load_progress, save_progress, fetch_text, open_external, close_to_tray, toggle_mini, hide_mini, show_main, mini_video, mini_visible,
-            set_shortcuts, autostart, export_backup, show_in_folder, clip_watch
+            set_shortcuts, autostart, export_backup, show_in_folder, clip_watch, alarm, sync_default, sync_read, sync_write, recognize
         ])
         .run(tauri::generate_context!())
         .expect("failed to start Hangul Learner");

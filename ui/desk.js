@@ -10,6 +10,7 @@ const focusState=()=>FO&&{phase:FO.phase,left:focusLeft()}; // sent to the mini 
 function focusStart(phase='work'){
   const[w,b]=focusSet();FO={phase,end:Date.now()+(phase==='work'?w:b)*60000};
   if(phase==='work'&&NP&&!PL.playing())PL.toggle(); // keep the Korean audio going while you work
+  tauri?.core.invoke('alarm',{ms:FO.end-Date.now()+50}); // rings on time even while Windows slows the hidden window
   renderFocus();update();
 }
 function focusStop(){FO=null;renderFocus();update()}
@@ -33,6 +34,7 @@ function focusTick(){
   renderFocus();if($('dock').hidden)update(); // the dock's own timer already updates every second while something is loaded
 }
 setInterval(focusTick,1000);
+tauri?.event.listen('alarm',focusTick);
 function renderFocus(){
   const b=$('lFocus');if(!b)return;
   const[w]=focusSet();
@@ -51,12 +53,15 @@ function wotdWord(){ // a word due for Smart review, otherwise one from your lev
   const due=dueKeys(P).map(k=>VOCAB.find(w=>w.ch===k)).filter(Boolean);
   return pickOne(due.length?due:VOCAB.filter(w=>w.section===(P.section||0)));
 }
+async function notify(title,body){
+  const n=tauri?.notification;
+  if(!n)return toast('sync',title,body,'bell');
+  if(!await n.isPermissionGranted()&&await n.requestPermission()!=='granted')throw Error('Windows did not allow notifications for this app');
+  n.sendNotification({title,body});
+}
 async function wotdSend(){
   const w=wotdWord();if(!w)return null;
-  const title=`오늘의 단어 · ${w.ch}`,body=`${w.meaning} · Word of the day from Hangul Learner`;
-  const n=tauri?.notification;
-  if(n){if(!await n.isPermissionGranted()&&await n.requestPermission()!=='granted')throw Error('Windows did not allow notifications for this app');n.sendNotification({title,body})}
-  else toast('sync',title,w.meaning,'bell');
+  await notify(`오늘의 단어 · ${w.ch}`,`${w.meaning} · Word of the day from Hangul Learner`);
   return w;
 }
 async function checkWotd(now=new Date()){
@@ -72,6 +77,25 @@ $('wotdSw').onclick=()=>{const r=wotd();r.on=!r.on;lsSet('wotd',r);renderWotd()}
 $('wotdTime').onchange=e=>{const r=wotd();r.time=e.target.value||'09:00';r.last='';lsSet('wotd',r)};
 $('wotdTry').onclick=()=>wotdSend().then(w=>w&&setMsg('wotdMsg',`Sent: ${w.ch} (${w.meaning})`),e=>setMsg('wotdMsg',String(e.message||e),true));
 renderWotd();
+
+// ---- Weekly report: one notification on Sunday evening (or the first time the app runs after it, that week) ----
+function weekReport(week=weekKey()){
+  const days=weekDays(week),xp=days.reduce((s,d)=>s+(P.days[d]||0),0),active=days.filter(d=>P.days[d]>0).length;
+  const min=days.reduce((s,d)=>s+metricOn(P,d,'minutes'),0),lessons=days.reduce((s,d)=>s+metricOn(P,d,'lessons'),0);
+  const best=days.reduce((b,d)=>(P.days[d]||0)>(P.days[b]||0)?d:b,days[0]);
+  const name=new Date(best+'T12:00').toLocaleDateString('en-US',{weekday:'long'});
+  return{title:'이번 주 · Your week in Korean',body:xp?`${xp.toLocaleString()} XP · ${active} of 7 days · ${min} min · ${lessons} lesson${lessons===1?'':'s'}. Best day: ${name}.`:'No study this week yet. Ten minutes tomorrow is a great restart.'};
+}
+async function checkWeekly(now=new Date()){
+  if(!lsGet('weekly',true)||now.getDay()!==0||now.getHours()<19||lsGet('weeklySent','')===weekKey(now))return false;
+  lsSet('weeklySent',weekKey(now));
+  const r=weekReport(weekKey(now));try{await notify(r.title,r.body)}catch(e){}
+  return true;
+}
+setInterval(()=>{if(loaded)checkWeekly()},60000);
+swSet('weekSw',lsGet('weekly',true));
+$('weekSw').onclick=()=>{lsSet('weekly',!lsGet('weekly',true));swSet('weekSw',lsGet('weekly',true))};
+$('weekTry').onclick=()=>{const r=weekReport();notify(r.title,r.body).then(()=>setMsg('wotdMsg','Sent this week’s report.'),e=>setMsg('wotdMsg',String(e.message||e),true))};
 
 // ---- Copied Korean: the Rust app watches the clipboard while this is on and sends Korean text here.
 // The text is only matched against the word list in memory; it is never saved or sent anywhere. ----

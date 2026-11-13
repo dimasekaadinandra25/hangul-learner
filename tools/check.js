@@ -41,7 +41,7 @@ assert(!storyWords(STORIES[0]).some(w=>w.ch==='네'),'네 명 is not 네 (yes)')
 for(const t of[...NUM_ITEMS.map(n=>n.ko),...STORIES.flatMap(s=>s.lines.map(l=>l[0])),conj('가다','past')])assert(RECORDED.includes(t),'not recorded: '+t);
 // new tasks read the new progress fields
 assert.deepStrictEqual(TASKS.find(t=>t.id==='t-numbers').get({...freshProgress(),drills:{num:{right:7,tries:9}}}),[7,20]);
-assert.deepStrictEqual(TASKS.find(t=>t.id==='t-stories').get({...freshProgress(),stories:{family:{best:2},cafe:{best:1}}}),[1,6]);
+assert.deepStrictEqual(TASKS.find(t=>t.id==='t-stories').get({...freshProgress(),stories:{family:{best:2},cafe:{best:1}}}),[1,14]);
 
 // episode words: words start a Korean word; short nouns need an ending; verbs match by stem
 {const f=t=>findWords(t).map(w=>w.ch);
@@ -66,6 +66,26 @@ assert(strokeScore(STROKES['ㅏ'],STROKES['ㅏ'].map(s=>s.map(([x,y])=>[x+3,y-2]
 assert.strictEqual(strokeScore(STROKES['ㅏ'],[]),0);
 `+`
 const keys=VOCAB.map(w=>w.ch); // a word may equal a practice syllable (코, 비); that's fine
+// sync merge: both PCs studied since they last agreed
+{const base={xp:100,days:{'2026-11-10':100},stats:{가:{heard:2,right:1,tries:2,written:0}},totals:{lessons:3},units:{t1:1},srs:{가:{u:'a',iv:1,ease:2.3,due:'2026-11-11'}},
+    notebook:[{ch:'사과',meaning:'apple'},{ch:'책',meaning:'book'}],tasks:['t1'],badges:[],mistakes:{x:'u1',y:'u2'},log:{'2026-11-10':{lessons:3,claimed:['q1']}},section:1,tests:[],stories:{},drillMiss:{num:['a','b']},weekClaims:{},bestStreak:2};
+  const a={...base,xp:150,days:{'2026-11-10':100,'2026-11-12':50},stats:{가:{heard:4,right:2,tries:3,written:0}},totals:{lessons:5},units:{t1:2},
+    notebook:[{ch:'사과',meaning:'apple'},{ch:'책',meaning:'book'},{ch:'물',meaning:'water'}],tasks:['t1','t2'],mistakes:{x:'u1'},section:2,tests:[{at:5,score:1,total:2}],drillMiss:{num:['a','b','c']},bestStreak:3};
+  const b={...base,xp:130,days:{'2026-11-10':100,'2026-11-12':10,'2026-11-13':20},stats:{가:{heard:3,right:1,tries:2,written:1},나:{heard:1,right:1,tries:1,written:0}},totals:{lessons:4,focus:1},
+    srs:{가:{u:'a',iv:3,ease:2.4,due:'2026-11-15'}},notebook:[{ch:'사과',meaning:'apple'}],tasks:['t1','t3'],mistakes:{x:'u1',y:'u2',z:'u3'},log:{'2026-11-10':{lessons:3,claimed:['q1','q2']},'2026-11-13':{lessons:1,claimed:[]}},
+    tests:[{at:7,score:2,total:2}],drillMiss:{num:['b']}};
+  const m=mergeProgress(base,a,b,true);
+  assert.strictEqual(m.xp,180);assert.deepStrictEqual(m.days,{'2026-11-10':100,'2026-11-12':60,'2026-11-13':20});
+  assert.deepStrictEqual(m.stats,{가:{heard:5,right:2,tries:3,written:1},나:{heard:1,right:1,tries:1,written:0}});
+  assert.deepStrictEqual(m.totals,{lessons:6,focus:1});assert.deepStrictEqual(m.units,{t1:2});
+  assert.strictEqual(m.srs.가.due,'2026-11-15','only b reviewed it');assert.deepStrictEqual(m.notebook.map(w=>w.ch),['사과','물'],'책 removed on b, 물 added on a');
+  assert.deepStrictEqual(m.tasks,['t1','t2','t3']);assert.deepStrictEqual(m.mistakes,{x:'u1',z:'u3'},'y fixed on a, z new on b');
+  assert.deepStrictEqual(m.log['2026-11-10'],{lessons:3,claimed:['q1','q2']});assert.strictEqual(m.section,2,'newer copy');assert.deepStrictEqual(m.tests.map(t=>t.at),[5,7]);
+  assert.deepStrictEqual(m.drillMiss.num,['b','c'],'a fixed on b, c new on a');assert.strictEqual(m.bestStreak,3);
+  assert.deepStrictEqual(mergeProgress(base,base,base,true).xp,100,'nothing changed: nothing doubled');}
+for(const h of HANJA)for(const w of h.words){assert(keys.includes(w),'hanja word not in vocabulary: '+w);assert(w.includes(h.ko),'hanja word lacks its root: '+w+' '+h.ko)}
+assert.deepStrictEqual(familiesOf('학생').map(h=>h.han),['學','生']);
+for(const[k,r]of[['학교','hakgyo'],['한국어','hangugeo'],['감사합니다','gamsahamnida'],['사랑해','saranghae'],['서울','seoul']])assert.strictEqual(romanize(k),r);
 assert.strictEqual(new Set(keys).size,keys.length,'duplicate word across units');
 assert.strictEqual(new Set(UNITS.map(u=>u.id)).size,UNITS.length,'duplicate unit id');
 for(const w of VOCAB)assert(w.ch&&w.meaning&&!/[=|]/.test(w.ch+w.meaning),'bad vocab entry '+w.ch);

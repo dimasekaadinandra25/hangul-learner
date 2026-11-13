@@ -242,6 +242,10 @@ li.locked .node{border-color:var(--hair);border-style:dashed}
 .card .seal{position:absolute;top:8px;right:8px}
 .card.seen::after{content:"";position:absolute;top:10px;left:10px;width:6px;height:6px;border-radius:50%;background:var(--hair)}
 h2.section-title{font-size:1.25rem;margin:30px 0 12px}
+.ws-fam{display:grid;gap:8px;margin:-4px 0 16px;text-align:left}.ws-fam:empty{display:none}
+.fam{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.fam>b{font-size:.92rem;margin-right:2px}.fam>b span{font-family:serif;font-size:1.15rem;margin-right:4px}
+.fam .wc{min-height:32px;padding:4px 10px}.fam .wc[aria-current]{background:var(--ink);color:var(--paper)}
+.test-passage{max-width:640px;margin:0 0 18px;padding:16px 18px;border:1px solid var(--hair);border-radius:12px;background:var(--paper);font-family:var(--ko);font-size:1.12rem;line-height:1.8}
 .search{position:relative;margin-bottom:14px}
 .search .i{position:absolute;left:2px;top:50%;translate:0 -50%;color:var(--muted)}
 .search input{width:100%;min-height:50px;padding:10px 4px 10px 34px;border:0;border-bottom:1px solid var(--hair);background:none;font-size:1.05rem}
@@ -738,7 +742,7 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
       <div class="vtabs"><div class="seg seg-text" id="vTabs" role="group" aria-label="Word list"><button data-vtab="all">All words</button><button data-vtab="mine">My words <span id="mineCount"></span></button></div></div>
       <form class="add-word" id="addWord" hidden><input id="awKo" placeholder="Korean, e.g. 고구마" aria-label="Korean word" required class="ko" lang="ko"><input id="awEn" placeholder="Meaning, e.g. sweet potato" aria-label="Meaning" required><button class="btn btn-ink" type="submit"><i data-icon="plus"></i>Add</button></form>
       <div class="import-row" id="importRow" hidden><label class="btn" for="importWords"><i data-icon="upload"></i>Import a word list</label><small class="muted">A .csv or .txt file with one word per line: Korean, meaning. Anki “Notes in plain text” exports work too.</small><input type="file" id="importWords" accept=".csv,.txt,.tsv,text/plain,text/csv" hidden></div>
-      <div class="search"><i data-icon="search"></i><input type="search" id="vSearch" placeholder="Search Korean or English" aria-label="Search words"></div>
+      <div class="search"><i data-icon="search"></i><input type="search" id="vSearch" placeholder="Search Korean, English or romanization (hakgyo)" aria-label="Search words"></div>
       <div class="tabs scroller" id="vLevels" aria-label="Filter by level"></div>
       <p class="muted" id="vCount"></p>
       <div id="vList"></div>
@@ -763,8 +767,8 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
     </section>
 
     <section id="write" hidden>
-      <div class="page-head"><span class="kicker">쓰기</span><h1>Write</h1><p>Trace letters in the right stroke order, type Korean on the 2-beolsik keyboard, or type the words you hear.</p></div>
-      <div class="seg seg-text write-tabs" id="wTabs" role="group" aria-label="Practice"><button data-wtab="trace"><i data-icon="pen"></i>Trace</button><button data-wtab="type"><i data-icon="keyboard"></i>Type</button><button data-wtab="dict"><i data-icon="headphones"></i>Listen</button></div>
+      <div class="page-head"><span class="kicker">쓰기</span><h1>Write</h1><p>Trace letters in the right stroke order, type Korean on the 2-beolsik keyboard, type the words you hear, or race the clock for 60 seconds.</p></div>
+      <div class="seg seg-text write-tabs" id="wTabs" role="group" aria-label="Practice"><button data-wtab="trace"><i data-icon="pen"></i>Trace</button><button data-wtab="type"><i data-icon="keyboard"></i>Type</button><button data-wtab="dict"><i data-icon="headphones"></i>Listen</button><button data-wtab="race"><i data-icon="clock"></i>Race</button></div>
       <div id="wTrace">
       <div class="toolbar">
         <select id="wSel" aria-label="Letter to practise" class="ko"></select>
@@ -782,7 +786,7 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
         <div class="toolbar"><select id="tLevel" aria-label="Words to type"></select><button class="btn" id="tSay"><i data-icon="volume"></i>Hear</button><button class="btn" id="tSkip">Skip<i data-icon="arrow"></i></button></div>
         <div class="type-target"><b id="tWord"></b><span class="muted" id="tMean"></span></div>
         <div class="type-box" id="tBox" tabindex="0" aria-label="Type the word here" role="textbox"></div>
-        <div class="type-stats"><span><b id="tDone">0</b><span id="tDoneLbl">words</span></span><span><b id="tAcc">100%</b>accuracy</span><span><b id="tSpeed">0</b>keys / min</span></div>
+        <div class="type-stats"><span><b id="tDone">0</b><span id="tDoneLbl">words</span></span><span><b id="tAcc">100%</b>accuracy</span><span><b id="tSpeed">0</b>keys / min</span><span id="tRaceBox" hidden><b id="tLeft">60</b>seconds left</span></div>
         <div class="kb" id="tKb" aria-hidden="true"></div>
         <p class="muted" style="margin-top:14px;font-size:.88rem">Use your normal keyboard: the keys map to the Korean 2-beolsik layout, so no Korean keyboard setting is needed. The next key glows. Shift gives ㄲ ㄸ ㅃ ㅆ ㅉ ㅒ ㅖ. Backspace undoes one key.</p>
       </div>
@@ -891,10 +895,15 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
     <div class="set-group"><h3>Daily reminder</h3>
       <div class="set-row"><div><b>Remind me</b><small>Opens the mini player with a reminder if today’s goal isn’t done yet</small></div><button class="switch" id="remSw" role="switch" aria-checked="false" aria-label="Daily reminder"></button></div>
       <div class="set-row"><div><b>Time</b><small>Once a day, at or after this time</small></div><input type="time" id="remTime" value="19:00" aria-label="Reminder time"></div></div>
-    <div class="set-group"><h3>Word of the day</h3>
-      <div class="set-row"><div><b>Windows notification</b><small>One word a day, with its meaning: a word due for review, or one from your level. Works while the app is in the tray. <button class="link" id="wotdTry">Show one now</button></small></div><button class="switch" id="wotdSw" role="switch" aria-checked="false" aria-label="Word of the day"></button></div>
+    <div class="set-group"><h3>Notifications</h3>
+      <div class="set-row"><div><b>Word of the day</b><small>One word a day, with its meaning: a word due for review, or one from your level. Works while the app is in the tray. <button class="link" id="wotdTry">Show one now</button></small></div><button class="switch" id="wotdSw" role="switch" aria-checked="false" aria-label="Word of the day"></button></div>
       <div class="set-row"><div><b>Time</b><small>At or after this time</small></div><input type="time" id="wotdTime" value="09:00" aria-label="Word of the day time"></div>
+      <div class="set-row"><div><b>Weekly report</b><small>Sunday evening: XP, study days, minutes and your best day this week. <button class="link" id="weekTry">Show it now</button></small></div><button class="switch" id="weekSw" role="switch" aria-checked="false" aria-label="Weekly report"></button></div>
       <p class="set-msg" id="wotdMsg"></p></div>
+    <div class="set-group" id="syncGroup"><h3>Sync between PCs</h3>
+      <div class="set-row"><div><b>Sync progress</b><small>Keeps your progress in a OneDrive or Google Drive folder, so every PC continues where you left off. Studied on two PCs at once? Both get added together. Turn it on on each PC.</small></div><button class="switch" id="syncSw" role="switch" aria-checked="false" aria-label="Sync progress"></button></div>
+      <div class="set-row"><div><b>Folder</b><small>A folder your cloud drive syncs, e.g. C:\Users\you\OneDrive. The app uses a “Hangul Learner” folder inside it.</small></div><input type="text" id="syncPath" aria-label="Sync folder" spellcheck="false" style="min-width:220px"><button class="btn" id="syncNow"><i data-icon="rotate"></i>Sync now</button></div>
+      <p class="set-msg" id="syncMsg"></p></div>
     <div class="set-group"><h3>Backup</h3>
       <div class="set-row"><div><b>Export progress</b><small>Saves a file to Documents\Hangul Learner. Copy it to another computer to continue there.</small></div><button class="btn" id="exportBtn"><i data-icon="download"></i>Export</button></div>
       <div class="set-row"><div><b>Import progress</b><small>Replaces your progress on this computer with a backup file</small></div><label class="btn" for="importFile"><i data-icon="upload"></i>Import</label><input type="file" id="importFile" accept=".json,application/json" hidden></div>
@@ -911,11 +920,12 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
   <div class="sheet-body">
     <div class="ws-word" id="wsWord" lang="ko"></div>
     <p class="ws-mean" id="wsMean"></p>
+    <div class="ws-fam" id="wsFam"></div>
     <div class="btn-row" style="justify-content:center;margin-bottom:16px"><button class="btn" id="wsHear"><i data-icon="volume"></i>Hear</button><button class="btn" id="wsSlow" title="Play at 0.7× speed"><i data-icon="clock"></i>Slowly</button><button class="btn" id="wsSave"></button></div>
     <div class="sayit">
       <h3>Say it</h3>
       <p class="muted" style="margin:2px 0 12px;font-size:.9rem">Record yourself, then compare with the native speaker. Match the length and the rise and fall.</p>
-      <div class="btn-row"><button class="btn btn-red" id="wsRec"><span class="rec-dot"></span><span id="wsRecLbl">Record</span></button><button class="btn" id="wsMine" disabled><i data-icon="play"></i>You</button><button class="btn" id="wsBoth" disabled><i data-icon="repeat"></i>Native, then you</button></div>
+      <div class="btn-row"><button class="btn btn-red" id="wsRec"><span class="rec-dot"></span><span id="wsRecLbl">Record</span></button><button class="btn" id="wsMine" disabled><i data-icon="play"></i>You</button><button class="btn" id="wsBoth" disabled><i data-icon="repeat"></i>Native, then you</button><button class="btn" id="wsCheck" title="Windows speech recognition listens and tells you whether it understood the word"><i data-icon="check"></i>Check pronunciation</button></div>
       <canvas class="wave" id="wsWave" width="1000" height="240" aria-label="Sound shapes: native speaker and you"></canvas>
       <div class="wave-key"><span><i style="background:var(--ink)"></i>Native speaker</span><span><i style="background:var(--red)"></i>You</span><span id="wsLen"></span></div>
       <p class="set-msg" id="wsMsg"></p>
@@ -1006,8 +1016,9 @@ let P=freshProgress();
 const stat=k=>P.stats[k]??={heard:0,right:0,tries:0,written:0};
 const mastered=k=>isMastered(P,k);
 let loaded=false; // never save before the saved file is read, or an early click would wipe it
+let keepStamp=false; // sync sets this while loading another PC's copy, so its save time is kept
 function save(){
-  if(loaded){checkRewards(true);store.save(JSON.stringify(P)).catch(e=>console.error('save failed',e))}
+  if(loaded){checkRewards(true);if(!keepStamp)P.savedAt=Date.now();store.save(JSON.stringify(P)).catch(e=>console.error('save failed',e));if(typeof syncPush==='function')syncPush()}
   render();
 }
 // Claims finished daily/weekly quests and tasks (+XP), unlocks stamps. Every reward goes to the inbox;
@@ -1037,8 +1048,8 @@ function ask({title,text,ok,cancel='Cancel',danger=false,sealText='?'}){
   $('askTitle').textContent=title;$('askText').textContent=text;
   $('askSeal').innerHTML=seal(sealText,'m',danger?'':'jade');
   $('askOk').textContent=ok;$('askOk').className='btn '+(danger?'btn-red':'btn-ink');
-  $('askCancel').textContent=cancel;
-  d.returnValue='cancel';d.showModal();$('askCancel').focus({focusVisible:false}); // safe choice focused first; ring only for keyboard users
+  $('askCancel').textContent=cancel;$('askCancel').hidden=!cancel; // no cancel: a plain notice
+  d.returnValue='cancel';d.showModal();(cancel?$('askCancel'):$('askOk')).focus({focusVisible:false}); // safe choice focused first; ring only for keyboard users
   return new Promise(res=>d.addEventListener('close',()=>res(d.returnValue==='ok'),{once:true}));
 }
 $('ask').addEventListener('click',e=>{if(e.target===$('ask'))$('ask').close('cancel')}); // click outside the card
@@ -1450,9 +1461,9 @@ function renderVocab(){
   $('vTabs').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.vtab===vTab));
   $('addWord').hidden=$('importRow').hidden=!mine;$('vLevels').hidden=mine;
   if(!mine)levelTabs($('vLevels'),'data-vsec',vSec,i=>`${i<0?VOCAB.length:VOCAB.filter(w=>w.section===i).length} words`,true);
-  const q=$('vSearch').value.trim().toLowerCase();
+  const q=$('vSearch').value.trim().toLowerCase(),qr=/^[a-z' -]{2,}$/.test(q)?q.replace(/[^a-z]/g,''):''; // romanized: saranghae, hakgyo
   const src=mine?(P.notebook||[]).map(w=>({ch:w.ch,meaning:w.meaning,section:-1,unit:'My words'})):VOCAB;
-  const hits=src.filter(w=>(mine||vSec<0||w.section===vSec)&&(!q||w.ch.includes(q)||w.meaning.toLowerCase().includes(q)));
+  const hits=src.filter(w=>(mine||vSec<0||w.section===vSec)&&(!q||w.ch.includes(q)||w.meaning.toLowerCase().includes(q)||qr&&romanize(w.ch).replace(/[^a-z]/g,'').startsWith(qr)));
   $('vCount').textContent=`${hits.length} word${hits.length===1?'':'s'}`;
   const groups={};for(const w of hits)(groups[mine?'':`${SECTIONS[w.section].title} · ${w.unit}`]??=[]).push(w);
   $('vList').innerHTML=Object.entries(groups).map(([g,ws])=>`${g?`<h2 class="section-title">${g}</h2>`:''}<div class="grid wide">${ws.map(w=>

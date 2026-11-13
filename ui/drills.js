@@ -128,7 +128,7 @@ function checkStory(s){
 }
 // One audio element for stories and dialogues: plays a recorded line, resolves when it ends
 const sAudio=new Audio(),sQueue={on:false,i:-1,run:0};
-const playLine=text=>new Promise(r=>{sAudio.src='audio/'+audioName(text);sAudio.playbackRate=PX.slow?SLOW:1;sAudio.onended=sAudio.onerror=()=>setTimeout(r,350);sAudio.play().catch(r)});
+const playLine=(text,male)=>new Promise(r=>{sAudio.src='audio/'+(male?'m-':'')+audioName(text);sAudio.playbackRate=PX.slow?SLOW:1;sAudio.onended=sAudio.onerror=()=>setTimeout(r,350);sAudio.play().catch(r)});
 async function hearAll(s){
   const run=++sQueue.run;sQueue.on=true;
   for(let i=0;i<s.lines.length;i++){
@@ -164,11 +164,12 @@ function talkView(d){
     :`<span class="muted">${esc(who(cur[0]))} is speaking…</span>`}</div>`;
 }
 // moves to line i: the other part plays and moves on by itself; your part waits for Next
+const sayLine=([who,ko])=>playLine(ko,who==='B'); // conversations: the second speaker has a male voice
 async function talkGo(d,i){
   const run=++TK.run;TK.i=i;renderPractice();
   if(i>=d.lines.length){talkFinish(d);return}
   if(d.lines[i][0]===TK.role)return;
-  await playLine(d.lines[i][1]);
+  await sayLine(d.lines[i]);
   if(run===TK.run)talkGo(d,i+1);
 }
 function talkFinish(d){
@@ -208,11 +209,11 @@ $('pBody').addEventListener('click',e=>{
   if(PT==='talk'&&d){
     if(t.dataset.role){talkReset();TK.role=t.dataset.role;return renderPractice()}
     if(t.hasAttribute('data-tstart')){talkReset();return talkGo(d,0)}
-    if(t.dataset.tline!=null){const i=+t.dataset.tline;if(TK.role&&TK.i>=0&&TK.i<d.lines.length&&d.lines[TK.i][0]!==TK.role)return;stopHearAll();playLine(d.lines[i][1]);return}
-    if(t.hasAttribute('data-thear'))return playLine(d.lines[TK.i][1]);
+    if(t.dataset.tline!=null){const i=+t.dataset.tline;if(TK.role&&TK.i>=0&&TK.i<d.lines.length&&d.lines[TK.i][0]!==TK.role)return;stopHearAll();sayLine(d.lines[i]);return}
+    if(t.hasAttribute('data-thear'))return sayLine(d.lines[TK.i]);
     if(t.hasAttribute('data-trec'))return talkRecord(d);
     if(t.dataset.tmine!=null)return playUrl(TK.urls[+t.dataset.tmine]);
-    if(t.hasAttribute('data-tboth')){const i=TK.i;return playLine(d.lines[i][1]).then(()=>TK.urls[i]&&playUrl(TK.urls[i]))}
+    if(t.hasAttribute('data-tboth')){const i=TK.i;return sayLine(d.lines[i]).then(()=>TK.urls[i]&&playUrl(TK.urls[i]))}
     if(t.hasAttribute('data-tnext'))return talkGo(d,TK.i+1);
     return;
   }

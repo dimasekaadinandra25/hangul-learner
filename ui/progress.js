@@ -1,7 +1,7 @@
 // TOPIK practice test (Test page) and the Stats page. Loaded after the main script and listen.js.
 
 // ---------------- Practice test ----------------
-const TEST_SECONDS=600,PASS_PCT=60,AREA_NAME={vocab:'Vocabulary',listening:'Listening',grammar:'Grammar'};
+const TEST_SECONDS=600,PASS_PCT=60,AREA_NAME={vocab:'Vocabulary',listening:'Listening',grammar:'Grammar',reading:'Reading'};
 let TS=null,testTimer=0; // {si, qs, i, picks[], start, done, result}
 const pct=(a,b)=>b?Math.round(a/b*100):0;
 const bestOf=si=>{const t=(P.tests||[]).filter(x=>x.level===si);return t.length?Math.max(...t.map(x=>pct(x.score,x.total))):null};
@@ -15,8 +15,16 @@ function renderPicker(){
     return`<button class="lvl-card" data-tlevel="${si}">${seal(LEVEL_SEAL[si],'s')}<b>${s.title}</b><small>${si?s.tag:'Letters, syllables and first words'}</small><small>${b==null?'Not taken yet':`Best: ${b}%`}</small></button>`}).join('')}</div>
     <p class="muted" style="margin-top:20px;font-size:.88rem">Questions come from every unit of the level, including ones you have not studied yet. Wrong answers go to Review mistakes and Smart review.</p>`;
 }
+// Reading, like the real exam: a short story of this level with its questions, in place of the same number of vocabulary questions.
+// Hangul basics has no story, so its test stays as it was.
+function withReading(qs,si){
+  const s=pickOne(STORIES.filter(x=>x.level===si));if(!s)return qs;
+  const rq=s.qs.map(([q,opts,a])=>({area:'reading',skill:'read',prompt:esc(q),passage:storyText(s),options:opts.map((o,j)=>({value:String(j),label:esc(o)})),answer:String(a)}));
+  let drop=rq.length;
+  return[...qs.filter(q=>!(q.area==='vocab'&&drop-->0)),...rq]; // reading comes last, as in TOPIK
+}
 function startTest(si){
-  TS={si,qs:buildTest(si),i:0,picks:[],start:Date.now(),done:false};
+  TS={si,qs:withReading(buildTest(si),si),i:0,picks:[],start:Date.now(),done:false};
   clearInterval(testTimer);testTimer=setInterval(tickTest,1000);
   renderQuestion();
 }
@@ -30,6 +38,7 @@ function renderQuestion(){
   const q=TS.qs[TS.i],n=TS.qs.length,pick=TS.picks[TS.i];
   $('testBody').innerHTML=`<div class="test-top"><span class="muted">Question ${TS.i+1} of ${n}</span><div class="line" role="progressbar" aria-valuenow="${TS.i}" aria-valuemax="${n}" aria-label="Test progress"><i style="width:${TS.i/n*100}%"></i></div><span class="test-timer" id="testTime"></span></div>
     <div class="test-q"><span class="kicker">${AREA_NAME[q.area]}</span><h2 class="prompt">${q.prompt}</h2>
+      ${q.passage?`<p class="test-passage" lang="ko">${esc(q.passage)}</p>`:''}
       ${q.big?`<div class="glyph${long(q.big)?' long':''}" lang="ko">${q.big}</div>`:''}
       ${q.play?`<div class="listen"><button class="speak lg" id="tqPlay" aria-label="Play sound (R)">${icon('volume')}</button><span class="muted">Listen, then answer.<br>Press R to replay.</span></div>`:''}
       <div class="opts">${q.options.map((o,k)=>`<button class="opt" data-tv="${esc(o.value)}" aria-pressed="${pick===o.value}"><span class="k">${k+1}</span>${o.big?`<b class="${[...o.label].length>8?'sm':[...o.label].length>4?'md':''}">${o.label}</b>`:`<span class="lbl">${o.label}</span>`}</button>`).join('')}</div>
@@ -61,9 +70,9 @@ function finishTest(){
   const day=dayKey(),d=todayStats(P,day),areas={},wrong=[];
   TS.qs.forEach((q,k)=>{
     const ok=TS.picks[k]===q.answer;(areas[q.area]??=[0,0])[1]++;if(ok)areas[q.area][0]++;
-    schedule(P,q.key,q.unit,ok,day);
+    if(q.key)schedule(P,q.key,q.unit,ok,day); // reading questions are not review items
     if(ok){d.correct++;d[q.skill]=(d[q.skill]||0)+1}
-    else{P.mistakes[q.key]=q.unit;wrong.push({q,pick:TS.picks[k]})}
+    else{if(q.key)P.mistakes[q.key]=q.unit;wrong.push({q,pick:TS.picks[k]})}
   });
   const score=TS.qs.filter((q,k)=>TS.picks[k]===q.answer).length,total=TS.qs.length,xp=Math.round(score/total*20);
   P.xp+=xp;P.days[day]=(P.days[day]||0)+xp;d.seconds+=Math.min(TEST_SECONDS,Math.round((Date.now()-TS.start)/1000));
@@ -95,6 +104,9 @@ function renderStatsPage(){
   const weeks=Array.from({length:12},(_,k)=>{const w=new Date(weekKey(today)+'T12:00:00');w.setDate(w.getDate()-(11-k)*7);const key=dayKey(w);return[key,weekDays(key).reduce((s,d)=>s+(P.days[d]||0),0)]});
   const max=Math.max(1,...weeks.map(w=>w[1])),top=weeks.findIndex(w=>w[1]===max);
   const short=k=>{const[,m,d]=k.split('-');return`${+m}/${+d}`};
+  // Smart review forecast: words due each day for the next 14 days (today includes anything overdue)
+  const tk=dayKey(today),due=Object.values(P.srs||{}).map(s=>s.due),fc=Array.from({length:14},(_,i)=>{const k=addDays(tk,i);return[k,due.filter(d=>i?d===k:d<=k).length]});
+  const fmax=Math.max(1,...fc.map(f=>f[1])),ftop=fc.findIndex(f=>f[1]===fmax),fday=(k,i)=>i?new Date(k+'T12:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}):'Today';
   // answers right by skill, last 70 days
   const sum=f=>Object.values(P.log||{}).reduce((s,d)=>s+(d[f]||0),0);
   $('statsBody').innerHTML=`<div class="tiles">${tiles.map(([v,l])=>`<div><b>${v}</b><small>${l}</small></div>`).join('')}</div>
@@ -104,6 +116,9 @@ function renderStatsPage(){
     <div class="chart-card"><h3>XP per week</h3><p>Last 12 weeks, Monday to Sunday.</p>
       <div class="bars" role="img" aria-label="XP per week">${weeks.map(([k,x],i)=>`<div title="Week of ${short(k)}: ${x} XP">${i===top&&x||i===11?`<span>${x}</span>`:''}<i style="height:${x/max*100}%"></i></div>`).join('')}</div>
       <div class="bar-x">${weeks.map(([k],i)=>`<span>${i%3===2||i===11?short(k):''}</span>`).join('')}</div></div>
+    <div class="chart-card"><h3>Smart review forecast</h3><p>Words due each day, next 2 weeks. Today includes anything overdue.</p>
+      <div class="bars" role="img" aria-label="Smart review forecast: ${fc[0][1]} due today, ${fc.reduce((s,f)=>s+f[1],0)} in the next 2 weeks">${fc.map(([k,x],i)=>`<div title="${fday(k,i)}: ${x} word${x===1?'':'s'} due">${(i===0||i===ftop)&&x?`<span>${x}</span>`:''}<i style="height:${x/fmax*100}%"></i></div>`).join('')}</div>
+      <div class="bar-x">${fc.map(([k],i)=>`<span>${i===0?'Today':i%4===0?short(k):''}</span>`).join('')}</div></div>
     <div class="chart-card"><h3>Progress by level</h3><p>Units passed (words and grammar).</p>
       <div class="hbars">${SECTIONS.map((s,si)=>{const n=sectionPassed(P,si),t=s.units.length;return`<div><span>${s.title}</span><div class="line" role="progressbar" aria-valuenow="${n}" aria-valuemax="${t}" aria-label="${s.title}"><i style="width:${n/t*100}%"></i></div><em>${n}/${t} units</em></div>`}).join('')}</div></div>
     <div class="chart-card"><h3>Right answers by skill</h3><p>Last 10 weeks.</p>

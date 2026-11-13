@@ -175,6 +175,51 @@ function buildReview(mistakes,P={}){
 const freshProgress=()=>({stats:{},xp:0,days:{},units:{},steps:{},mistakes:{},section:0,bestStreak:0,badges:[],srs:{},notebook:[],tests:[],drills:{},stories:{},drillMiss:{},talks:{},
   totals:{lessons:0,perfect:0,challenges:0,reviews:0,quests:0,weekly:0,built:0,searches:0,fullDays:0,listenSec:0,smart:0,recordings:0,typed:0,strokes:0,focus:0,shadow:0,dictation:0},bestStroke:0,
   log:{},weekClaims:{},tasks:[],inbox:[],inboxSeen:0});
+// Sync: merges two progress copies that both changed since they last agreed (base = that agreed copy).
+// Counters (XP, daily stats, word stats, totals, lesson counts) add up what each PC earned since base; lists are joined and
+// something removed on either PC stays removed; review schedules keep the one answered most recently; anything else
+// comes from the newer copy (aNewer: a was saved last).
+function mergeProgress(base,a,b,aNewer){
+  base=base||{};
+  const isObj=v=>!!v&&typeof v==='object'&&!Array.isArray(v),same=(x,y)=>JSON.stringify(x)===JSON.stringify(y);
+  const pick=(bs,x,y)=>same(x,bs)?y:same(y,bs)?x:aNewer?x:y; // only one side changed: that one; both: the newer
+  const add=(bs,x,y)=>Math.max(0,(+x||0)+(+y||0)-(+bs||0));
+  const ident=v=>typeof v==='object'?JSON.stringify(v):String(v);
+  function list(bs,x,y,id=ident){
+    bs=bs||[];x=x||[];y=y||[];const xs=new Set(x.map(id)),ys=new Set(y.map(id));
+    const gone=new Set(bs.map(id).filter(k=>!xs.has(k)||!ys.has(k))),seen=new Set(),out=[];
+    for(const v of[...x,...y]){const k=id(v);if(!gone.has(k)&&!seen.has(k)){seen.add(k);out.push(v)}}
+    return out;
+  }
+  function sum(bs,x,y){ // counters, nested (log days, word stats, drills)
+    bs=bs||{};x=x||{};y=y||{};const out={};
+    for(const k of new Set([...Object.keys(x),...Object.keys(y)])){const B=bs[k],X=x[k],Y=y[k];
+      out[k]=isObj(X)||isObj(Y)?sum(B,X,Y):Array.isArray(X)||Array.isArray(Y)?list(B,X,Y):typeof(X??Y)==='number'?add(B,X,Y):pick(B,X,Y)}
+    return out;
+  }
+  function keyed(bs,x,y,one=pick){ // per-key values; a key removed on one PC (was in base) stays removed
+    bs=bs||{};x=x||{};y=y||{};const out={};
+    for(const k of new Set([...Object.keys(x),...Object.keys(y)])){
+      if(k in bs&&(!(k in x)||!(k in y)))continue;
+      out[k]=k in x&&k in y?one(bs[k],x[k],y[k]):k in x?x[k]:y[k];
+    }
+    return out;
+  }
+  const m={...(aNewer?b:a),...(aNewer?a:b)};
+  for(const k of['days','log','stats','totals','drills','units','steps','talks'])m[k]=sum(base[k],a[k],b[k]);
+  m.xp=add(base.xp,a.xp,b.xp);
+  m.srs=keyed(base.srs,a.srs,b.srs,(bs,x,y)=>same(x,bs)?y:same(y,bs)?x:x.due>=y.due?x:y);
+  m.mistakes=keyed(base.mistakes,a.mistakes,b.mistakes);
+  m.weekClaims=keyed(base.weekClaims,a.weekClaims,b.weekClaims,list);
+  m.drillMiss=keyed(base.drillMiss,a.drillMiss,b.drillMiss,list);
+  m.stories=keyed(base.stories,a.stories,b.stories,(bs,x,y)=>({best:Math.max(+x.best||0,+y.best||0),at:Math.max(+x.at||0,+y.at||0)}));
+  m.notebook=list(base.notebook,a.notebook,b.notebook,w=>w.ch);
+  m.tests=list(base.tests,a.tests,b.tests,t=>String(t.at)).sort((x,y)=>x.at-y.at).slice(-50);
+  for(const k of['badges','tasks'])m[k]=list(base[k],a[k],b[k]);
+  for(const k of['bestStreak','bestStroke','inboxSeen','raceBest'])m[k]=Math.max(+a[k]||0,+b[k]||0);
+  m.inbox=a.inbox||[];
+  return m;
+}
 const isMastered=(P,k)=>{const s=P.stats[k];return!!s&&s.right>=3&&s.right/s.tries>=0.75};
 // Units passed before steps existed count as having their Learn and Practice steps done.
 const stepDone=(P,unit,step)=>(P.steps[unit.id+':'+step]||0)>0||(step<=PASS_STEP&&(P.units[unit.id]||0)>0);
@@ -317,14 +362,15 @@ const TASKS=[
   {id:'t-verbs',group:'Practice',text:'Get 20 verb-ending questions right',xp:15,get:P=>[drillRight(P,'verb'),20]},
   {id:'t-sounds',group:'Practice',text:'Get 15 sound-change questions right',xp:15,get:P=>[drillRight(P,'sound'),15]},
   {id:'t-story',group:'Practice',text:'Read a story and answer every question right',xp:10,get:P=>[storiesRead(P),1]},
-  {id:'t-stories',group:'Practice',text:'Read all 6 stories',xp:40,get:P=>[storiesRead(P),6]},
+  {id:'t-stories',group:'Practice',text:'Read all 14 stories',xp:40,get:P=>[storiesRead(P),14]},
   {id:'t-dict',group:'Practice',text:'Type 10 words you hear (Write › Listen)',xp:15,get:P=>[P.totals.dictation||0,10]},
   {id:'t-shadow',group:'Practice',text:'Shadow a podcast: replay 5 seconds and record yourself',xp:10,get:P=>[P.totals.shadow||0,1]},
   {id:'t-focus',group:'Practice',text:'Finish a focus timer session',xp:10,get:P=>[P.totals.focus||0,1]},
   {id:'t-particles',group:'Practice',text:'Get 20 particle questions right',xp:15,get:P=>[drillRight(P,'part'),20]},
   {id:'t-miss',group:'Practice',text:'Clear your Mistakes list in a drill',xp:15,get:P=>[P.totals.missCleared||0,1]},
+  {id:'t-race',group:'Practice',text:'Finish a 60-second typing race',xp:10,get:P=>[+P.totals.races||0,1]},
   {id:'t-talk',group:'Practice',text:'Finish a role-play conversation',xp:10,get:P=>[talksDone(P),1]},
-  {id:'t-talks',group:'Practice',text:'Finish all 4 conversations',xp:30,get:P=>[talksDone(P),4]},
+  {id:'t-talks',group:'Practice',text:'Finish all 8 conversations',xp:30,get:P=>[talksDone(P),8]},
   {id:'t-import',group:'Practice',text:'Have 25 words in My words',xp:15,get:P=>[(P.notebook||[]).length,25]},
 ];
 
@@ -350,9 +396,9 @@ const ACHIEVEMENTS=[
   {id:'grammar6',name:'Grammar builder',desc:'Pass 6 grammar units',icon:'book',get:P=>[UNITS.filter(u=>u.kind==='grammar'&&unitPassed(P,u.id)).length,6]},
   {id:'test90',name:'Test ace',desc:'Score 90% or more on a practice test',icon:'award',get:P=>[Math.max(0,...(P.tests||[]).map(t=>Math.round(t.score/t.total*100))),90]},
   {id:'speaker',name:'Brave speaker',desc:'Record yourself 50 times',icon:'mic',get:P=>[P.totals.recordings||0,50]},
-  {id:'talker',name:'Conversation partner',desc:'Finish all 4 role-play conversations',icon:'mic',get:P=>[talksDone(P),4]},
+  {id:'talker',name:'Conversation partner',desc:'Finish all 8 role-play conversations',icon:'mic',get:P=>[talksDone(P),8]},
   {id:'drills200',name:'Drill master',desc:'Answer 200 Practice-page questions right',icon:'target',get:P=>[['num','verb','part','sound','read'].reduce((s,k)=>s+drillRight(P,k),0),200]},
-  {id:'bookworm',name:'Bookworm',desc:'Read all 6 stories',icon:'book',get:P=>[storiesRead(P),6]},
+  {id:'bookworm',name:'Bookworm',desc:'Read all 14 stories',icon:'book',get:P=>[storiesRead(P),14]},
   {id:'focus10',name:'Deep focus',desc:'Finish 10 focus timer sessions',icon:'clock',get:P=>[P.totals.focus||0,10]},
   ...SECTIONS.map((s,i)=>({id:'sec-'+s.id,name:i?`${s.title} graduate`:'Hangul hero',desc:`Pass every unit in ${s.title}`,icon:'award',
     get:P=>[sectionPassed(P,i),s.units.length]})),

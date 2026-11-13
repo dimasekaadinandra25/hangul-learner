@@ -200,6 +200,46 @@ const STORIES=[
       ['하지만 동료들이 친절하게 도와줘서 많이 배웠어요.','But my coworkers helped me kindly, so I learned a lot.'],['요즘은 점심시간에 동료들과 같이 산책을 해요.','These days I go for a walk with my coworkers at lunchtime.'],['앞으로 더 열심히 노력할 거예요.','From now on I’ll try even harder.']],
     gloss:[['직장','workplace, job'],['지난달','last month'],['일찍','early'],['-아야/어야 하다','to have to'],['익숙하다','to be used to'],['힘들다','to be hard'],['동료','coworker'],['점심시간','lunchtime'],['앞으로','from now on']],
     qs:[['Why does the writer get up early?',['The company is far away','They like mornings','They exercise first','They start work at 7'],0],['What do they do at lunchtime these days?',['Study Korean','Go for a walk with coworkers','Sleep','Eat alone'],1]]},
+  {id:'move',level:3,title:'이사',en:'Moving house',
+    lines:[['지난주에 회사 근처로 이사했어요.','Last week I moved near my company.'],['전에는 출근하는 데 한 시간이 넘게 걸렸어요.','Before, it took over an hour to get to work.'],['이제는 걸어서 십 분이면 회사에 도착해요.','Now I get to the office in ten minutes on foot.'],
+      ['새 집은 좁지만 창문이 커서 햇빛이 잘 들어와요.','The new place is small, but the windows are big, so lots of sunlight comes in.'],['이웃들도 친절해서 벌써 이 동네가 마음에 들어요.','The neighbours are kind too, so I already like this neighbourhood.'],['주말에는 친구들을 초대해서 집들이를 할 거예요.','At the weekend I’m going to invite friends for a housewarming.']],
+    gloss:[['이사하다','to move house'],['근처','nearby'],['출근하다','to go to work'],['걸리다','to take (time)'],['좁다','to be small, narrow'],['햇빛','sunlight'],['이웃','neighbour'],['마음에 들다','to like'],['집들이','housewarming party']],
+    qs:[['How long does the trip to work take now?',['About an hour','Ten minutes on foot','Thirty minutes by bus','Five minutes by car'],1],['What does the writer like about the new home?',['It is big','The big windows let in sunlight','It is cheap','It has a garden'],1]]},
+  {id:'cold',level:3,title:'감기',en:'A bad cold',
+    lines:[['어제부터 머리가 아프고 열이 났어요.','Since yesterday I’ve had a headache and a fever.'],['그래서 오늘 아침에 회사에 가지 않고 병원에 갔어요.','So this morning I didn’t go to work; I went to the hospital.'],['의사 선생님이 감기니까 푹 쉬라고 하셨어요.','The doctor said it’s a cold, so I should rest well.'],
+      ['약국에서 약을 사고 집에 와서 하루 종일 잤어요.','I bought medicine at the pharmacy, came home and slept all day.'],['저녁에는 어머니가 끓여 주신 죽을 먹었어요.','In the evening I ate the rice porridge my mother made for me.'],['내일은 몸이 좀 나았으면 좋겠어요.','I hope I feel a bit better tomorrow.']],
+    gloss:[['열이 나다','to have a fever'],['-지 않고','without ...ing'],['푹 쉬다','to rest well'],['-라고 하다','to say (that one should)'],['약국','pharmacy'],['하루 종일','all day'],['끓이다','to boil, cook'],['죽','rice porridge'],['낫다','to get better']],
+    qs:[['Why didn’t the writer go to work?',['They had a cold','It was a holiday','They overslept','They moved house'],0],['Who made the porridge?',['The doctor','A friend','Their mother','The writer'],2]]},
+  {id:'online',level:4,title:'온라인 수업',en:'Studying online',
+    lines:[['코로나 이후 온라인 수업이 크게 늘어났다.','After COVID, online classes increased greatly.'],['온라인 수업은 시간과 장소에 상관없이 들을 수 있다는 장점이 있다.','Online classes have the advantage that you can take them anytime, anywhere.'],['또한 이해하지 못한 부분은 다시 볼 수 있어서 복습하기에도 좋다.','Also, you can watch the parts you didn’t understand again, so they are good for review.'],
+      ['하지만 혼자 공부하다 보면 집중력이 떨어지기 쉽다.','But when you study alone, your concentration easily drops.'],['선생님이나 친구들과 직접 대화할 기회가 적다는 것도 단점이다.','Having few chances to talk directly with teachers or friends is also a drawback.'],['따라서 자신에게 맞는 공부 방법을 찾는 것이 중요하다.','So it is important to find the way of studying that suits you.']],
+    gloss:[['이후','after'],['늘어나다','to increase'],['상관없이','regardless of'],['장점','advantage'],['복습','review'],['-다 보면','if you keep ...ing'],['집중력','concentration'],['떨어지다','to drop'],['단점','drawback'],['따라서','therefore']],
+    qs:[['What is one advantage of online classes?',['You can rewatch parts you missed','You meet friends often','They are always free','Teachers visit your home'],0],['What drawback is mentioned?',['They are expensive','It is easy to lose concentration','The internet is slow','There is too much homework'],1]]},
+  {id:'green',level:4,title:'환경을 지키는 작은 습관',en:'Small habits for the environment',
+    lines:[['최근 환경 문제에 관심을 가지는 사람들이 많아졌다.','Recently more people have become interested in environmental problems.'],['일회용 컵 대신 텀블러를 사용하는 사람도 쉽게 볼 수 있다.','You can easily see people using a tumbler instead of a disposable cup.'],['장을 볼 때 장바구니를 가지고 가는 것도 좋은 습관이다.','Taking your own bag when you go grocery shopping is also a good habit.'],
+      ['분리수거를 제대로 하면 쓰레기의 양을 줄일 수 있다.','Sorting recycling properly reduces the amount of rubbish.'],['이런 작은 실천이 모이면 지구를 지키는 데 큰 도움이 된다.','When small actions like these add up, they help a lot in protecting the earth.'],['환경 보호는 먼 곳이 아니라 우리 생활에서 시작된다.','Protecting the environment starts not somewhere far away but in our daily lives.']],
+    gloss:[['관심을 가지다','to be interested'],['일회용','disposable'],['대신','instead of'],['장을 보다','to go grocery shopping'],['장바구니','shopping bag'],['분리수거','sorting recycling'],['줄이다','to reduce'],['실천','putting into practice'],['지구','the earth'],['보호','protection']],
+    qs:[['What do people use instead of disposable cups?',['Glass bottles','Tumblers','Paper cups','Nothing'],1],['Where does protecting the environment start, according to the text?',['In government','In faraway places','In our daily lives','Only in schools'],2]]},
+  {id:'remote',level:5,title:'재택근무',en:'Working from home',
+    lines:[['재택근무가 보편화되면서 일하는 방식에도 큰 변화가 생겼다.','As working from home became common, the way we work changed a great deal.'],['출퇴근 시간이 사라져 개인 시간이 늘었다는 점은 분명한 장점이다.','Losing the commute and gaining personal time is a clear advantage.'],['반면 일과 생활의 경계가 모호해져 오히려 더 오래 일하게 되었다는 사람도 적지 않다.','On the other hand, quite a few people say the line between work and life has blurred, so they end up working even longer.'],
+      ['또한 동료와의 소통이 줄어 소속감을 느끼기 어렵다는 지적도 있다.','Some also point out that with less contact with coworkers, it is hard to feel you belong.'],['이에 따라 일주일에 며칠만 출근하는 혼합 근무를 도입하는 기업이 늘고 있다.','So more companies are introducing hybrid work, with only a few office days a week.'],['결국 중요한 것은 장소가 아니라 효율적으로 일할 수 있는 환경을 만드는 것이다.','In the end, what matters is not the place but creating conditions for working efficiently.']],
+    gloss:[['재택근무','working from home'],['보편화되다','to become common'],['방식','way, method'],['출퇴근','commuting'],['경계','boundary'],['모호하다','to be vague, blurred'],['오히려','rather, on the contrary'],['소통','communication'],['소속감','sense of belonging'],['지적','criticism, pointing out'],['도입하다','to introduce'],['효율적','efficient']],
+    qs:[['What problem does the text mention?',['Commuting takes longer','Work and life are harder to separate','Salaries went down','Offices are too crowded'],1],['What are more companies introducing?',['Longer hours','Hybrid work with some office days','Four-day weeks','Bigger offices'],1]]},
+  {id:'aging',level:5,title:'고령화 사회',en:'An ageing society',
+    lines:[['한국은 세계에서 가장 빠르게 고령화가 진행되고 있는 나라 중 하나이다.','Korea is one of the fastest-ageing countries in the world.'],['출산율은 낮아지고 평균 수명은 길어지면서 노인 인구의 비율이 계속 높아지고 있다.','As the birth rate falls and life expectancy rises, the share of older people keeps growing.'],['이로 인해 일할 수 있는 인구가 줄어 경제 성장이 둔화될 수 있다는 우려가 크다.','Because of this, there is great concern that the working population will shrink and economic growth may slow.'],
+      ['또한 노인을 부양하기 위한 사회적 비용도 점점 늘어날 것으로 예상된다.','The cost to society of supporting older people is also expected to keep rising.'],['정부는 출산을 장려하는 정책과 함께 노인 일자리를 늘리는 방안을 마련하고 있다.','The government is preparing policies to encourage births, along with ways to create more jobs for older people.'],['고령화는 피할 수 없는 흐름인 만큼 사회 전체가 함께 대비해야 한다.','Since ageing cannot be avoided, the whole of society must prepare for it together.']],
+    gloss:[['고령화','population ageing'],['진행되다','to progress'],['출산율','birth rate'],['평균 수명','life expectancy'],['비율','proportion'],['둔화되다','to slow down'],['우려','concern'],['부양하다','to support (family)'],['예상되다','to be expected'],['장려하다','to encourage'],['방안','plan, measure'],['대비하다','to prepare for']],
+    qs:[['What concern is mentioned?',['Too many young workers','Economic growth may slow','Houses are too cheap','Schools are too big'],1],['What is the government doing?',['Only raising taxes','Encouraging births and creating jobs for older people','Closing hospitals','Nothing'],1]]},
+  {id:'ai',level:6,title:'인공지능과 일',en:'AI and work',
+    lines:[['인공지능 기술의 발전은 노동 시장의 구조를 근본적으로 바꾸어 놓고 있다.','Advances in artificial intelligence are fundamentally reshaping the labour market.'],['단순하고 반복적인 업무는 이미 상당 부분 자동화되었으며, 그 범위는 점차 전문 영역으로까지 확대되고 있다.','Simple, repetitive tasks have already been largely automated, and this is gradually spreading even into specialist fields.'],['이에 대해 일자리 감소를 우려하는 목소리가 있는 반면, 새로운 직업이 창출될 것이라는 낙관적인 전망도 존재한다.','Some voices worry about job losses, while others optimistically expect new kinds of work to be created.'],
+      ['역사적으로 보면 기술 혁신은 일부 직업을 소멸시키는 동시에 예상치 못한 분야에서 새로운 기회를 만들어 왔다.','Historically, technological innovation has wiped out some jobs while creating new opportunities in unexpected fields.'],['관건은 개인과 사회가 변화의 속도에 맞추어 얼마나 유연하게 적응하느냐에 달려 있다.','The key is how flexibly individuals and society adapt to the speed of change.'],['따라서 평생 교육 체계를 강화하여 누구나 새로운 기술을 익힐 수 있도록 하는 것이 시급하다.','So it is urgent to strengthen lifelong education, so that anyone can learn new skills.']],
+    gloss:[['인공지능','artificial intelligence'],['노동 시장','labour market'],['근본적으로','fundamentally'],['반복적','repetitive'],['자동화되다','to be automated'],['확대되다','to expand'],['창출되다','to be created'],['낙관적','optimistic'],['전망','outlook, forecast'],['소멸','disappearance'],['관건','the key point'],['유연하다','to be flexible'],['평생 교육','lifelong education'],['시급하다','to be urgent']],
+    qs:[['What has technological innovation done, historically?',['Only destroyed jobs','Removed some jobs and created new opportunities','Had no effect on work','Made education unnecessary'],1],['What does the writer say is urgent?',['Banning AI','Strengthening lifelong education','Reducing working hours','Building more factories'],1]]},
+  {id:'jeong',level:6,title:'정',en:'Jeong, a Korean feeling',
+    lines:[['한국 사람들의 정서를 이해하는 데 빼놓을 수 없는 개념이 바로 정이다.','A concept you cannot leave out when trying to understand how Koreans feel is jeong.'],['정은 오랜 시간 함께 지내며 자연스럽게 쌓이는 따뜻한 유대감을 가리킨다.','Jeong is the warm bond that builds up naturally when people spend a long time together.'],['이웃과 음식을 나누거나 단골 가게에서 덤을 얹어 주는 모습에서도 정을 엿볼 수 있다.','You can glimpse it when neighbours share food, or when your regular shop adds a little extra for free.'],
+      ['흥미로운 것은 정이 좋아하는 감정뿐만 아니라 미운 정까지 포함한다는 점이다.','Interestingly, jeong covers not only fondness but also “hateful jeong”, the attachment that stays even through conflict.'],['이처럼 정은 개인보다 관계를 중시해 온 한국 문화의 특징을 잘 보여 준다.','In this way jeong shows a feature of Korean culture, which has valued relationships over the individual.'],['다만 급격한 도시화와 개인주의의 확산으로 정의 의미도 조금씩 달라지고 있다.','However, with rapid urbanisation and the spread of individualism, what jeong means is slowly changing.']],
+    gloss:[['정서','feelings, sentiment'],['빼놓다','to leave out'],['개념','concept'],['쌓이다','to build up'],['유대감','bond'],['가리키다','to refer to'],['단골','regular (customer, shop)'],['덤','a little extra for free'],['엿보다','to catch a glimpse of'],['미운 정','attachment despite dislike'],['중시하다','to value highly'],['급격하다','to be rapid'],['확산','spread']],
+    qs:[['How does jeong form, according to the text?',['Through money','Naturally over a long time together','At the first meeting','Only within families'],1],['What is changing the meaning of jeong?',['Television','Urbanisation and individualism','The weather','Foreign food'],1]]},
 ];
 // ---------------- Dialogues for role-play: [speaker A or B, Korean, English] ----------------
 const DIALOGUES=[
@@ -223,6 +263,26 @@ const DIALOGUES=[
     ['A','그럼 일요일에 같이 영화 볼까요?','Then shall we see a movie together on Sunday?'],['B','좋아요. 몇 시에 만날까요?','Sounds good. What time shall we meet?'],
     ['A','두 시 어때요?','How about two o’clock?'],['B','좋아요. 어디에서 만나요?','Good. Where shall we meet?'],
     ['A','극장 앞에서 만나요.','Let’s meet in front of the cinema.'],['B','네, 그때 봐요!','Okay, see you then!']]},
+  {id:'interview',level:3,title:'면접',en:'A job interview',a:'Interviewer',b:'You',lines:[
+    ['A','안녕하세요. 자기소개를 해 주세요.','Hello. Please introduce yourself.'],['B','안녕하세요. 저는 대학교에서 경영학을 전공한 김민수입니다.','Hello. I’m Kim Minsu, and I majored in business at university.'],
+    ['A','우리 회사에 지원한 이유가 뭐예요?','Why did you apply to our company?'],['B','이 회사의 제품을 오래 사용해 왔고, 마케팅 일을 꼭 해 보고 싶었습니다.','I’ve used your products for a long time, and I really wanted to work in marketing.'],
+    ['A','본인의 장점은 무엇이라고 생각해요?','What do you think your strengths are?'],['B','책임감이 강하고 다른 사람들과 잘 협력하는 편입니다.','I’m very responsible, and I tend to work well with others.'],
+    ['A','마지막으로 하고 싶은 말이 있어요?','Finally, is there anything you’d like to say?'],['B','기회를 주신다면 열심히 배우면서 최선을 다하겠습니다.','If you give me the chance, I’ll learn as much as I can and do my best.']]},
+  {id:'doctor',level:4,title:'병원에서',en:'At the doctor’s',a:'Doctor',b:'Patient',lines:[
+    ['A','어디가 불편해서 오셨어요?','What brings you in today?'],['B','사흘 전부터 기침이 나고 목이 많이 아파요.','I’ve had a cough and a very sore throat for three days.'],
+    ['A','열은 없으세요?','Do you have a fever?'],['B','어젯밤에 열이 좀 났는데 지금은 괜찮아요.','I had a slight fever last night, but I’m fine now.'],
+    ['A','목이 많이 부었네요. 목감기인 것 같습니다.','Your throat is quite swollen. It looks like a throat infection.'],['B','약을 먹으면 금방 나을까요?','Will I get better quickly if I take medicine?'],
+    ['A','네, 약을 드시고 물을 자주 마시면 일주일 안에 좋아질 거예요.','Yes. Take the medicine and drink water often, and you’ll be better within a week.'],['B','알겠습니다. 감사합니다, 선생님.','I see. Thank you, doctor.']]},
+  {id:'landlord',level:5,title:'집주인과의 통화',en:'Calling the landlord',a:'Landlord',b:'Tenant',lines:[
+    ['A','여보세요, 302호 맞으시죠? 무슨 일로 전화하셨어요?','Hello, this is flat 302, right? What can I do for you?'],['B','네, 다름이 아니라 욕실 천장에서 물이 새서 연락드렸습니다.','Yes. I’m calling because water is leaking from the bathroom ceiling.'],
+    ['A','아, 그래요? 언제부터 그랬어요?','Oh, really? Since when?'],['B','그저께 비가 많이 온 뒤부터 계속 새고 있어요.','It has been leaking ever since the heavy rain the day before yesterday.'],
+    ['A','위층에 문제가 생긴 것 같네요. 내일 오전에 수리 기사를 보내 드릴게요.','It sounds like a problem upstairs. I’ll send a repair person tomorrow morning.'],['B','제가 출근해야 해서 오후에 와 주시면 안 될까요?','I have to go to work. Could they come in the afternoon instead?'],
+    ['A','그럼 오후 여섯 시 이후로 시간을 맞춰 볼게요.','Then I’ll try to arrange it for after six in the evening.'],['B','신경 써 주셔서 감사합니다.','Thank you for taking care of it.']]},
+  {id:'debate',level:6,title:'토론: 대학 등록금',en:'Debate: university fees',a:'Speaker 1',b:'Speaker 2',lines:[
+    ['A','저는 대학 등록금을 국가가 전액 지원해야 한다고 생각합니다.','I believe the state should pay university fees in full.'],['B','취지는 이해하지만, 재정 부담을 고려하면 현실적이지 않다고 봅니다.','I understand the idea, but given the cost to the state, I don’t think it’s realistic.'],
+    ['A','교육은 개인의 문제가 아니라 사회 전체의 미래에 대한 투자입니다.','Education isn’t a private matter; it’s an investment in the future of the whole society.'],['B','그렇다면 모든 학생에게 똑같이 지원하기보다 형편이 어려운 학생에게 집중하는 것이 더 효율적이지 않을까요?','Then wouldn’t it be more efficient to focus on students who struggle financially, rather than funding everyone equally?'],
+    ['A','선별적으로 지원하면 오히려 낙인 효과가 생길 수 있다는 우려도 있습니다.','Some worry that selective support could actually stigmatise those students.'],['B','그 점은 제도를 세밀하게 설계해서 충분히 보완할 수 있다고 생각합니다.','I think careful design of the system can deal with that.'],
+    ['A','결국 핵심은 누구도 경제적인 이유로 배움을 포기하지 않는 사회를 만드는 것이겠네요.','In the end, the key is a society where nobody gives up on learning for financial reasons.'],['B','네, 그 목표에는 저도 전적으로 동의합니다.','Yes, I fully agree with that goal.']]},
 ];
 
 const storyText=s=>s.lines.map(l=>l[0]).join(' ');
@@ -246,8 +306,34 @@ function parseWordList(text){
   return out;
 }
 
+// Hanja (Chinese-character) roots: words that share a root share part of their meaning. Only same-character words are listed
+// (학교 and 교회 both have 교, but different characters: 校 school, 敎 teach). Every word here is in the vocabulary (tools/check.js).
+const HANJA=[
+  ['學','학','study','학교 대학교 학생 방학 입학 장학금 학기 학원 문학 과학 철학'],
+  ['生','생','life, birth','학생 선생님 생일 생선 동생 생산 생물 사생활 생태계'],
+  ['國','국','country','한국 외국 국회'],['局','국','office','우체국 약국'],
+  ['校','교','school','학교 대학교'],['敎','교','teach, religion','교회 교실 교과서 교육 교수 사교육 유교 불교'],['交','교','exchange, cross','교환 교통 외교'],
+  ['會','회','meet, gathering','회사 교회 회의 회의실 사회 전시회 국회'],['社','사','company, society','회사 사회 사장'],
+  ['院','원','institution','병원 학원'],['室','실','room','화장실 교실 회의실'],
+  ['文','문','writing, culture','문법 문화 문학 논문 문화재 다문화'],['問','문','ask','질문 문제'],
+  ['化','화','change, -ization','문화 문화재 온난화 고령화 세계화 민주화 양극화 다문화'],['話','화','speak','전화 대화'],['畫','화','picture','영화 화가'],['火','화','fire','화요일 화산'],
+  ['水','수','water','수요일 수영 홍수'],['金','금','gold, money','금요일 현금 보증금 세금 장학금 등록금 금리'],['日','일','day, sun','일요일 생일 매일 내일'],
+  ['子','자','person, thing','남자 여자 의자 모자'],['者','자','someone who','환자 피해자 소비자'],['自','자','self','자전거 자연 자존감'],
+  ['動','동','move','운동 동물 동기'],['同','동','same, together','동생 동료 공동체'],
+  ['氣','기','air, energy','감기 기온 기후'],['機','기','machine','비행기 청소기 세탁기'],
+  ['政','정','govern','정부 정책 정치 정당'],['空','공','empty, air','공항 공책'],['公','공','public','공원 공공 공연'],
+  ['場','장','place','시장 극장 정류장 주차장 직장'],['醬','장','sauce','간장 고추장 된장'],
+  ['物','물','thing','선물 박물관 물가 동물 생물'],['行','행','go, travel','은행 비행기 여행'],['旅','여','travel','여행 여권'],
+  ['館','관','hall, building','도서관 박물관'],['觀','관','view, outlook','관광 관객 관점 고정관념 객관성 역사관'],['書','서','book, document','도서관 교과서 계약서'],
+  ['外','외','outside','외국 외교 소외감'],['出','출','go out','출구 출근 수출 지출 출석 매출 저출산 대출'],['入','입','enter','입구 수입 입학'],
+  ['家','가','house, expert','가족 가구 가계 작가 화가'],['發','발','start, send out','발음 발전 발표 발견 발명'],['經','경','manage, pass through','경제 경험 경영'],
+  ['約','약','promise, agreement','약속 예약 계약 계약서 조약'],['市','시','city, market','시장 시민 도시'],['時','시','time','시간 시계'],
+  ['山','산','mountain','산 등산 화산'],['車','차','vehicle','기차 주차장'],['男','남','man','남자 남편'],['大','대','big','대학교 대통령 대체로'],
+].map(([han,ko,en,words])=>({han,ko,en,words:words.split(' ')}));
+const familiesOf=ch=>HANJA.filter(h=>h.words.includes(ch)&&h.words.length>1);
+
 // Every answer and example gets a recorded clip.
 for(const t of[...NUM_ITEMS.map(n=>n.ko),...VERBS.flatMap(v=>formsFor(v.ch).map(f=>conj(v.ch,f))),...NOUNS.flatMap(n=>Object.keys(PARTICLES).map(k=>withParticle(n.ch,k))),...DIALOGUES.flatMap(d=>d.lines.map(l=>l[1])),...SOUNDS.flatMap(s=>s.ex.map(e=>e[0])),...STORIES.flatMap(s=>s.lines.map(l=>l[0]))])
   if(!PD.RECORDED.includes(t))PD.RECORDED.push(t);
 
-if(typeof module!=='undefined')module.exports={parseWordList,sino,native,month,NUM_TYPES,NUM_ITEMS,irrOf,aeo,conj,verbWrongs,VERB_FORMS,formsFor,VERBS,PARTICLES,withParticle,wrongParticle,NOUNS,DIALOGUES,IRR_NOTE,SOUNDS,STORIES,storyText,storyWords,storyGloss};
+if(typeof module!=='undefined')module.exports={HANJA,familiesOf,parseWordList,sino,native,month,NUM_TYPES,NUM_ITEMS,irrOf,aeo,conj,verbWrongs,VERB_FORMS,formsFor,VERBS,PARTICLES,withParticle,wrongParticle,NOUNS,DIALOGUES,IRR_NOTE,SOUNDS,STORIES,storyText,storyWords,storyGloss};

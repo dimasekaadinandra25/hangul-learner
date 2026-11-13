@@ -70,24 +70,29 @@ async function checkUpdate(manual){
     updFound=await upd.check();lsSet('updChecked',dayKey());
     if(!updFound){if(manual)setMsg('updMsg','You have the newest version.');return}
     setMsg('updMsg',`Version ${updFound.version} is available.`);$('updBtn').innerHTML=icon('download')+'Install '+esc(updFound.version);
-    if(!manual)toast('sync',`Update ${updFound.version} available`,'Open Settings › Updates to install it.','download');
+    if(!manual&&lsGet('updToasted','')!==updFound.version){lsSet('updToasted',updFound.version);toast('sync',`Update ${updFound.version} available`,'Open Settings › Updates to install it.','download')}
   }catch(e){if(manual)setMsg('updMsg','Could not check for updates: '+e,true)}
 }
 async function installUpdate(){
   if(!await ask({title:`Install version ${updFound.version}?`,text:'The app downloads the update, closes and opens again. Your progress is kept.',ok:'Install and restart',sealText:'↑'}))return;
   let got=0,total=0;$('updBtn').disabled=true;
+  lsSet('updNotes',{v:updFound.version,body:String(updFound.body||'').slice(0,2000)}); // shown once after the restart
   try{
     await updFound.downloadAndInstall(ev=>{if(ev.event==='Started')total=ev.data.contentLength||0;else if(ev.event==='Progress'){got+=ev.data.chunkLength;setMsg('updMsg',total?`Downloading… ${Math.round(got/total*100)}%`:'Downloading…')}else if(ev.event==='Finished')setMsg('updMsg','Installing…')});
     await tauri.process.relaunch();
   }catch(e){setMsg('updMsg','Update failed: '+e,true);$('updBtn').disabled=false}
 }
 $('updBtn').onclick=()=>updFound?installUpdate():checkUpdate(true);
-setTimeout(()=>{if(lsGet('updChecked','')!==dayKey())checkUpdate(false)},15000); // once a day, a little after start-up
+setTimeout(()=>checkUpdate(false),15000); // a little after start-up, then every 6 hours while the app runs (it often sits in the tray for days)
+setInterval(()=>checkUpdate(false),6*3600e3);
+// What's new: after an update installed from Settings, show its notes once
+tauri?.app.getVersion().then(v=>{const n=lsGet('updNotes',null);if(n?.v!==v)return;lsSet('updNotes',null);
+  ask({title:`Updated to ${v}`,text:n.body||'Hangul Learner is up to date.',ok:'Got it',cancel:'',sealText:'新'})});
 
 // ---- Backup ----
 const stamp=()=>new Date().toLocaleString('sv').replace(/[: ]/g,'-').slice(0,16); // 2026-11-11-08-30
-function backupJson(){
-  return JSON.stringify({app:'hangul-learner',version:1,exported:new Date().toISOString(),progress:P,
+function backupJson(extra){
+  return JSON.stringify({app:'hangul-learner',version:1,exported:new Date().toISOString(),...extra,progress:P,
     settings:Object.fromEntries(['theme','tray','rate','shortcuts','reminder','wotd','focusLen'].map(k=>[k,localStorage.getItem(k)]).filter(([,v])=>v!=null))});
 }
 let lastExport='';
@@ -115,6 +120,15 @@ function cleanBackup(obj){
     drillMiss:Object.fromEntries(['num','verb','part','sound'].map(k=>[k,(Array.isArray(p.drillMiss?.[k])?p.drillMiss[k]:[]).filter(r=>typeof r==='string'&&r.length<60).slice(-60)])),
     talks:Object.fromEntries(DIALOGUES.filter(d=>p.talks?.[d.id]).map(d=>[d.id,Math.max(0,+p.talks[d.id]||0)]))};
 }
+// Replaces progress (and the shared settings) with a cleaned backup. savedAt: keep the copy's save time (sync).
+function applyBackup(obj,p,savedAt){
+  const f=freshProgress();P={...f,...p,totals:{...f.totals,...p.totals}};
+  for(const[k,v]of Object.entries(obj.settings||{}))if(['theme','tray','rate','shortcuts','reminder','wotd','focusLen'].includes(k)&&typeof v==='string')localStorage.setItem(k,v.slice(0,200));
+  setTheme(getTheme());renderTray();renderWotd();$('focusLen').value=lsGet('focusLen','25-5');tauri?.core.invoke('close_to_tray',{on:trayOn()});applyShortcuts();
+  if(savedAt){P.savedAt=savedAt;keepStamp=true}
+  try{save()}finally{keepStamp=false}
+  renderSettings();
+}
 $('importFile').onchange=async e=>{
   const file=e.target.files[0];e.target.value='';if(!file)return;
   let obj;try{obj=JSON.parse(await file.text())}catch{return setMsg('backupMsg','That file is not a Hangul Learner backup.',true)}
@@ -122,8 +136,73 @@ $('importFile').onchange=async e=>{
   if(!p)return setMsg('backupMsg','That file is not a Hangul Learner backup.',true);
   const units=Object.values(p.units||{}).filter(n=>n>0).length,when=obj.exported?new Date(obj.exported).toLocaleDateString():'an unknown date';
   if(!await ask({title:'Import this backup?',text:`It has ${p.xp.toLocaleString()} XP and ${units} passed unit${units===1?'':'s'}, saved ${when}. Your current progress on this computer will be replaced.`,ok:'Import',danger:true,sealText:'!'}))return;
-  const f=freshProgress();P={...f,...p,totals:{...f.totals,...p.totals}};
-  for(const[k,v]of Object.entries(obj.settings||{}))if(['theme','tray','rate','shortcuts','reminder','wotd','focusLen'].includes(k)&&typeof v==='string')localStorage.setItem(k,v.slice(0,200));
-  setTheme(getTheme());renderTray();renderWotd();$('focusLen').value=lsGet('focusLen','25-5');tauri?.core.invoke('close_to_tray',{on:trayOn()});applyShortcuts();
-  save();renderSettings();setMsg('backupMsg','Backup imported.');toast('sync','Backup imported',`${P.xp.toLocaleString()} XP restored`,'download');
+  applyBackup(obj,p);setMsg('backupMsg','Backup imported.');toast('sync','Backup imported',`${P.xp.toLocaleString()} XP restored`,'download');
 };
+
+// ---- Sync between PCs: progress is also kept in <folder>\Hangul Learner\progress.json, inside a folder that
+// OneDrive or Google Drive already syncs. No account or server. Each PC turns it on once.
+// When both PCs studied since they last agreed, the two copies are merged (mergeProgress in lesson.js) using the last agreed
+// copy, which each PC keeps in localStorage (syncSnap). Only the very first sync on a PC that already has progress asks.
+const syncDir=()=>lsGet('syncOn',false)?lsGet('syncPath',''):'';
+let syncBusy=false,syncTimer=0;
+const keepAside=data=>tauri.core.invoke('export_backup',{name:`before-sync-${stamp()}.json`,data});
+function agreed(){ // this PC and the sync folder now hold the same progress
+  lsSet('syncBase',P.savedAt||1);lsSet('syncSnap',P);lsSet('syncAt',Date.now());syncStatus(); // 1 = synced, even before the first save
+}
+async function syncWrite(){
+  await tauri.core.invoke('sync_write',{dir:syncDir(),data:backupJson({saved:P.savedAt})});
+  agreed();
+}
+function syncPush(){ // after every save, a few seconds later
+  clearTimeout(syncTimer);
+  syncTimer=setTimeout(()=>{if(syncDir()&&loaded&&!syncBusy&&(+P.savedAt||0)>+lsGet('syncBase',0))syncWrite().catch(syncStatus)},3000);
+}
+async function syncPull(){
+  if(!tauri||!syncDir()||!loaded||syncBusy)return;
+  syncBusy=true;
+  try{
+    const txt=await tauri.core.invoke('sync_read',{dir:syncDir()});
+    if(!txt){await syncWrite();return}
+    let obj;try{obj=JSON.parse(txt)}catch{throw Error('the sync file is damaged')}
+    const p=cleanBackup(obj),saved=+obj.saved||0,mine=+P.savedAt||0,base=+lsGet('syncBase',0);
+    if(!p)throw Error('the sync file is damaged');
+    if(saved===mine)return agreed();
+    const snap=lsGet('syncSnap',null);
+    if(base&&snap&&saved>base&&mine>base){ // both PCs studied since they last agreed: add the two together
+      applyBackup({},mergeProgress(snap,P,p,mine>saved));await syncWrite();
+      return toast('sync','Progress merged',`This PC and your other PC combined · ${P.xp.toLocaleString()} XP`,'download');
+    }
+    let useRemote=saved>mine;
+    if(!base&&P.xp>0&&mine){ // first sync on this PC and it already has progress: let the learner choose
+      useRemote=await ask({title:'Which progress should this PC use?',text:`The sync folder has ${p.xp.toLocaleString()} XP (saved ${new Date(saved).toLocaleString()}). This PC has ${P.xp.toLocaleString()} XP. The other copy is kept as a backup file in Documents\\Hangul Learner.`,ok:'Use the sync folder’s',cancel:'Keep this PC’s',sealText:'⇄'});
+    }
+    if(useRemote){
+      if(mine>base)await keepAside(backupJson());
+      applyBackup(obj,p,saved);agreed();
+      toast('sync','Progress synced',`Continued from your other PC · ${P.xp.toLocaleString()} XP`,'download');
+    }else{
+      if(saved>base)await keepAside(txt);
+      await syncWrite();
+    }
+    syncStatus();
+  }catch(e){syncStatus(e)}finally{syncBusy=false}
+}
+function syncStatus(err){
+  if(err instanceof Error||typeof err==='string')return setMsg('syncMsg','Could not sync: '+(err.message||err),true);
+  const at=lsGet('syncAt',0);
+  setMsg('syncMsg',syncDir()?(at?`Synced ${new Date(at).toLocaleString()}`:'Not synced yet'):'');
+}
+function renderSync(){swSet('syncSw',lsGet('syncOn',false));$('syncPath').value=lsGet('syncPath','');syncStatus()}
+$('syncGroup').hidden=!tauri;
+$('syncSw').onclick=async()=>{
+  const on=!lsGet('syncOn',false);
+  if(on&&!lsGet('syncPath',''))lsSet('syncPath',await tauri.core.invoke('sync_default'));
+  if(on&&!lsGet('syncPath',''))return setMsg('syncMsg','Type the path of your OneDrive or Google Drive folder below first.',true);
+  lsSet('syncOn',on);lsSet('syncBase',0);lsSet('syncSnap',null);renderSync();syncPull();
+};
+$('syncPath').onchange=e=>{lsSet('syncPath',e.target.value.trim());lsSet('syncBase',0);lsSet('syncSnap',null);renderSync();syncPull()};
+$('syncNow').onclick=()=>syncPull();
+renderSync();
+setInterval(syncPull,120000);addEventListener('focus',()=>syncPull());
+(function first(){loaded?syncPull():setTimeout(first,500)})();
+

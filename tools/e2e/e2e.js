@@ -52,6 +52,8 @@ class Page {
 
 // Helpers installed in the main page: waiting, clicking, and answering lesson exercises like a learner would.
 const HELPERS = `
+// Windows notifications are recorded, not shown, so testing doesn't pop banners on your screen
+if(window.__TAURI__?.notification){window.sentNotes=[];__TAURI__.notification.sendNotification=o=>{sentNotes.push(o)}}
 window.T={
   sleep:ms=>new Promise(r=>setTimeout(r,ms)),
   async until(f,ms=10000,what='condition'){const t=Date.now();while(Date.now()-t<ms){const v=f();if(v)return v;await T.sleep(60)}throw Error('timed out: '+what)},
@@ -134,7 +136,7 @@ const visible = t => win('state', t).visible;
     });
     await test('first launch: fresh progress, Learn page, Hangul basics', async () => {
       const r = await main.run(`return {xp:P.xp,view,hero:document.querySelector('.hero h2').textContent,units:document.querySelectorAll('#path details.unit').length,locked:document.querySelectorAll('#path details.unit.locked').length,words:VOCAB.length}`);
-      eq(r.xp, 0, 'xp'); eq(r.view, 'learn', 'view'); eq(r.hero, 'Hangul basics', 'hero'); eq(r.units, 10, 'units'); eq(r.locked, 9, 'locked units'); eq(r.words, 1000, 'words');
+      eq(r.xp, 0, 'xp'); eq(r.view, 'learn', 'view'); eq(r.hero, 'Hangul basics', 'hero'); eq(r.units, 10, 'units'); eq(r.locked, 9, 'locked units'); eq(r.words, 1020, 'words');
     });
     await test('every nav item opens its page', async () => {
       const r = await main.run(`const out={};for(const b of document.querySelectorAll('.nav-item')){b.click();out[b.dataset.tab]=!$(b.dataset.tab).hidden&&b.getAttribute('aria-current')==='page'&&[...document.querySelectorAll('main>section')].filter(s=>!s.hidden).length===1}show('learn');return out`);
@@ -227,7 +229,7 @@ const visible = t => win('state', t).visible;
       const r = await main.run(`show('vocab');const s=$('vSearch'),q=v=>{s.value=v;s.dispatchEvent(new Event('input'));return $('vCount').textContent};
         const en=q('love'),hasKo=$('vList').textContent.includes('사랑'),ko=q('사랑'),none=q('zzzz-no-word'),empty=$('vList').textContent.trim();q('');
         T.click('#vLevels [data-vsec="6"]');const t6=$('vCount').textContent;T.click('#vLevels [data-vsec="-1"]');return {en,hasKo,ko,none,empty,t6,all:$('vCount').textContent}`);
-      ok(parseInt(r.en) >= 1 && r.hasKo, 'English search'); ok(parseInt(r.ko) >= 1, 'Korean search'); eq(r.none, '0 words', 'no match'); eq(r.empty, 'No words match.', 'empty text'); eq(r.t6, '160 words', 'TOPIK 6'); eq(r.all, '1000 words', 'all');
+      ok(parseInt(r.en) >= 1 && r.hasKo, 'English search'); ok(parseInt(r.ko) >= 1, 'Korean search'); eq(r.none, '0 words', 'no match'); eq(r.empty, 'No words match.', 'empty text'); eq(r.t6, '160 words', 'TOPIK 6'); eq(r.all, '1020 words', 'all');
     });
     await test('Words: a search counts toward the "Search the word list" task', async () => {
       const r = await main.run(`const s=$('vSearch');s.value='water';s.dispatchEvent(new Event('change'));s.value='';s.dispatchEvent(new Event('input'));return {n:P.totals.searches,task:P.tasks.includes('t-search')}`);
@@ -267,7 +269,7 @@ const visible = t => win('state', t).visible;
     await test('TOPIK 1 has a Grammar track whose first unit is open on its own', async () => {
       const r = await main.run(`show('learn');T.click('#levels [data-sec="1"]');const g=[...document.querySelectorAll('#path details.unit.grammar')];
         return {track:[...document.querySelectorAll('#path .track')].map(t=>t.textContent),n:g.length,firstOpen:!g[0].classList.contains('locked'),secondLocked:g[1].classList.contains('locked'),units:document.querySelectorAll('#path details.unit').length}`);
-      eq(r.track, ['단어Words', '문법Grammar'], 'track headings'); eq(r.n, 2, 'grammar units'); ok(r.firstOpen, 'first grammar unit locked'); ok(r.secondLocked, 'second grammar unit should wait'); eq(r.units, 10, 'units in TOPIK 1');
+      eq(r.track, ['단어Words', '문법Grammar'], 'track headings'); eq(r.n, 2, 'grammar units'); ok(r.firstOpen, 'first grammar unit locked'); ok(r.secondLocked, 'second grammar unit should wait'); eq(r.units, 11, 'units in TOPIK 1');
     });
     await test('grammar Learn 1: pattern cards with an example, then questions; all pass', async () => {
       const r = await main.run(`const gi=UNITS.findIndex(u=>u.id==='g1-0');T.start(gi,0);const intro={kicker:document.querySelector('.intro-card .kicker').textContent,ex:!!document.querySelector('.intro-ex')};
@@ -327,7 +329,7 @@ const visible = t => win('state', t).visible;
     await test('TOPIK 1 practice test: 20 questions, all right = 100%, recorded with areas', async () => {
       const r = await main.run(`show('test');T.click('[data-tlevel="1"]');const n=TS.qs.length;for(let i=0;i<n;i++){const q=TS.qs[i];T.click([...document.querySelectorAll('[data-tv]')].find(b=>b.dataset.tv===q.answer));T.click('#tqNext')}
         const t=P.tests[P.tests.length-1];return {n,score:t.score,areas:Object.keys(t.areas).sort(),big:document.querySelector('.score-big').textContent,task:P.tasks.includes('t-test')&&P.tasks.includes('t-test80')}`);
-      eq(r.n, 20, 'questions'); eq(r.score, 20, 'score'); eq(r.areas, ['grammar', 'listening', 'vocab'], 'areas'); eq(r.big, '100%', 'result'); ok(r.task, 'test tasks not claimed');
+      eq(r.n, 20, 'questions'); eq(r.score, 20, 'score'); eq(r.areas, ['grammar', 'listening', 'reading', 'vocab'], 'areas'); eq(r.big, '100%', 'result'); ok(r.task, 'test tasks not claimed');
     });
     await test('wrong test answers go to Review mistakes; Stop test asks first', async () => {
       const r = await main.run(`T.click('[data-tagain]');const before=Object.keys(P.mistakes).length;for(let i=0;i<TS.qs.length;i++){const q=TS.qs[i];T.click([...document.querySelectorAll('[data-tv]')].find(b=>b.dataset.tv!==q.answer));T.click('#tqNext')}
@@ -336,7 +338,7 @@ const visible = t => win('state', t).visible;
       eq(r, {p: '0%', wrong: 20, more: true, asked: true, picker: true}, 'wrong answers');
     });
     await test('Stats page: tiles, 26-week calendar, weekly XP and level bars', async () => {
-      const r = await main.run(`show('stats');return {tiles:document.querySelectorAll('#statsBody .tiles div').length,heat:document.querySelectorAll('.heat i').length,weeks:document.querySelectorAll('.bars div').length,levels:document.querySelectorAll('.hbars div').length,today:document.querySelector('.heat i:not(.future):last-of-type')?.title||''}`);
+      const r = await main.run(`show('stats');return {tiles:document.querySelectorAll('#statsBody .tiles div').length,heat:document.querySelectorAll('.heat i').length,weeks:document.querySelector('.bars').children.length,levels:document.querySelectorAll('.hbars div').length,today:document.querySelector('.heat i:not(.future):last-of-type')?.title||''}`);
       ok(r.tiles >= 8, 'tiles'); eq(r.heat, 182, 'calendar days'); eq(r.weeks, 12, 'weeks'); ok(r.levels >= 7, 'levels');
     });
 
@@ -369,7 +371,7 @@ const visible = t => win('state', t).visible;
         const s=STORIES.find(x=>x.id==='family');s.qs.forEach(([,,a],i)=>T.click('[data-sq="'+i+'"][data-so="'+a+'"]'));const xp=P.xp;T.click('[data-scheck]');
         const g=document.querySelector('.wc[data-gloss]').dataset.gloss;T.click('.wc[data-gloss]');const saved=inNotebook(g);removeFromNotebook(g);save();T.click('[data-story=""]');
         return {cards,one,all,yes:words.includes('네'),family:words.includes('가족'),gloss:gloss>=3,best:P.stories.family.best,xp:P.xp-xp===5+(TASKS.find(t=>t.id==='t-story').xp),task:P.tasks.includes('t-story'),saved,done:!!document.querySelector('[data-story=family] .story-done')}`);
-      eq(r, {cards: 6, one: 1, all: 6, yes: false, family: true, gloss: true, best: 2, xp: true, task: true, saved: true, done: true}, 'story');
+      eq(r, {cards: 14, one: 1, all: 6, yes: false, family: true, gloss: true, best: 2, xp: true, task: true, saved: true, done: true}, 'story');
     });
     await test('Particles: the right form for the noun; a wrong answer goes to Mistakes and leaves when answered right', async () => {
       const r = await main.run(`show('practice');T.click('[data-ptab=part]');const q=DQ,[noun,k]=q.ref.split('|');const right=q.opts[q.answer]===withParticle(noun,k)&&q.opts.includes(wrongParticle(noun,k));
@@ -393,7 +395,7 @@ const visible = t => win('state', t).visible;
           T.click('[data-tnext]');await T.sleep(50);
         }
         await T.sleep(100);return {cards,done:P.talks.order>=1,recs:(P.totals.recordings||0)-rec0,xp:P.xp-xp>=5,task:P.tasks.includes('t-talk'),end:document.querySelector('.talk-bar').textContent.includes('done')}`);
-      eq(r, {cards: 4, done: true, recs: 1, xp: true, task: true, end: true}, 'talk');
+      eq(r, {cards: 8, done: true, recs: 1, xp: true, task: true, end: true}, 'talk');
       await main.run(`T.click('[data-talk=""]');return true`);
     });
     await test('My words: import a CSV / Anki word list (HTML stripped, duplicates skipped)', async () => {
@@ -459,8 +461,8 @@ const visible = t => win('state', t).visible;
     });
     await test('word of the day: "Show one now" sends a Windows notification; the daily check runs once a day', async () => {
       const r = await main.run(`T.click('[data-settings]');T.click('#wotdTry');await T.until(()=>$('wotdMsg').textContent,5000,'sent');const msg=$('wotdMsg').textContent;
-        lsSet('wotd',{on:true,time:'00:00',last:''});const first=await checkWotd(),second=await checkWotd();lsSet('wotd',null);renderWotd();$('settings').close();return {msg,first,second}`);
-      ok(r.msg.startsWith('Sent: '), 'notification: ' + r.msg); eq([r.first, r.second], [true, false], 'once a day');
+        lsSet('wotd',{on:true,time:'00:00',last:''});const first=await checkWotd(),second=await checkWotd();lsSet('wotd',null);renderWotd();$('settings').close();return {msg,first,second,note:sentNotes[0]?.title||''}`);
+      ok(r.msg.startsWith('Sent: '), 'notification: ' + r.msg); eq([r.first, r.second], [true, false], 'once a day'); ok(r.note.startsWith('오늘의 단어'), 'notification title: ' + r.note);
     });
     await test('backup: Export writes a file, Import restores it after asking', async () => {
       const r = await main.run(`T.click('[data-settings]');T.click('#exportBtn');await T.until(()=>lastExport,5000,'export');return {path:lastExport,xp:P.xp}`);
@@ -639,11 +641,11 @@ const visible = t => win('state', t).visible;
       await waitFor(() => mini.run(`return document.getElementById('hlabel').textContent==='mini player'`), 4000, 'label back');
     });
     await test('☆ on the mini word card saves the word to My words; again removes it', async () => {
-      const w = await mini.run(`return cur.ch`);
+      const w = await mini.run(`return cur.ch`), was = await main.run(`return inNotebook(${JSON.stringify(w)})`); // an earlier test may have saved it
       await mini.run(`document.getElementById('star').click();return true`);
-      await waitFor(() => main.run(`return inNotebook(${JSON.stringify(w)})`), 4000, 'saved');
+      await waitFor(() => main.run(`return inNotebook(${JSON.stringify(w)})!==${was}`), 4000, was ? 'removed' : 'saved');
       await mini.run(`document.getElementById('star').click();return true`);
-      await waitFor(() => main.run(`return !inNotebook(${JSON.stringify(w)})`), 4000, 'removed');
+      await waitFor(() => main.run(`return inNotebook(${JSON.stringify(w)})===${was}`), 4000, 'toggled back');
       await mini.run(`document.getElementById('close').click();return true`);
     });
     await test('shadowing: replays the last 5 s and pauses; Next moves on; Record me records you (fake mic)', async () => {
@@ -718,6 +720,66 @@ const visible = t => win('state', t).visible;
       await waitFor(() => mini.run(`return document.getElementById('video').hidden&&vp.getPlayerState()!==1`), 5000, 'video panel removed');
       await sleep(500); ok(miniH() < 400, 'mini player did not shrink: ' + miniH());
       await main.run(`stopAll();return true`); await mini.run(`document.getElementById('close').click();return true`); await waitFor(() => !visible(MINI), 4000, 'mini hidden');
+    });
+
+    group('Sync, word families, voices, reading test'); await fresh();
+    await test('vocabulary search understands romanization (hakgyo -> 학교)', async () => {
+      eq(await main.run(`$('vSearch').value='hakgyo';renderVocab();const a=$('vList').textContent.includes('학교');$('vSearch').value='gamsahamnida';renderVocab();const b=$('vList').textContent.includes('감사합니다');$('vSearch').value='';renderVocab();return [a,b]`), [true, true], 'found');
+    });
+    await test('word card shows Hanja word families; tapping a relative opens it in the same card', async () => {
+      const r = await main.run(`T.mute();openWord('학생');const fam=[...$('wsFam').querySelectorAll('.fam b span')].map(s=>s.textContent).join('');
+        $('wsFam').querySelector('[data-word="학교"]').click();await T.sleep(200);const r={fam,now:$('wsWord').textContent,open:$('wordSheet').open,cur:$('wsFam').querySelector('[aria-current]')?.textContent};closeSheet();return r`);
+      eq(r, {fam: '學生', now: '학교', open: true, cur: '학교'}, 'families');
+    });
+    await test('conversations: the second speaker uses the male voice; Konglish words are recorded', async () => {
+      const r = await main.run(`T.mute();const ok=await Promise.all(['m-'+audioName('큰 사이즈로 주세요.'),audioName('화이팅'),audioName('리모컨')].map(f=>fetch('audio/'+f).then(r=>r.ok)));
+        sayLine(['B','큰 사이즈로 주세요.']);const b=sAudio.src.includes('/m-');sayLine(['A','어서 오세요. 뭐 드릴까요?']);const a=!sAudio.src.includes('/m-');sAudio.pause();return {ok,a,b}`);
+      eq(r, {ok: [true, true, true], a: true, b: true}, 'voices');
+    });
+    await test('practice test: TOPIK levels end with a reading passage; Hangul basics stays plain', async () => {
+      eq(await main.run(`const q=withReading(buildTest(1),1),r=q.filter(x=>x.area==='reading');return [q.length,r.length,!!r[0].passage&&q.at(-1).area,withReading(buildTest(5),5).some(x=>x.area==='reading'),withReading(buildTest(0),0).some(x=>x.area==='reading')]`), [20, 2, 'reading', true, false], 'test');
+    });
+    await test('focus timer alarm comes from the Rust side (not slowed in the tray)', async () => {
+      ok(await main.run(`let got=0;const un=await __TAURI__.event.listen('alarm',()=>got++);await __TAURI__.core.invoke('alarm',{ms:300});await T.until(()=>got>0,3000,'alarm');un();return got>0`), 'no alarm');
+    });
+    await test('weekly report is on by default and sums the week; a notice dialog has no Cancel', async () => {
+      const r = await main.run(`const w=weekReport(),p=ask({title:'x',text:'y',ok:'Got it',cancel:''}),h=$('askCancel').hidden;$('ask').close('ok');return {sw:$('weekSw').getAttribute('aria-checked'),t:w.title,h,ok:await p}`);
+      eq(r, {sw: 'true', t: '이번 주 · Your week in Korean', h: true, ok: true}, 'weekly');
+    });
+    await test('sync: writes to the folder; when both PCs studied since the last sync, their progress is added together', async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hangul-sync-')), file = path.join(dir, 'Hangul Learner', 'progress.json');
+      try {
+        await main.run(`lsSet('syncPath',${JSON.stringify(dir)});lsSet('syncOn',true);lsSet('syncBase',0);lsSet('syncSnap',null);renderSync();P.savedAt=0;await syncPull();return true`);
+        ok(fs.existsSync(file), 'no sync file');
+        const xp = await main.run(`P.xp+=1;save();return P.xp`); // a change on this PC that the other PC does not have
+        const other = JSON.parse(fs.readFileSync(file, 'utf8')); other.progress.xp = xp - 1 + 1234; other.saved = Date.now() + 60000;
+        fs.writeFileSync(file, JSON.stringify(other));
+        const r = await main.run(`await T.until(()=>!syncBusy,5000);await syncPull();return {xp:P.xp,msg:$('syncMsg').textContent}`);
+        eq(r.xp, xp + 1234, 'xp from both PCs (1 here + 1234 there)'); ok(r.msg.startsWith('Synced'), 'status: ' + r.msg);
+        eq(JSON.parse(fs.readFileSync(file, 'utf8')).progress.xp, xp + 1234, 'merged copy written back');
+      } finally {
+        await main.run(`lsSet('syncOn',false);renderSync();return true`).catch(() => {});
+        fs.rmSync(dir, {recursive: true, force: true});
+      }
+    });
+    await test('voice clips are Opus (.ogg) and decode', async () => {
+      ok(await main.run(`const b=await (await fetch('audio/'+audioName('학교'))).arrayBuffer();const a=await new AudioContext().decodeAudioData(b);return audioName('학교').endsWith('.ogg')&&a.duration>0.3`), 'clip did not decode');
+    });
+    await test('typing race: the clock starts with the first key; at 60 s the score and best are saved; Skip starts a new race', async () => {
+      const r = await main.run(`T.mute();show('write');T.click('[data-wtab=race]');const box=!$('tRaceBox').hidden,left0=$('tLeft').textContent;
+        for(const k of keysFor(TY.word.ch))tKey(k);await T.sleep(400);const done=TY.done,started=!!TY.start;
+        TY.start-=61000;raceTick();const over={over:TY.over,best:P.raceBest>=1,word:$('tWord').textContent,races:P.totals.races>=1};
+        T.click('#tSkip');const again=!TY.over&&TY.done===0&&!TY.start;T.click('[data-wtab=type]');const hidden=$('tRaceBox').hidden;return {box,left0,done,started,...over,again,hidden}`);
+      eq(r, {box: true, left0: '60', done: 1, started: true, over: true, best: true, word: '1 word', races: true, again: true, hidden: true}, 'race');
+    });
+    await test('Stats: Smart review forecast shows the next 14 days, today first', async () => {
+      const r = await main.run(`const k=dayKey();(P.srs??={})['__e2e']={u:'x',iv:1,ease:2.3,due:k};show('stats');const h=[...document.querySelectorAll('.chart-card h3')].find(h=>h.textContent==='Smart review forecast');
+        const bars=h.parentElement.querySelector('.bars'),r={n:bars.children.length,first:bars.children[0].title.startsWith('Today'),x:h.parentElement.querySelector('.bar-x span').textContent};delete P.srs['__e2e'];return r`);
+      eq(r, {n: 14, first: true, x: 'Today'}, 'forecast');
+    });
+    await test('pronunciation check: Windows listens; without the Korean speech pack it explains how to add it', async () => {
+      const r = await main.run(`openWord('학교');T.click('#wsCheck');await T.until(()=>!$('wsCheck').disabled,15000,'check finished');const m=$('wsMsg').textContent;closeSheet();return m`);
+      ok(/Korean speech pack|Recognised|heard|catch/.test(r), 'message: ' + r);
     });
 
     group('Tray and closing'); await fresh();

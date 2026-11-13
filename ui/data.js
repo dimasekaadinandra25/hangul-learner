@@ -79,8 +79,29 @@ function findWords(text){
   return hits.sort((a,b)=>a[0]-b[0]).map(h=>h[1]);
 }
 
-// Everything with a pre-recorded clip; file name = hex code points, e.g. 가 -> ac00.mp3
+// Everything with a pre-recorded clip; file name = hex code points, e.g. 가 -> ac00.ogg (Opus)
 const RECORDED=[...new Set([...ALL.map(l=>l.say),...SYLL.map(s=>s.say),...VOCAB.map(w=>w.say),...GRAMMAR_ITEMS.flatMap(g=>[...g.ex.map(e=>e[0]),fillQ(g.q)])])];
-const audioName=t=>[...t].map(c=>c.codePointAt(0).toString(16)).join('-')+'.mp3';
+// Revised Romanization, enough for search: 학교 -> hakgyo, 한국어 -> hangugeo, 감사합니다 -> gamsahamnida.
+// ponytail: links a final into a following ㅇ and nasalizes before ㄴ/ㅁ; other sound changes (ㄹ+ㄴ, ㅎ, tensing) are skipped.
+const RR_I=['g','kk','n','d','tt','r','m','b','pp','s','ss','','j','jj','ch','k','t','p','h'];
+const RR_V=['a','ae','ya','yae','eo','e','yeo','ye','o','wa','wae','oe','yo','u','wo','we','wi','yu','eu','ui','i'];
+const RR_F=['','k','k','k','n','n','n','t','l','k','m','l','l','l','p','l','m','p','p','t','t','ng','t','t','k','t','p','t'];
+const RR_LINK={1:'g',2:'kk',4:'n',7:'d',8:'r',16:'m',17:'b',19:'s',20:'ss',22:'j',23:'ch',24:'k',25:'t',26:'p',27:''}; // single finals that move into a following ㅇ
+const RR_NASAL={k:'ng',t:'n',p:'m'};
+function romanize(s){
+  const code=ch=>{const c=ch?ch.charCodeAt(0)-0xAC00:-1;return c>=0&&c<=11171?c:-1};
+  const a=[...s];let out='';
+  a.forEach((ch,i)=>{
+    const c=code(ch);if(c<0){out+=ch;return}
+    const f=c%28,n=code(a[i+1]),ni=n<0?-1:Math.floor(n/588);
+    out+=RR_I[Math.floor(c/588)]+RR_V[Math.floor(c%588/28)];
+    if(!f)return;
+    if(ni===11&&RR_LINK[f]!=null){out+=RR_LINK[f];return}
+    out+=(ni===2||ni===6)&&RR_NASAL[RR_F[f]]||RR_F[f];
+  });
+  return out;
+}
+// Clip file name from its text; long sentences get a short hash instead (Windows file names stop at 255 characters).
+const audioName=t=>{const n=[...t].map(c=>c.codePointAt(0).toString(16)).join('-');if(n.length<=200)return n+'.ogg';let h=0x811c9dc5;for(const c of t){h^=c.codePointAt(0);h=Math.imul(h,0x01000193)>>>0}return 'h-'+h.toString(16)+'-'+[...t].length+'.ogg'};
 
-if(typeof module!=='undefined')module.exports={INIT,VOW,FIN,compose,decompose,ALL,LETTER,GROUPS,WORDS,SYL_C,SYL_V,SYLL,SECTIONS,UNITS,VOCAB,GRAMMAR_ITEMS,fillQ,RECORDED,audioName,findWords};
+if(typeof module!=='undefined')module.exports={INIT,VOW,FIN,compose,decompose,ALL,LETTER,GROUPS,WORDS,SYL_C,SYL_V,SYLL,SECTIONS,UNITS,VOCAB,GRAMMAR_ITEMS,fillQ,RECORDED,audioName,findWords,romanize};

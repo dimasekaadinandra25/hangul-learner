@@ -15,8 +15,9 @@ function openWord(ch){
   $('wsKicker').textContent=w.kicker;$('wsWord').textContent=w.ch;$('wsWord').classList.toggle('long',[...w.ch].length>6);$('wsMean').textContent=w.meaning;
   $('wsMine').disabled=$('wsBoth').disabled=true;$('wsLen').textContent='';
   setMsg('wsMsg',w.custom?'Your own words have no recorded voice: Hear uses your computer’s Korean voice if it has one.':'');
+  $('wsFam').innerHTML=familiesOf(w.ch).map(h=>`<div class="fam"><b title="Hanja root"><span lang="zh">${h.han}</span>${h.ko} · ${esc(h.en)}</b>${h.words.map(x=>`<button class="wc" lang="ko" data-word="${esc(x)}"${x===w.ch?' aria-current="true"':''}>${esc(x)}</button>`).join('')}</div>`).join('');
   renderSave();drawWave();
-  $('wordSheet').showModal();$('wsClose').focus({focusVisible:false});
+  if(!$('wordSheet').open)$('wordSheet').showModal();$('wsClose').focus({focusVisible:false}); // also opened from a word family chip inside the sheet
   speak(w.say);stat(w.ch).heard++;todayStats(P).heard++;save();
   if(RECORDED.includes(w.say))fetch('audio/'+audioName(w.say)).then(r=>r.arrayBuffer()).then(b=>audioCtx().decodeAudioData(b)).then(buf=>{if(wsW===w){nativeBuf=buf;drawWave()}}).catch(()=>{});
 }
@@ -108,6 +109,26 @@ async function record(){
   recTimer=setTimeout(()=>mediaRec?.state==='recording'&&mediaRec.stop(),Math.min(6000,Math.max(2500,(nativeBuf?.duration||1.5)*1000+1500)));
 }
 $('wsRec').onclick=record;
+// Pronunciation check: Windows listens once and picks what it heard from the word plus a few look-alikes
+// (a list, not free dictation, so it works offline and a wrong sound doesn't count as the word).
+function lookAlikes(ch,n=6){
+  const syl=new Set(ch),len=[...ch].length,pool=VOCAB.filter(v=>v.ch!==ch&&!v.ch.includes(' ')&&Math.abs([...v.ch].length-len)<=1);
+  const near=shuffle(pool.filter(v=>[...v.ch].some(c=>syl.has(c))));
+  return[...near,...shuffle(pool)].map(v=>v.ch).filter((c,i,a)=>a.indexOf(c)===i).slice(0,n);
+}
+$('wsCheck').hidden=!tauri;
+$('wsCheck').onclick=async()=>{
+  const w=wsW;if(!w||mediaRec?.state==='recording')return;
+  $('wsCheck').disabled=true;setMsg('wsMsg','Listening… say the word now.');
+  try{
+    const heard=(await tauri.core.invoke('recognize',{phrases:[w.ch,...lookAlikes(w.ch)]})).trim();
+    if(wsW!==w)return;
+    if(heard===w.ch){P.totals.pron=(P.totals.pron||0)+1;todayStats(P).spoken=(todayStats(P).spoken||0)+1;save();sfx('ok');setMsg('wsMsg',`Recognised: ${w.ch} ✓ Windows understood you.`)}
+    else{sfx('bad');setMsg('wsMsg',heard?`Windows heard “${heard}”. Listen again and try once more.`:'Didn’t catch a word. Try again, a little closer to the microphone.',true)}
+  }catch(e){
+    setMsg('wsMsg',String(e).includes('NO_KOREAN')?'Windows needs its Korean speech pack for this: Settings › Time & language › Language & region › add Korean (or open its Language options) › Speech recognition. Then try again.':'Could not listen: '+e,true);
+  }finally{$('wsCheck').disabled=false}
+};
 const playMine=()=>new Promise(r=>{if(!recUrl)return r();const a=new Audio(recUrl);a.onended=a.onerror=r;a.play().catch(r)});
 $('wsMine').onclick=playMine;
 $('wsBoth').onclick=()=>{const a=new Audio('audio/'+audioName(wsW.say));a.onended=()=>setTimeout(playMine,300);a.play().catch(()=>{})};
@@ -192,7 +213,7 @@ drawGuide();
 
 // ---------------- Typing (Write › Type) and dictation (Write › Listen: type the word you hear) ----------------
 let wTab='trace';
-$('wTabs').onclick=e=>{const b=e.target.closest('[data-wtab]');if(!b)return;if(wTab!==b.dataset.wtab)Object.assign(TY,{done:0,count:0,wrong:0,start:0});wTab=b.dataset.wtab;renderWriteTabs();if(wTab!=='trace'){tPick();$('tBox').focus()}};
+$('wTabs').onclick=e=>{const b=e.target.closest('[data-wtab]');if(!b)return;if(wTab!==b.dataset.wtab)raceReset();wTab=b.dataset.wtab;renderWriteTabs();if(wTab!=='trace'){tPick();$('tBox').focus()}};
 function renderWriteTabs(){
   $('wTabs').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.wtab===wTab));
   $('wTrace').hidden=wTab!=='trace';$('wType').hidden=wTab==='trace';
@@ -207,9 +228,23 @@ function typeLevels(){
   $('tLevel').value=opts.some(o=>o[0]===cur)?cur:'0';
 }
 let TY={word:null,keys:[],wrong:0,count:0,done:0,start:0,shift:false};
+// Typing race: as many words as you can in 60 seconds; the clock starts with your first key. Best score: P.raceBest.
+const RACE_SEC=60;let raceTimer=0;
+const raceLeft=()=>TY.start?Math.max(0,RACE_SEC-(Date.now()-TY.start)/1000):RACE_SEC;
+function raceReset(){clearInterval(raceTimer);Object.assign(TY,{done:0,count:0,wrong:0,start:0,over:false})}
+function raceTick(){
+  $('tLeft').textContent=Math.ceil(raceLeft());
+  if(raceLeft()>0)return;
+  clearInterval(raceTimer);TY.over=true;TY.solved=true;
+  const acc=TY.count?Math.round((TY.count-TY.wrong)/TY.count*100):100,best=Math.max(+P.raceBest||0,TY.done),record=TY.done>(+P.raceBest||0)&&TY.done>0;
+  P.raceBest=best;P.totals.races=(P.totals.races||0)+1;save();
+  $('tWord').textContent=`${TY.done} word${TY.done===1?'':'s'}`;$('tMean').textContent=`${record?'New best! ':''}${acc}% accuracy · best ${best} words. Press Skip to race again.`;
+  $('tBox').innerHTML='';sfx(record?'done':'ok');
+}
 function tPick(){
   typeLevels();
   const v=$('tLevel').value,list=(v==='mine'?(P.notebook||[]).map(w=>({ch:w.ch,meaning:w.meaning,say:w.ch})):VOCAB.filter(w=>w.section===+v)).filter(w=>typeable(w.ch)&&w.ch!==TY.word?.ch);
+  if(wTab==='race'&&TY.over)raceReset(); // Skip after a race starts a new one
   TY.word=list[Math.floor(Math.random()*list.length)]||VOCAB[0];TY.keys=[];TY.dict=wTab==='dict';TY.solved=false;
   $('tWord').textContent=TY.dict?'？':TY.word.ch;$('tMean').textContent=TY.dict?'Listen, then type the word you hear. Hear plays it again.':TY.word.meaning;$('tBox').className='type-box';
   if(TY.dict)setTimeout(()=>speak(TY.word.say),250);
@@ -221,6 +256,7 @@ function tRender(){
   const next=onTrack&&!TY.dict?target[typed.length]:null,hint=next&&JAMO_KEY[next]; // no key hints when typing from listening
   $('tKb').querySelectorAll('.key').forEach(k=>k.classList.toggle('next',!!hint&&k.dataset.code===hint.code||next===' '&&k.dataset.code==='Space'||!onTrack&&k.dataset.code==='Backspace'));
   $('tDoneLbl').textContent=TY.dict?'heard and typed':'words';
+  $('tRaceBox').hidden=wTab!=='race';if(wTab==='race')$('tLeft').textContent=Math.ceil(raceLeft());
   $('tKb').querySelector('[data-code=Shift]').classList.toggle('shift-next',!!hint?.shift);
   $('tDone').textContent=TY.done;
   $('tAcc').textContent=TY.count?Math.round((TY.count-TY.wrong)/TY.count*100)+'%':'100%';
@@ -231,7 +267,7 @@ function tKey(j){
   const target=keysFor(TY.word.ch);
   if(j==='Backspace'){TY.keys.pop();$('tBox').classList.remove('bad');return tRender()}
   if(composeJamo(TY.keys)===TY.word.ch)return;
-  if(!TY.start)TY.start=Date.now();
+  if(!TY.start){TY.start=Date.now();if(wTab==='race'){clearInterval(raceTimer);raceTimer=setInterval(raceTick,250)}}
   TY.count++;
   const ok=TY.keys.every((x,i)=>x===target[i])&&target[TY.keys.length]===j;
   if(!ok){TY.wrong++;$('tBox').classList.add('bad')}else $('tBox').classList.remove('bad');
@@ -240,7 +276,8 @@ function tKey(j){
     TY.done++;TY.solved=true;const d=todayStats(P);
     if(TY.dict){P.totals.dictation=(P.totals.dictation||0)+1;d.dict=(d.dict||0)+1;$('tWord').textContent=TY.word.ch;$('tMean').textContent=TY.word.meaning}
     else{P.totals.typed=(P.totals.typed||0)+1;d.typed=(d.typed||0)+1}
-    $('tBox').classList.add('ok');speak(TY.word.say);save();tRender();const w=TY.word;setTimeout(()=>{if(TY.word===w)tPick()},TY.dict?1600:900);
+    const race=wTab==='race';if(!race)speak(TY.word.say); // racing: no audio, next word at once
+    $('tBox').classList.add('ok');save();tRender();const w=TY.word;setTimeout(()=>{if(TY.word===w&&!TY.over)tPick()},race?150:TY.dict?1600:900);
   }
 }
 // on-screen keyboard

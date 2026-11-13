@@ -1,4 +1,4 @@
-// TOPIK-style vocabulary by level (8 units x 20 words per level). Common words for each level's range; TOPIK publishes no official
+// TOPIK-style vocabulary by level (8 units x 20 words per level; TOPIK 1 also has a loanword unit). Common words for each level's range; TOPIK publishes no official
 // per-level list, so levels are an approximation (NIKL grades its learner list only as beginner/intermediate/advanced).
 // Format per unit: [title, 'word=meaning|word=meaning|...']. Unit ids are `t<level>-<index>`:
 // they are saved in progress files, so append new units at the end of a level instead of reordering.
@@ -12,6 +12,7 @@ const TOPIK=[
     ['Basic adjectives','크다=big|작다=small|좋다=good|많다=many / a lot|적다=few / little|맛있다=delicious|비싸다=expensive|싸다=cheap|덥다=hot (weather)|춥다=cold (weather)|길다=long|짧다=short (length)|높다=high / tall|낮다=low|멀다=far|가깝다=near|예쁘다=pretty|무겁다=heavy|가볍다=light (weight)|뜨겁다=hot (to the touch)'],
     ['Home & things','방=room|문=door|창문=window|침대=bed|의자=chair|책상=desk|컴퓨터=computer|전화=telephone|시계=clock / watch|거울=mirror|이불=blanket|베개=pillow|컵=cup|접시=plate|숟가락=spoon|젓가락=chopsticks|냉장고=refrigerator|텔레비전=television|사진=photo|열쇠=key'],
     ['Days & dates','월요일=Monday|화요일=Tuesday|수요일=Wednesday|목요일=Thursday|금요일=Friday|토요일=Saturday|일요일=Sunday|매주=every week|모레=the day after tomorrow|그저께=the day before yesterday|새벽=dawn|밤=night|생일=birthday|방학=school vacation|주=week|달력=calendar|올해=this year|작년=last year|내년=next year|요일=day of the week'],
+    ['Loanwords (Konglish)','쇼핑=shopping|아이스크림=ice cream|핸드폰=mobile phone (from “hand phone”)|카메라=camera|피자=pizza|아이디어=idea|노트북=laptop (from “notebook”)|화이팅=Go for it! (from “fighting”)|셀카=selfie (from “self camera”)|오토바이=motorbike (from “auto bicycle”)|사이다=lemon-lime soda (from “cider”)|아르바이트=part-time job (from German “Arbeit”)|헬스=working out at the gym (from “health”)|샌드위치=sandwich|콜라=cola|햄버거=hamburger|메뉴=menu|서비스=something free from the shop (from “service”)|리모컨=remote control (from “remote con”)|볼펜=ballpoint pen (from “ball pen”)'],
   ]},
   {level:2,exam:'TOPIK I',name:'Elementary',desc:'Body, weather, shopping, transport, daily routine, feelings, hobbies and school.',units:[
     ['Body & health','머리=head / hair|눈=eye|코=nose|입=mouth|귀=ear|손=hand|발=foot|배=stomach / belly|약=medicine|감기=a cold|얼굴=face|목=neck / throat|어깨=shoulder|팔=arm|다리=leg|허리=waist / lower back|가슴=chest|피=blood|기침=cough|몸=body'],
