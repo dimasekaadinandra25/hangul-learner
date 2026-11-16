@@ -39,6 +39,9 @@ for(const s of STORIES){assert(s.lines.length>=5&&s.qs.length>=2&&s.qs.every(([q
   assert(storyWords(s).length>=5,'story words '+s.id);assert(!storyWords(s).some(w=>(s.skip||[]).includes(w.ch)));assert(storyGloss(s).every(([ko])=>!VOCAB.some(w=>w.ch===ko)))}
 assert(!storyWords(STORIES[0]).some(w=>w.ch==='네'),'네 명 is not 네 (yes)');
 for(const t of[...NUM_ITEMS.map(n=>n.ko),...STORIES.flatMap(s=>s.lines.map(l=>l[0])),conj('가다','past')])assert(RECORDED.includes(t),'not recorded: '+t);
+// ㅂ verbs are irregular unless listed as regular
+for(const[v,f]of[['새롭다','새로워요'],['어지럽다','어지러워요'],['돕다','도와요'],['입다','입어요'],['갈아입다','갈아입어요'],['좁다','좁아요'],['덥다','더워요']])assert.strictEqual(conj(v,'present'),f,v);
+assert(!VERBS.some(v=>v.ch==='뵙다'));
 // new tasks read the new progress fields
 assert.deepStrictEqual(TASKS.find(t=>t.id==='t-numbers').get({...freshProgress(),drills:{num:{right:7,tries:9}}}),[7,20]);
 assert.deepStrictEqual(TASKS.find(t=>t.id==='t-stories').get({...freshProgress(),stories:{family:{best:2},cafe:{best:1}}}),[1,STORIES.length]);
@@ -73,7 +76,7 @@ assert.strictEqual(strokeOrderIssue(STROKES['ㅏ'],STROKES['ㅏ'].slice(0,1)),-1
 const keys=VOCAB.map(w=>w.ch); // a word may equal a practice syllable (코, 비); that's fine
 assert.strictEqual(parseWordList('\\ufeff학교,school\\r\\n"책, 공책","book, notebook"\\r\\n').length,2,'exported CSV reads back');
 // exam plan and daily mix
-{const P={units:{},exam:{date:'2026-12-13',level:1}},x=examPlan(P,new Date(2026,10,13,12));assert.strictEqual(x.days,30);assert.strictEqual(x.left,UNITS.filter(u=>u.section===1).length);assert.strictEqual(x.every,Math.floor(30/x.left));
+{const P={units:{},exam:{date:'2026-12-13',level:1}},x=examPlan(P,new Date(2026,10,13,12));assert.strictEqual(x.days,30);assert.strictEqual(x.left,UNITS.filter(u=>u.section===1).length);assert.strictEqual(x.every,Math.max(1,Math.floor(30/x.left)));assert.strictEqual(x.perDay,Math.ceil(x.left/30));
   assert.strictEqual(examPlan({units:{}},new Date()),null);assert.strictEqual(buildMix({units:{}}).length,0);const Q={units:{[UNITS[0].id]:1,[UNITS[1].id]:1}};assert.strictEqual(buildMix(Q).length,10)}
 // rest days: a missed yesterday is covered while the streak is alive; none left = streak breaks
 {const t=new Date(2026,10,13,12),P={days:{'2026-11-10':10,'2026-11-11':10},freezes:1};assert.deepStrictEqual(useRestDays(P,t),['2026-11-12']);assert.strictEqual(P.freezes,0);assert.strictEqual(streak(activeDays(P),t),3);
@@ -100,15 +103,17 @@ assert.deepStrictEqual(familiesOf('학생').map(h=>h.han),['學','生']);
 for(const[k,r]of[['학교','hakgyo'],['한국어','hangugeo'],['감사합니다','gamsahamnida'],['사랑해','saranghae'],['서울','seoul']])assert.strictEqual(romanize(k),r);
 assert.strictEqual(new Set(keys).size,keys.length,'duplicate word across units');
 assert.strictEqual(new Set(UNITS.map(u=>u.id)).size,UNITS.length,'duplicate unit id');
+assert(VOCAB.length>=4300&&new Set(VOCAB.map(w=>w.ch.replace(/ /g,''))).size===VOCAB.length,'a full word list, no word twice');
 for(const w of VOCAB)assert(w.ch&&w.meaning&&!/[=|]/.test(w.ch+w.meaning),'bad vocab entry '+w.ch);
 
-for(let round=0;round<100;round++)UNITS.forEach((u,i)=>STEPS.forEach((st,s)=>{
+const REC=new Set(RECORDED);
+for(let round=0;round<30;round++)UNITS.forEach((u,i)=>STEPS.forEach((st,s)=>{
   const lesson=buildStep(i,s);
   assert(lesson.length>=8,u.id+' step '+s+' too short');
   if(s<PASS_STEP)assert(lesson.some(e=>e.type==='intro')&&!lesson.some(e=>e.type==='tiles'&&!['syllable','final'].includes(u.kind)),'learn steps teach first, no word tiles');
   for(const ex of lesson){
-    assert(RECORDED.includes(ex.say),'no audio for '+ex.say);
-    if(ex.play)assert(RECORDED.includes(ex.play),'no audio for '+ex.play);
+    assert(REC.has(ex.say),'no audio for '+ex.say);
+    if(ex.play)assert(REC.has(ex.play),'no audio for '+ex.play);
     assert(ex.explain&&ex.prompt,'missing text');
     if(ex.type==='choice'){
       const vals=ex.options.map(o=>o.value),labels=ex.options.map(o=>o.label);

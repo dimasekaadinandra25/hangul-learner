@@ -250,10 +250,10 @@ const visible = t => win('state', t).visible;
       const r = await main.run(`show('letters');T.click('#letterGrid [data-letter="ㄱ"]');return {heard:P.stats['ㄱ'].heard,task:P.tasks.includes('t-hear')}`);
       ok(r.heard >= 1, 'not heard'); ok(r.task, 'task not claimed');
     });
-    await test('Letters: syllable builder composes 가 and flags rare unrecorded syllables', async () => {
-      const r = await main.run(`const set=(id,v)=>{$(id).value=v;$(id).dispatchEvent(new Event('change'))};set('bInit',0);set('bVow',0);set('bFin',0);const ga=$('bOut').textContent,gaNote=$('bNote').textContent;
-        set('bInit',8);set('bVow',19);set('bFin',18);const odd=$('bOut').textContent,note=$('bNote').textContent;const b=P.totals.built;T.click('#bSay');return {ga,gaNote,odd,note,built:P.totals.built-b,task:P.tasks.includes('t-build')}`);
-      eq(r.ga, '가', 'compose'); eq(r.gaNote, '', 'recorded note'); ok(r.note.includes('Not pre-recorded'), 'unrecorded note'); eq(r.built, 1, 'built counter'); ok(r.task, 'task not claimed');
+    await test('Letters: syllable builder composes 가 and rare 삆, both recorded', async () => {
+      const r = await main.run(`const set=(id,v)=>{$(id).value=v;$(id).dispatchEvent(new Event('change'))};set('bInit',0);set('bVow',0);set('bFin',0);const ga=$('bOut').textContent;
+        set('bInit',8);set('bVow',19);set('bFin',18);const odd=$('bOut').textContent;const b=P.totals.built;T.click('#bSay');return {ga,odd,clip:player.src.endsWith('/audio/'+audioName(odd)),built:P.totals.built-b,task:P.tasks.includes('t-build')}`);
+      eq(r.ga, '가', 'compose'); eq(r.odd, '삆', 'rare'); ok(r.clip, 'rare syllable recorded'); eq(r.built, 1, 'built counter'); ok(r.task, 'task not claimed');
     });
     await test('Write: drawing on the pad counts once per attempt; Next, Guide and Clear work', async () => {
       const r = await main.run(`show('write');$('wCanvas').setPointerCapture=()=>{};const cv=$('wCanvas'),b=cv.getBoundingClientRect(),ev=(t,x,y)=>cv.dispatchEvent(new PointerEvent(t,{pointerId:1,clientX:b.left+x,clientY:b.top+y,bubbles:true}));
@@ -981,10 +981,10 @@ const visible = t => win('state', t).visible;
     });
 
     group('Voices, word highlighting, your own shows, stopping downloads'); await fresh();
-    await test('every common syllable and the male voice clips are recorded; Settings › Voice switches words to 인준', async () => {
+    await test('every syllable and the male voice clips are recorded; Settings › Voice switches words to 인준', async () => {
       const d = require(path.join(ROOT, 'ui', 'data.js'));
-      const missing = [...d.COMMON_SYLL.map(t => d.audioName(t)), ...[...d.MALE_CLIPS].map(t => 'm-' + d.audioName(t))].filter(n => !fs.existsSync(path.join(ROOT, 'ui', 'audio', n)));
-      eq(missing.slice(0, 5), [], missing.length + ' clips missing'); eq(d.COMMON_SYLL.length, 2350, 'common syllables');
+      const missing = [...d.ALL_SYLL.map(t => d.audioName(t)), ...[...d.MALE_CLIPS].map(t => 'm-' + d.audioName(t))].filter(n => !fs.existsSync(path.join(ROOT, 'ui', 'audio', n)));
+      eq(missing.slice(0, 5), [], missing.length + ' clips missing'); eq(d.ALL_SYLL.length, 11172, 'syllables');
       const r = await main.run(`T.mute();const v=lsGet('voice','female');openSettings();$('voiceSel').value='male';$('voiceSel').dispatchEvent(new Event('change'));const male=player.src.includes('/audio/m-');
         speak('학교');const word=player.src.includes('/audio/m-');speak('학교',.7);const slow=player.src.includes('/audio/s-');speak(STORIES[0].lines[0][0]);const sent=!player.src.includes('/audio/m-');
         lsSet('voice',v);$('settings').close();return {male,word,slow,sent}`);

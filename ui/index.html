@@ -238,6 +238,7 @@ li.locked .node{border-color:var(--hair);border-style:dashed}
 /* ---------- cards (letters / words) ---------- */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
 .grid.wide{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+#vList .grid{content-visibility:auto;contain-intrinsic-size:auto 400px} /* thousands of words: only what's on screen is laid out */
 .card{position:relative;padding:16px 8px 12px;border-radius:12px;border:1px solid var(--hair);background:var(--card);text-align:center;transition:border-color .15s,transform .1s}
 .card:hover{border-color:var(--ink)}
 .card:active{transform:scale(.98)}
@@ -798,7 +799,6 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
           <button class="btn btn-ink" id="bSay"><i data-icon="volume"></i>Hear</button>
         </div>
         <div class="glyph-out" id="bOut"></div>
-        <p class="muted" id="bNote" style="margin:0"></p>
       </div>
     </section>
 
@@ -1179,9 +1179,8 @@ document.addEventListener('click',e=>{
 },true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('inbox').hidden){closeInbox();e.stopImmediatePropagation()}},true);
 
-// ---- Sound: pre-recorded neural voice; computer's own voice only for unrecorded builder syllables ----
+// ---- Sound: pre-recorded neural voice (every syllable is recorded); computer's own voice only for your own unrecorded words ----
 const player=new Audio();
-const COMMON_SET=new Set(COMMON_SYLL);
 function speak(text,rate=1){ // rate < 1 plays slower (same pitch)
   speak.run=(speak.run||0)+1;player.onended=null; // stops a syllable-by-syllable word still playing
   if('speechSynthesis' in window)speechSynthesis.cancel();
@@ -1195,7 +1194,7 @@ function speak(text,rate=1){ // rate < 1 plays slower (same pitch)
   if(!('speechSynthesis' in window))return;
   if(!speechSynthesis.getVoices().some(v=>v.lang.replace('_','-').toLowerCase().startsWith('ko'))){
     const syl=[...text].filter(c=>c!==' ');
-    if(syl.length&&syl.every(c=>COMMON_SET.has(c))){ // no Korean system voice: say it syllable by syllable from the recordings
+    if(syl.length&&syl.every(c=>/[가-힣]/.test(c))){ // no Korean system voice: say it syllable by syllable from the recordings
       const run=speak.run=(speak.run||0)+1,next=i=>{if(run!==speak.run||i>=syl.length)return;player.src='audio/'+audioName(syl[i]);player.playbackRate=rate;player.onended=()=>next(i+1);player.play().catch(()=>{})};
       return next(0);
     }
@@ -1399,7 +1398,7 @@ function examLine(){
   const lv=SECTIONS[x.level].title;
   const txt=x.days<0?`Your ${lv} exam date has passed. Set the next one in Settings › Goals.`
     :x.days===0?`${lv} exam today. 화이팅!`
-    :x.left?`<b>${x.days} day${x.days===1?'':'s'}</b> to your ${lv} exam · ${x.left} unit${x.left===1?'':'s'} to go · about 1 unit every ${x.every} day${x.every===1?'':'s'}`
+    :x.left?`<b>${x.days} day${x.days===1?'':'s'}</b> to your ${lv} exam · ${x.left} unit${x.left===1?'':'s'} to go · ${x.perDay>1?`about ${x.perDay} units a day`:`about 1 unit every ${x.every} day${x.every===1?'':'s'}`}`
     :`<b>${x.days} day${x.days===1?'':'s'}</b> to your ${lv} exam · every unit passed: keep reviewing and take practice tests`;
   return`<p class="exam-line">${icon('award')}<span>${txt}</span></p>`;
 }
@@ -1649,7 +1648,7 @@ const fill=(sel,list)=>sel.innerHTML=list.map((x,i)=>`<option value="${i}">${x||
 fill($('bInit'),INIT);fill($('bVow'),VOW);fill($('bFin'),FIN);
 $('bInit').value=18;$('bVow').value=0;$('bFin').value=4; // 한
 const built=()=>compose(+$('bInit').value,+$('bVow').value,+$('bFin').value);
-const showBuilt=()=>{const s=built();$('bOut').textContent=s;$('bNote').textContent=RECORDED.includes(s)?'':'Not pre-recorded, so this one uses your computer’s voice.'};
+const showBuilt=()=>{const s=built();$('bOut').textContent=s};
 ['bInit','bVow','bFin'].forEach(id=>$(id).onchange=showBuilt);showBuilt();
 $('bSay').onclick=()=>{speak(built());P.totals.built++;save()};
 

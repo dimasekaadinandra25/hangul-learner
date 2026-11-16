@@ -53,6 +53,7 @@ const IRREG={
   b:'덥다 춥다 가깝다 무겁다 가볍다 뜨겁다 무덥다 어렵다 쉽다 무섭다 외롭다 부끄럽다 귀엽다 굽다 싱겁다 맵다 돕다 곱다 즐겁다 반갑다 고맙다 아름답다 눕다 줍다 시끄럽다 더럽다 아깝다 차갑다 두껍다 밉다',
   d:'듣다 걷다 묻다 싣다 깨닫다',s:'낫다 짓다 붓다 긋다 잇다',h:'빨갛다 노랗다 파랗다 하얗다 까맣다 그렇다 이렇다 저렇다 어떻다',
 };
+const REGULAR_B='입다 좁다 뽑다 잡다 씹다 업다 접다 집다 꼽다 수줍다'; // the ㅂ verbs that keep their ㅂ (입어요, also 갈아입어요)
 const IRR_NOTE={
   b:'ㅂ irregular: ㅂ becomes 우 before a vowel (덥다 → 더워요, 돕다 → 도와요).',
   d:'ㄷ irregular: ㄷ becomes ㄹ before a vowel (듣다 → 들어요).',
@@ -63,6 +64,7 @@ const IRR_NOTE={
 function irrOf(verb){
   for(const k in IRREG)if(IRREG[k].split(' ').includes(verb))return k;
   const st=verb.slice(0,-1);
+  if(SY(st.at(-1)).f===Fi('ㅂ')&&!REGULAR_B.split(' ').some(r=>verb.endsWith(r)))return'b'; // 새롭다, 어둡다, -스럽다: ㅂ verbs not listed are irregular too
   return st.length>1&&st.endsWith('르')&&!['따르','치르','들르'].includes(st)?'reu':'';
 }
 // the 아/어 form (가, 먹어, 해, 더워, 몰라). irr=false treats every verb as regular (for wrong answers)
@@ -131,7 +133,7 @@ function verbWrongs(verb,form){
 }
 // TOPIK 1-3 verbs and adjectives from the word list (not 이다 words or set phrases)
 const UNIT_OF=Object.fromEntries(PD.UNITS.filter(u=>u.kind==='word').flatMap(u=>u.items.map(w=>[w.ch,u.id])));
-const VERBS=PD.VOCAB.filter(w=>w.section>=1&&w.section<=3&&/[가-힣]다$/.test(w.ch)&&!w.ch.includes(' ')&&!/이다$/.test(w.ch)&&w.ch!=='바다');
+const VERBS=PD.VOCAB.filter(w=>w.section>=1&&w.section<=3&&/[가-힣]다$/.test(w.ch)&&!w.ch.includes(' ')&&!/이다$/.test(w.ch)&&!['바다','뵙다'].includes(w.ch)); // 뵙다 never takes 아요 (뵈어요 comes from 뵈다)
 
 // ---------------- Particles (조사): the form depends on whether the noun ends in a consonant ----------------
 const PARTICLES={
@@ -457,7 +459,8 @@ const HANJA=[
 const familiesOf=ch=>HANJA.filter(h=>h.words.includes(ch)&&h.words.length>1);
 
 // Every answer and example gets a recorded clip.
+const RECORDED_SET=new Set(PD.RECORDED);
 for(const t of[...NUM_ITEMS.map(n=>n.ko),...VERBS.flatMap(v=>formsFor(v.ch).map(f=>conj(v.ch,f))),...NOUNS.flatMap(n=>Object.keys(PARTICLES).map(k=>withParticle(n.ch,k))),...DIALOGUES.flatMap(d=>d.lines.map(l=>l[1])),...SOUNDS.flatMap(s=>s.ex.map(e=>e[0])),...CASUAL.flatMap(c=>[c[0],c[1]]),...STORIES.flatMap(s=>s.lines.map(l=>l[0]))])
-  if(!PD.RECORDED.includes(t))PD.RECORDED.push(t);
+  if(!RECORDED_SET.has(t)){RECORDED_SET.add(t);PD.RECORDED.push(t)}
 
 if(typeof module!=='undefined')module.exports={HANJA,familiesOf,parseWordList,sino,native,month,NUM_TYPES,NUM_ITEMS,irrOf,aeo,conj,verbWrongs,VERB_FORMS,formsFor,VERBS,PARTICLES,withParticle,wrongParticle,NOUNS,DIALOGUES,IRR_NOTE,SOUNDS,CASUAL,STORIES,storyText,storyWords,storyGloss};

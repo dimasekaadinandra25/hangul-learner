@@ -1555,7 +1555,7 @@ dependencies = [
 
 [[package]]
 name = "hangul-learner"
-version = "1.7.2"
+version = "1.7.3"
 dependencies = [
  "arboard",
  "serde_json",

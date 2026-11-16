@@ -2,6 +2,14 @@
 
 What changed in each version of Hangul Learner. Newest first. Installed apps update themselves; Settings › Updates shows your version.
 
+## 1.7.3
+
+- **4,320 words, four times as many:** 165 new word units across all six TOPIK levels, about the size of a full learner word list. Counters, colors, jobs, countries and question words for beginners, up to law, medicine, economics, idioms, proverbs and 사자성어 at level 6. Every word is recorded, slowly too and in both voices.
+- **Every possible syllable is recorded:** all 11,172 Hangul syllables (가 to 힣) now have a real voice, so anything you build in the syllable builder is said by 선희, and on a computer without a Korean voice your own words are said syllable by syllable.
+- **Verb practice knows more irregular verbs:** ㅂ verbs like 새롭다, 그립다 and 어지럽다 now conjugate correctly (새로워요), while 입다 and 잡다 keep their ㅂ (입어요).
+- **Exam countdown:** when there are more units left than days, it says how many units a day you need.
+- **Faster Words page** with thousands of words: only the words on screen are drawn.
+
 ## 1.7.2
 
 - **Practice › Casual:** 79 pairs of textbook and everyday Korean, both ways: short forms (무엇을 → 뭘, 그런데 → 근데), talking with friends (안녕하세요 → 안녕, 밥 먹었어?), slang (알바, 셀카, 꿀잼, 치맥) and written vs spoken (합니다 → 해요, 및 → 하고).

@@ -189,7 +189,7 @@ function examPlan(P,today=new Date()){
   const e=P.exam;if(!e?.date||!(+e.level>=1))return null;
   const days=Math.round((new Date(e.date+'T00:00')-new Date(dayKey(today)+'T00:00'))/864e5);
   const left=UNITS.filter(u=>u.section>=1&&u.section<=+e.level&&!((P.units[u.id]||0)>0)).length;
-  return{days,left,level:+e.level,every:left&&days>0?Math.max(1,Math.floor(days/left)):0};
+  return{days,left,level:+e.level,every:left&&days>0?Math.max(1,Math.floor(days/left)):0,perDay:left&&days>0?Math.ceil(left/days):0}; // perDay > 1: more units than days
 }
 function buildReview(mistakes,P={}){
   const list=Object.entries(mistakes).flatMap(([key,uid])=>{

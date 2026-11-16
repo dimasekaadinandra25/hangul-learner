@@ -1,6 +1,6 @@
 // Records every clip with Microsoft's neural Korean voices (needs: python -m pip install edge-tts, ffmpeg, internet).
 // Skips clips that already exist; delete audio/ to re-record. 8 clips at a time; retries flaky network calls and keeps going on failure.
-//   <name>.ogg    SunHi at 90%: every letter, syllable (all 2350 common ones), word, sentence, number, verb form
+//   <name>.ogg    SunHi at 90%: every letter, syllable (all 11,172), word, sentence, number, verb form
 //   s-<name>.ogg  SunHi slowly: letters, syllables and words, for the Slowly buttons and Shift+R
 //   m-<name>.ogg  InJoon (male): letters, syllables and words (Settings › Sound › Voice), and the second speaker in conversations
 //   words.json    when each word is said in story and conversation lines, for word highlighting (those lines are not trimmed,
