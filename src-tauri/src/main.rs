@@ -151,7 +151,7 @@ async fn download_episode(app: AppHandle, url: String) -> Result<String, String>
     let part = path.with_extension("part");
     tauri::async_runtime::spawn_blocking(move || {
         let mut cmd = Command::new(if cfg!(windows) { "curl.exe" } else { "curl" });
-        cmd.args(["-sSL", "--fail", "--max-time", "1800", "--max-filesize", "400000000", "-A", "Mozilla/5.0 HangulLearner", "-o"]);
+        cmd.args(["-sSL", "--proto", "=https", "--proto-redir", "=https", "--fail", "--max-time", "1800", "--max-filesize", "400000000", "-A", "Mozilla/5.0 HangulLearner", "-o"]);
         cmd.arg(&part).arg(&url);
         #[cfg(windows)]
         cmd.creation_flags(0x0800_0000);
@@ -241,7 +241,7 @@ fn https_only(url: &str) -> Result<(), String> {
 fn fetch_text(url: String) -> Result<String, String> {
     https_only(&url)?;
     let mut cmd = Command::new(if cfg!(windows) { "curl.exe" } else { "curl" }); // built into Windows 10+, macOS and Linux
-    cmd.args(["-sSL", "--fail", "--compressed", "--max-time", "60", "--max-filesize", "40000000", "-A", "Mozilla/5.0 HangulLearner", &url]);
+    cmd.args(["-sSL", "--proto", "=https", "--proto-redir", "=https", "--fail", "--compressed", "--max-time", "60", "--max-filesize", "40000000", "-A", "Mozilla/5.0 HangulLearner", &url]);
     #[cfg(windows)]
     cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW: no console flash
     let out = cmd.output().map_err(|e| format!("curl: {e}"))?;
@@ -342,14 +342,20 @@ fn sync_file(dir: &str) -> Result<PathBuf, String> {
     Ok(root.join("Hangul Learner").join("progress.json"))
 }
 
-/// The OneDrive folder, if OneDrive is set up on this PC ("" otherwise).
+/// A cloud folder that syncs on its own: OneDrive (Windows), else iCloud Drive (Mac), Google Drive or Dropbox in the home folder ("" if none).
 #[tauri::command]
 fn sync_default() -> String {
-    ["OneDrive", "OneDriveConsumer", "OneDriveCommercial"]
-        .iter()
-        .filter_map(|k| std::env::var(k).ok())
-        .find(|p| PathBuf::from(p).is_dir())
-        .unwrap_or_default()
+    let one = ["OneDrive", "OneDriveConsumer", "OneDriveCommercial"].iter().filter_map(|k| std::env::var(k).ok()).map(PathBuf::from);
+    let home = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")).map(PathBuf::from).ok();
+    let mut others = vec![];
+    if let Some(h) = home {
+        others.push(h.join("Library/Mobile Documents/com~apple~CloudDocs"));
+        if let Ok(d) = fs::read_dir(h.join("Library/CloudStorage")) {
+            others.extend(d.flatten().map(|e| e.path()).filter(|p| p.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.starts_with("GoogleDrive-"))).map(|p| p.join("My Drive")));
+        }
+        others.extend(["Google Drive/My Drive", "Google Drive", "Dropbox"].map(|d| h.join(d)));
+    }
+    one.chain(others).find(|p| p.is_dir()).map(|p| p.to_string_lossy().into_owned()).unwrap_or_default()
 }
 
 #[tauri::command]
@@ -470,8 +476,17 @@ fn mini_visible(app: AppHandle) -> bool {
 }
 
 /// Hides the mini player and tells the pages, so a video playing there can move back to the main window.
+/// Where you last left the mini window: <app data>/mini-pos.txt holds its bottom-right corner "x,y" (physical pixels).
+/// The bottom-right corner, because the window grows upward when a video plays in it.
+fn mini_pos_file(app: &AppHandle) -> Option<PathBuf> {
+    app.path().app_data_dir().ok().map(|d| d.join("mini-pos.txt"))
+}
+
 fn hide_mini_window(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("mini") {
+        if let (Ok(p), Ok(s), Some(f)) = (w.outer_position(), w.outer_size(), mini_pos_file(app)) {
+            let _ = fs::write(f, format!("{},{}", p.x + s.width as i32, p.y + s.height as i32));
+        }
         let _ = w.hide();
         let _ = app.emit("mini-hidden", ());
     }
@@ -497,7 +512,25 @@ fn toggle_mini_window(app: &AppHandle) {
         return;
     }
     if !MINI_PLACED.swap(true, Ordering::Relaxed) {
-        // bottom-right corner of the screen, above the taskbar
+        // where you left it last time, if that spot is still on a screen; else the bottom-right corner, above the taskbar
+        let size = w.outer_size().unwrap_or_default();
+        let saved = mini_pos_file(app).and_then(|f| fs::read_to_string(f).ok()).and_then(|s| {
+            let (x, y) = s.trim().split_once(',')?;
+            Some(PhysicalPosition::new(x.parse::<i32>().ok()? - size.width as i32, y.parse::<i32>().ok()? - size.height as i32))
+        });
+        let on_screen = |p: &PhysicalPosition<i32>| { // the whole window fits on one screen
+            w.available_monitors().unwrap_or_default().iter().any(|m| {
+                let a = m.work_area();
+                p.x >= a.position.x && p.y >= a.position.y
+                    && p.x + size.width as i32 <= a.position.x + a.size.width as i32 && p.y + size.height as i32 <= a.position.y + a.size.height as i32
+            })
+        };
+        if let Some(p) = saved.filter(on_screen) {
+            let _ = w.set_position(p);
+            let _ = w.show();
+            let _ = app.emit("mini-shown", ());
+            return;
+        }
         let monitor = w.current_monitor().ok().flatten().or_else(|| w.primary_monitor().ok().flatten());
         if let (Some(m), Ok(size)) = (monitor, w.outer_size()) {
             let area = m.work_area();
@@ -512,6 +545,8 @@ fn toggle_mini_window(app: &AppHandle) {
 
 fn main() {
     tauri::Builder::default()
+        // a second launch (e.g. from the Start menu while the app sits in the tray) just shows this one: two copies would both write progress.json
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| show_main_window(app)))
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())

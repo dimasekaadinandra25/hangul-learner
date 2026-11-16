@@ -56,7 +56,7 @@ function wotdWord(){ // a word due for Smart review, otherwise one from your lev
 async function notify(title,body){
   const n=tauri?.notification;
   if(!n)return toast('sync',title,body,'bell');
-  if(!await n.isPermissionGranted()&&await n.requestPermission()!=='granted')throw Error('Windows did not allow notifications for this app');
+  if(!await n.isPermissionGranted()&&await n.requestPermission()!=='granted')throw Error('Your system did not allow notifications for this app');
   n.sendNotification({title,body});
 }
 async function wotdSend(){

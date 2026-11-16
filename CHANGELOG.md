@@ -11,6 +11,18 @@ What changed in each version of Hangul Learner. Newest first. Installed apps upd
 - **Look up anything:** a Naver Dictionary button on word cards, and a Papago button next to every story and conversation sentence.
 - **Pronunciation check in conversations:** on your turn, Check asks Windows whether it understood your line (needs Windows’ Korean speech pack).
 - **Sentence dictation:** Write › Listen now has a “sentences” list for each TOPIK level: hear a whole sentence and type it (letters and spaces, no punctuation).
+- **Final consonants (받침):** a new Hangul basics unit on the 7 end sounds, and why 낮, 옷 and 꽃 all end in a “t”.
+- **36 new grammar patterns:** a fifth unit for every level: polite and honorific basics, honorific speech (드시다, 계시다, 진지, 연세…), quoting (-냐고/-자고/-라고 하다), passive and causative, and advanced patterns for TOPIK 5–6.
+- **8 real-life reading texts:** notices, an ad, a text message, an email, a news item, a timetable and an opinion piece, with 3 questions each.
+- **Practice › Reply:** TOPIK-style listening. Hear a line from a conversation and choose the right reply.
+- **Typed answers:** Challenge lessons now also ask you to type words from memory on the 2-beolsik keyboard.
+- **After each lesson:** the words you missed are listed, to hear again or save to My words.
+- **Clearer slow audio:** “Slowly” and Shift+R now play real slow recordings of every letter, syllable and word.
+- **Smarter reviews:** one miss no longer sends a well-known word back to day 1, and words learned together no longer all fall due on the same day.
+- **Stroke order is now checked:** drawing a stroke backwards or out of order is pointed out.
+- **Listening:** 0.5× speed, 3 / 5 / 8-second shadowing pieces, Korean captions on YouTube videos, the podcast goes quiet while a word plays and plays on after a lesson, and the mini player opens where you left it.
+- **Safer progress:** an unreadable progress file is kept instead of overwritten, opening the app twice no longer runs two copies, and syncing reads the cloud copy before writing, so your other computer’s progress is merged, never replaced.
+- **Fixes:** a downloaded episode resumes from the file after a restart; grammar 보다 (“than”) and the verb 보다 keep separate review schedules; your own words show as text in lessons; Tricky and Reply results survive backups and sync; changing your daily goal no longer changes past days; the reminder no longer comes twice when you change its time; the drawing pad is sharp at 125–200% display scaling; text names macOS and Linux on those systems; links and downloads only use https.
 
 ## 1.6.1
 

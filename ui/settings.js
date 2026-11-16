@@ -40,7 +40,7 @@ applyShortcuts();
 const reminder=()=>({on:false,time:'19:00',last:'',...lsGet('reminder',{})});
 const saveReminder=r=>lsSet('reminder',r);
 $('remSw').onclick=()=>{const r=reminder();r.on=!r.on;saveReminder(r);swSet('remSw',r.on)};
-$('remTime').onchange=e=>{const r=reminder();r.time=e.target.value||'19:00';r.last='';saveReminder(r)};
+$('remTime').onchange=e=>{const r=reminder();r.time=e.target.value||'19:00';saveReminder(r)}; // keeps r.last: one reminder a day
 function reminderText(){
   const left=Math.max(0,DAILY_GOAL-(P.days[dayKey()]||0)),due=dueKeys(P).length;
   return{title:'Time for Korean',body:[due?`${due} word${due===1?'':'s'} to review`:'',left?`${left} XP to today’s goal`:''].filter(Boolean).join(' · ')||'A few minutes keeps your streak going',due};
@@ -80,7 +80,7 @@ $('dlClear').onclick=async()=>{
 };
 // ---- Goals: daily XP goal and TOPIK exam date (both in progress, so they sync) ----
 function renderGoals(){$('goalSel').value=String(GOALS.includes(+P.goal)?+P.goal:30);$('examDate').value=P.exam?.date||'';$('examLevel').value=String(P.exam?.level||2)}
-$('goalSel').onchange=e=>{P.goal=+e.target.value;save()};
+$('goalSel').onchange=e=>{P.goal=+e.target.value;(P.goalLog??={})[dayKey()]=P.goal;save()};
 const setExam=()=>{const date=$('examDate').value;P.exam=date?{date,level:+$('examLevel').value}:null;save()};
 $('examDate').onchange=setExam;$('examLevel').onchange=setExam;
 // ---- Korean text size: a zoom on Korean text only (CSS --ko-size); per device ----
@@ -150,15 +150,23 @@ $('autoBkSw').onclick=()=>{lsSet('autoBackup',!lsGet('autoBackup',true));swSet('
 function cleanBackup(obj){
   const p=obj?.progress;
   if(obj?.app!=='hangul-learner'||!p||typeof p!=='object'||!Number.isFinite(p.xp)||!p.stats||typeof p.stats!=='object'||Array.isArray(p.stats))return null;
-  const str=(v,n)=>String(v??'').slice(0,n);
+  const str=(v,n)=>String(v??'').slice(0,n),rec=o=>o&&typeof o==='object'&&!Array.isArray(o)?o:{},day=k=>/^\d{4}-\d\d-\d\d$/.test(k);
+  const nums=o=>Object.fromEntries(Object.entries(rec(o)).filter(([,v])=>Number.isFinite(+v)).map(([k,v])=>[k,+v])); // a backup or sync file is not fully trusted
   return{...p,inbox:[],inboxSeen:Date.now(),
+    stats:Object.fromEntries(Object.entries(p.stats).filter(([,s])=>s&&typeof s==='object').map(([k,s])=>[k,{heard:+s.heard||0,right:+s.right||0,tries:+s.tries||0,written:+s.written||0}])),
+    units:nums(p.units),steps:nums(p.steps),totals:nums(p.totals),
+    srs:Object.fromEntries(Object.entries(rec(p.srs)).filter(([,s])=>s&&typeof s.u==='string'&&typeof s.due==='string'&&day(s.due))
+      .map(([k,s])=>[k,{u:s.u,iv:Math.max(0,+s.iv||0),ease:Math.min(2.8,Math.max(1.3,+s.ease||2.3)),due:s.due,...(Number.isFinite(+s.lapse)&&s.lapse?{lapse:+s.lapse}:{}),...(Number.isFinite(+s.at)&&s.at?{at:+s.at}:{})}])),
+    goal:GOALS.includes(+p.goal)?+p.goal:undefined,
+    goalLog:Object.fromEntries(Object.entries(rec(p.goalLog)).filter(([k,v])=>day(k)&&GOALS.includes(+v)).map(([k,v])=>[k,+v])),
+    exam:p.exam&&day(String(p.exam.date))&&+p.exam.level>=1&&+p.exam.level<=6?{date:p.exam.date,level:+p.exam.level}:null,
     notebook:(Array.isArray(p.notebook)?p.notebook:[]).slice(0,2000).map(w=>({ch:str(w?.ch,120),meaning:str(w?.meaning,200),added:+w?.added||0})).filter(w=>w.ch&&w.meaning),
     tests:(Array.isArray(p.tests)?p.tests:[]).slice(-50).filter(t=>Number.isFinite(t?.score)&&Number.isFinite(t?.total)&&t.total>0),
-    drills:Object.fromEntries(['num','verb','part','sound','read'].map(k=>[k,{right:Math.max(0,+p.drills?.[k]?.right||0),tries:Math.max(0,+p.drills?.[k]?.tries||0)}])),
+    drills:Object.fromEntries(['num','verb','part','sound','read','tricky','reply'].map(k=>[k,{right:Math.max(0,+p.drills?.[k]?.right||0),tries:Math.max(0,+p.drills?.[k]?.tries||0)}])),
     stories:Object.fromEntries(STORIES.filter(s=>p.stories?.[s.id]).map(s=>[s.id,{best:Math.max(0,Math.min(s.qs.length,+p.stories[s.id].best||0)),at:+p.stories[s.id].at||0}])),
     section:Math.max(0,Math.min(SECTIONS.length-1,+p.section||0)),
     days:Object.fromEntries(Object.entries(p.days&&typeof p.days==='object'?p.days:{}).filter(([k,v])=>/^\d{4}-\d\d-\d\d$/.test(k)&&Number.isFinite(+v)).map(([k,v])=>[k,+v])),
-    drillMiss:Object.fromEntries(['num','verb','part','sound'].map(k=>[k,(Array.isArray(p.drillMiss?.[k])?p.drillMiss[k]:[]).filter(r=>typeof r==='string'&&r.length<60).slice(-60)])),
+    drillMiss:Object.fromEntries(['num','verb','part','sound','tricky','reply'].map(k=>[k,(Array.isArray(p.drillMiss?.[k])?p.drillMiss[k]:[]).filter(r=>typeof r==='string'&&r.length<60).slice(-60)])),
     talks:Object.fromEntries(DIALOGUES.filter(d=>p.talks?.[d.id]).map(d=>[d.id,Math.max(0,+p.talks[d.id]||0)]))};
 }
 // Replaces progress (and the shared settings) with a cleaned backup. savedAt: keep the copy's save time (sync).
@@ -186,7 +194,7 @@ $('importFile').onchange=async e=>{
 // copy, which each PC keeps in localStorage (syncSnap). Only the very first sync on a PC that already has progress asks.
 const syncDir=()=>lsGet('syncOn',false)?lsGet('syncPath',''):'';
 let syncBusy=false,syncTimer=0;
-const keepAside=data=>tauri.core.invoke('export_backup',{name:`before-sync-${stamp()}.json`,data});
+const keepAside=async data=>{await tauri.core.invoke('export_backup',{name:`before-sync-${stamp()}.json`,data});await tauri.core.invoke('prune_backups',{prefix:'before-sync-',keep:5}).catch(()=>{})};
 function agreed(){ // this PC and the sync folder now hold the same progress
   lsSet('syncBase',P.savedAt||1);lsSet('syncSnap',P);lsSet('syncAt',Date.now());syncStatus(); // 1 = synced, even before the first save
 }
@@ -196,7 +204,7 @@ async function syncWrite(){
 }
 function syncPush(){ // after every save, a few seconds later
   clearTimeout(syncTimer);
-  syncTimer=setTimeout(()=>{if(syncDir()&&loaded&&!syncBusy&&(+P.savedAt||0)>+lsGet('syncBase',0))syncWrite().catch(syncStatus)},3000);
+  syncTimer=setTimeout(()=>{if(syncDir()&&loaded&&(+P.savedAt||0)>+lsGet('syncBase',0))syncBusy?syncPush():syncPull()},3000);
 }
 async function syncPull(){
   if(!tauri||!syncDir()||!loaded||syncBusy)return;
@@ -238,7 +246,7 @@ $('syncGroup').hidden=!tauri;
 $('syncSw').onclick=async()=>{
   const on=!lsGet('syncOn',false);
   if(on&&!lsGet('syncPath',''))lsSet('syncPath',await tauri.core.invoke('sync_default'));
-  if(on&&!lsGet('syncPath',''))return setMsg('syncMsg','Type the path of your OneDrive or Google Drive folder below first.',true);
+  if(on&&!lsGet('syncPath',''))return setMsg('syncMsg','Type the path of your OneDrive, Google Drive, iCloud Drive or Dropbox folder below first.',true);
   lsSet('syncOn',on);lsSet('syncBase',0);lsSet('syncSnap',null);renderSync();syncPull();
 };
 $('syncPath').onchange=e=>{lsSet('syncPath',e.target.value.trim());lsSet('syncBase',0);lsSet('syncSnap',null);renderSync();syncPull()};

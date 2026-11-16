@@ -165,7 +165,7 @@ async function showVideo(v){
   if(vid!==v.id)return;
   if(vp?.loadVideoById){v.playing?vp.loadVideoById({videoId:v.id,startSeconds:v.t}):vp.cueVideoById({videoId:v.id,startSeconds:v.t});vp.setPlaybackRate(v.rate||1)}
   else vp=new YT.Player('vp',{videoId:v.id,host:'https://www.youtube-nocookie.com',
-    playerVars:{autoplay:v.playing?1:0,start:Math.floor(v.t),rel:0,playsinline:1,...(location.origin.startsWith('http')?{origin:location.origin}:{})},
+    playerVars:{autoplay:v.playing?1:0,start:Math.floor(v.t),rel:0,playsinline:1,cc_load_policy:1,cc_lang_pref:'ko',...(location.origin.startsWith('http')?{origin:location.origin}:{})},
     events:{onReady:e=>{e.target.setPlaybackRate(v.rate||1);if(v.playing)e.target.playVideo()},onStateChange:report}});
   vReport=setInterval(report,1000);
 }

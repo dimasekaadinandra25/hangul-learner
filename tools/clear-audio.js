@@ -2,7 +2,8 @@
 // of the size of an MP3 at the same quality. Used by gen-audio.js. Needs ffmpeg on PATH.
 const {execFile}=require('child_process');
 const fs=require('fs');
-const FILTER='loudnorm=I=-16:TP=-1.5:LRA=11';
+// trim the silence the voice service puts before speech (keeps 40 ms), then even loudness
+const FILTER='silenceremove=start_periods=1:start_silence=0.04:start_threshold=-50dB,loudnorm=I=-16:TP=-1.5:LRA=11';
 
 // src: the recorded MP3 (deleted afterwards); out: the .ogg the app plays
 const polish=(src,out)=>new Promise((res,rej)=>{

@@ -25,6 +25,14 @@ const WORDS=[['안녕하세요','hello'],['감사합니다','thank you'],['한�
 
 // Practice syllables: 14 basic consonants x 5 simple vowels (가 거 고 구 기 ...)
 const SYL_C=[...'ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎ'],SYL_V=[...'ㅏㅓㅗㅜㅣ'];
+// Final consonants (받침): only 7 sounds are said at the end of a syllable (k n t l m p ng), so many spellings sound alike:
+// 낮, 옷, 꽃 and 밭 all end in a "t" sound. [syllable, its parts, how it is said, note]
+const FINALS=[['각','ㄱㅏㄱ','각','ㄱ at the end: a short k, the mouth stays closed'],['밖','ㅂㅏㄲ','박','ㄲ at the end sounds like ㄱ (k)'],
+  ['간','ㄱㅏㄴ','간','ㄴ at the end: n'],['닫','ㄷㅏㄷ','닫','ㄷ at the end: a short t'],['옷','ㅇㅗㅅ','옫','ㅅ at the end sounds like ㄷ (t)'],
+  ['낮','ㄴㅏㅈ','낟','ㅈ at the end sounds like ㄷ (t)'],['꽃','ㄲㅗㅊ','꼳','ㅊ at the end sounds like ㄷ (t)'],['밭','ㅂㅏㅌ','받','ㅌ at the end sounds like ㄷ (t)'],
+  ['갈','ㄱㅏㄹ','갈','ㄹ at the end: l'],['감','ㄱㅏㅁ','감','ㅁ at the end: m'],['갑','ㄱㅏㅂ','갑','ㅂ at the end: a short p'],
+  ['앞','ㅇㅏㅍ','압','ㅍ at the end sounds like ㅂ (p)'],['강','ㄱㅏㅇ','강','ㅇ at the end: ng (at the start it is silent)'],
+].map(([ch,parts,sound,note])=>({ch,parts:[...parts],sound,note,say:ch}));
 const SYLL=SYL_C.flatMap(c=>SYL_V.map(v=>{const ch=compose(INIT.indexOf(c),VOW.indexOf(v));return{ch,parts:[c,v],say:ch}}));
 
 // Lesson path: sections of units. Unit ids are saved in progress files: never change or reuse one.
@@ -46,12 +54,18 @@ const SECTIONS=[
     ['words2','First words 2','word',WORDS.slice(10,20)],
     ['words3','Nature','word',WORDS.slice(20,30)],
     ['words4','Animals & people','word',WORDS.slice(30)],
+    ['finals','Final consonants (받침)','final',FINALS],
   ].map(([id,title,kind,items])=>({id,title,kind,items:kind==='letter'?[...items].map(c=>LETTER[c]):kind==='word'?wordItems(items):items}))},
   ...TOPIK_DATA.map(t=>({id:'topik'+t.level,title:'TOPIK '+t.level,tag:`${t.exam} · ${t.name}`,desc:t.desc,
     units:[...t.units.map(([title,list],i)=>({id:`t${t.level}-${i}`,title,kind:'word',items:wordItems(list.split('|').map(x=>x.split('=')))})),
       ...(GRAMMAR_DATA.find(g=>g.level===t.level)?.units||[]).map(([title,list],i)=>({id:`g${t.level}-${i}`,title,kind:'grammar',items:grammarItems(list)}))]})),
 ];
 const UNITS=SECTIONS.flatMap((s,si)=>s.units.map(u=>({...u,section:si})));
+// Item key (stats, Smart review, mistakes) = its text. A grammar pattern spelled like a word or syllable (보다 "than" vs
+// 보다 "to see", 도 vs the syllable 도) gets "g:" in front, so the two don't share one schedule.
+{const plain=new Set(UNITS.filter(u=>u.kind!=='grammar').flatMap(u=>u.items.map(i=>i.ch)));
+  for(const u of UNITS)if(u.kind==='grammar')for(const g of u.items)if(plain.has(g.ch))g.key='g:'+g.ch}
+const keyOf=it=>it.key||it.ch;
 const GRAMMAR_ITEMS=UNITS.filter(u=>u.kind==='grammar').flatMap(u=>u.items.map(g=>({...g,section:u.section,unit:u.title})));
 const VOCAB=UNITS.filter(u=>u.kind==='word').flatMap(u=>u.items.map(w=>({...w,section:u.section,unit:u.title})));
 
@@ -80,7 +94,9 @@ function findWords(text){
 }
 
 // Everything with a pre-recorded clip; file name = hex code points, e.g. 가 -> ac00.ogg (Opus)
-const RECORDED=[...new Set([...ALL.map(l=>l.say),...SYLL.map(s=>s.say),...VOCAB.map(w=>w.say),...GRAMMAR_ITEMS.flatMap(g=>[...g.ex.map(e=>e[0]),fillQ(g.q)])])];
+const RECORDED=[...new Set([...ALL.map(l=>l.say),...FINALS.map(f=>f.say),...SYLL.map(s=>s.say),...VOCAB.map(w=>w.say),...GRAMMAR_ITEMS.flatMap(g=>[...g.ex.map(e=>e[0]),fillQ(g.q)])])];
+// Short items also have a slow recording (s-<file>), said slowly by the voice itself: clearer than stretching the normal clip
+const SLOW_CLIPS=new Set([...ALL.map(l=>l.say),...SYLL.map(s=>s.say),...FINALS.map(f=>f.say),...VOCAB.map(w=>w.say)]);
 // Revised Romanization, enough for search: 학교 -> hakgyo, 한국어 -> hangugeo, 감사합니다 -> gamsahamnida.
 // ponytail: links a final into a following ㅇ and nasalizes before ㄴ/ㅁ; other sound changes (ㄹ+ㄴ, ㅎ, tensing) are skipped.
 const RR_I=['g','kk','n','d','tt','r','m','b','pp','s','ss','','j','jj','ch','k','t','p','h'];
@@ -104,4 +120,4 @@ function romanize(s){
 // Clip file name from its text; long sentences get a short hash instead (Windows file names stop at 255 characters).
 const audioName=t=>{const n=[...t].map(c=>c.codePointAt(0).toString(16)).join('-');if(n.length<=200)return n+'.ogg';let h=0x811c9dc5;for(const c of t){h^=c.codePointAt(0);h=Math.imul(h,0x01000193)>>>0}return 'h-'+h.toString(16)+'-'+[...t].length+'.ogg'};
 
-if(typeof module!=='undefined')module.exports={INIT,VOW,FIN,compose,decompose,ALL,LETTER,GROUPS,WORDS,SYL_C,SYL_V,SYLL,SECTIONS,UNITS,VOCAB,GRAMMAR_ITEMS,fillQ,RECORDED,audioName,findWords,romanize};
+if(typeof module!=='undefined')module.exports={SLOW_CLIPS,FINALS,keyOf,INIT,VOW,FIN,compose,decompose,ALL,LETTER,GROUPS,WORDS,SYL_C,SYL_V,SYLL,SECTIONS,UNITS,VOCAB,GRAMMAR_ITEMS,fillQ,RECORDED,audioName,findWords,romanize};

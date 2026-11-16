@@ -24,13 +24,14 @@ function options(answer,pool,key,n=4,differ=(a,b)=>a!==b){
   return shuffle(out);
 }
 
-const explainOf=(u,item)=>u.kind==='letter'?`${item.ch} sounds like “${item.rom}”`:u.kind==='syllable'?`${item.parts.join(' + ')} = ${item.ch}`:`${item.ch} = ${item.meaning}`;
+const explainOf=(u,item)=>u.kind==='final'?`${item.parts.join(' + ')} = ${item.ch}, said [${item.sound}] · ${item.note}`:u.kind==='letter'?`${item.ch} sounds like “${item.rom}”`:u.kind==='syllable'?`${item.parts.join(' + ')} = ${item.ch}`:`${item.ch} = ${item.meaning}`;
 
 // Exercise types per kind and difficulty. easy = recognition only, hard = recall without visual hints.
 const TYPES={
   letter:{easy:['listen','read','rom2ch'],mixed:['listen','read','rom2ch'],hard:['listen','rom2ch']},
+  final:{easy:['buildShown','fsound'],mixed:['buildShown','fsound','listen'],hard:['fsound','listen']}, // no building from sound alone: 낮 and 낫 sound the same
   syllable:{easy:['buildShown','listen'],mixed:['buildShown','buildHeard','listen'],hard:['buildHeard','listen']},
-  word:{easy:['meaning','reverse','listen'],mixed:['meaning','listen','reverse','tiles'],hard:['tiles','listen','reverse']},
+  word:{easy:['meaning','reverse','listen'],mixed:['meaning','listen','reverse','tiles'],hard:['tiles','type','listen','reverse']},
   grammar:{easy:['gmeaning','fill'],mixed:['fill','gmeaning','glisten','order'],hard:['order','fill','glisten']},
 };
 
@@ -39,7 +40,7 @@ const TYPES={
 function makeExercise(unitIdx,item,mode='mixed'){
   const u=typeof unitIdx==='number'?UNITS[unitIdx]:unitIdx;
   if(u.kind==='grammar')return grammarExercise(unitIdx,item,mode);
-  const base={unit:u.id,key:item.ch,say:item.say,explain:explainOf(u,item)};
+  const base={unit:u.id,key:keyOf(item),say:item.say,explain:explainOf(u,item)};
   const pool=typeof unitIdx==='number'?UNITS.slice(0,unitIdx+1).filter(x=>x.kind===u.kind&&x.section===u.section).flatMap(x=>x.items) // distractors: same level, units so far
     :[...u.items,...VOCAB.slice(0,80)]; // My words: own words plus beginner words as distractors
   const choice=(prompt,show,opts,label,big)=>({...base,type:'choice',prompt,...show,answer:item.ch,options:opts.map(o=>({value:o.ch,label:label(o),big}))});
@@ -47,11 +48,15 @@ function makeExercise(unitIdx,item,mode='mixed'){
     tiles:shuffle([...parts,...shuffle([...new Set(extra)].filter(t=>!parts.includes(t))).slice(0,4)])});
   const tok=w=>w.includes(' ')?w.split(' '):[...w]; // phrases are built from whole words
   const multi=item.ch.includes(' ');
-  const type=pickOne(TYPES[u.kind][mode]);
+  // typed recall (Challenge): only words every key of which is on the 2-beolsik keyboard; else tiles
+  const canType=typeof keysFor==='function'&&keysFor(item.ch).every(j=>j===' '||JAMO_KEY[j]);
+  let type=pickOne(TYPES[u.kind][mode]);if(type==='type'&&!canType)type='tiles';
   const ex=(()=>{switch(type){
+    case 'type':return{...base,type:'type',prompt:`Type “${item.meaning}” in Korean`,answer:item.ch};
     case 'listen':
       if(u.kind==='letter')return choice('Which letter do you hear?',{play:item.say},options(item,pool,l=>l.ch,4,soundsDifferent),l=>l.ch,true);
-      return choice(u.kind==='word'?'Which one do you hear?':'Which syllable do you hear?',{play:item.say},options(item,pool,x=>x.ch),x=>x.ch,true);
+      return choice(u.kind==='word'?'Which one do you hear?':'Which syllable do you hear?',{play:item.say},options(item,pool,x=>x.sound||x.ch),x=>x.ch,true);
+    case 'fsound':return choice('How is this said?',{big:item.ch},options(item,pool,x=>x.sound),x=>`[${x.sound}]`,true);
     case 'read':return choice('How does this letter sound?',{big:item.ch},options(item,pool,l=>l.rom),l=>l.rom,false);
     case 'rom2ch':return choice(`Which letter makes the sound “${item.rom}”?`,{},options(item,pool,l=>l.rom),l=>l.ch,true);
     case 'buildShown':return tiles('Build this syllable from its letters',{big:item.ch,play:item.say},item.parts,[...SYL_C,...SYL_V]);
@@ -60,7 +65,7 @@ function makeExercise(unitIdx,item,mode='mixed'){
     case 'reverse':return choice(`Which one means “${item.meaning}”?`,{},options(item,pool,w=>w.meaning),w=>w.ch,true);
     case 'tiles':return tiles(`Write “${item.meaning}” in Korean`,{play:item.say},tok(item.ch),pool.filter(w=>w.ch.includes(' ')===multi).flatMap(w=>tok(w.ch)));
   }})();
-  ex.skill=type==='listen'?'listen':['buildShown','buildHeard','tiles'].includes(type)?'write':'read'; // for skill quests
+  ex.skill=type==='listen'?'listen':['buildShown','buildHeard','tiles','type'].includes(type)?'write':'read'; // for skill quests
   return ex;
 }
 
@@ -71,10 +76,10 @@ function grammarExercise(unitIdx,item,mode){
   const sents=others.flatMap(o=>o.ex);
   const [ko,en]=pickOne(item.ex),[qko,qen,qa,qd]=item.q;
   const type=pickOne(TYPES.grammar[mode]);
-  const base={unit:u.id,key:item.ch,say:ko,explain:`${item.ch} · ${item.meaning}. ${ko} = ${en}`};
+  const base={unit:u.id,key:keyOf(item),say:ko,explain:`${item.ch} · ${item.meaning}. ${ko} = ${en}`};
   const choice=(prompt,show,answer,opts)=>({...base,type:'choice',prompt,...show,answer,options:opts.map(v=>({value:v,label:v,big:false}))});
   const ex=(()=>{switch(type){
-    case 'fill':return{...choice(`Fill in the blank: “${qen}”`,{big:qko},qa,shuffle([qa,...qd])),say:fillQ(item.q),explain:`${fillQ(item.q)} = ${qen}`};
+    case 'fill':return{...choice(`Fill in the blank: “${qen}”`,{big:qko},qa,shuffle([qa,...qd])),say:fillQ(item.q),explain:`${item.ch} · ${item.meaning}. ${fillQ(item.q)} = ${qen}`};
     case 'gmeaning':return choice('What does this sentence mean?',{big:ko,play:ko},en,options([ko,en],sents,s=>s[1]).map(s=>s[1]));
     case 'glisten':return choice('Which sentence do you hear?',{play:ko},ko,options([ko,en],sents,s=>s[0]).map(s=>s[0]));
     case 'order':{const parts=ko.split(' '),extra=shuffle(sents.flatMap(s=>s[0].split(' ')).filter(w=>!parts.includes(w))).slice(0,3);
@@ -87,11 +92,11 @@ function grammarExercise(unitIdx,item,mode){
 
 function introCard(unitIdx,item){
   const u=typeof unitIdx==='number'?UNITS[unitIdx]:unitIdx;
-  if(u.kind==='grammar')return{type:'intro',unit:u.id,key:item.ch,say:item.ex[0][0],play:item.ex[0][0],big:item.ch,prompt:'New grammar',
+  if(u.kind==='grammar')return{type:'intro',unit:u.id,key:keyOf(item),say:item.ex[0][0],play:item.ex[0][0],big:item.ch,prompt:'New grammar',
     explain:`${item.meaning} · ${item.note}`,example:item.ex[0],grammar:true};
-  return{type:'intro',unit:u.id,key:item.ch,say:item.say,play:item.say,big:item.ch,
-    prompt:u.kind==='letter'?'New letter':u.kind==='syllable'?'New syllable':'New word',
-    explain:u.kind==='letter'?`Sounds like “${item.rom}”`:u.kind==='syllable'?`${item.parts.join(' + ')} = ${item.ch}`:item.meaning};
+  return{type:'intro',unit:u.id,key:keyOf(item),say:item.say,play:item.say,big:item.ch,
+    prompt:u.kind==='letter'?'New letter':u.kind==='syllable'||u.kind==='final'?'New syllable':'New word',
+    explain:u.kind==='letter'?`Sounds like “${item.rom}”`:u.kind==='syllable'?`${item.parts.join(' + ')} = ${item.ch}`:u.kind==='final'?`Said [${item.sound}] · ${item.note}`:item.meaning};
 }
 
 const fillTo=(list,n)=>{const out=[];while(list.length&&out.length<n)out.push(...shuffle(list));return out.slice(0,n)};
@@ -112,27 +117,42 @@ function buildStep(unitIdx,step){
 // P.srs {key:{u:unitId, iv:days, ease, due:YYYY-MM-DD}}. A right answer on a due item pushes it further out
 // (1 day, then x ease: ~3, 7, 16 … days, max 180); a wrong answer brings it back today and makes it come back sooner.
 const addDays=(day,n)=>{const[y,m,d]=day.split('-').map(Number);return dayKey(new Date(y,m-1,d+n))};
+const hashFrac=k=>{let h=2166136261;for(const c of k)h=Math.imul(h^c.codePointAt(0),16777619);return(h>>>0)/4294967296};
 function schedule(P,key,unit,right,day=dayKey()){
   P.srs??={};
   const s=P.srs[key]??={u:unit,iv:0,ease:2.3,due:day};
   s.u=unit;
-  if(!right){s.iv=0;s.ease=Math.max(1.3,+(s.ease-0.2).toFixed(2));s.due=day;return s}
+  s.at=Date.now(); // newest answer wins when two computers sync
+  if(!right){ // asked again today; once right, it comes back after a quarter of the old interval (not from zero)
+    if(s.iv>=4)s.lapse=Math.round(s.iv/4);
+    s.iv=0;s.ease=Math.max(1.3,+(s.ease-0.2).toFixed(2));s.due=day;return s}
   if(s.due>day)return s; // already scheduled ahead: answering again early doesn't move it
-  s.iv=s.iv?Math.min(180,Math.round(s.iv*s.ease)):1;s.ease=Math.min(2.8,+(s.ease+0.05).toFixed(2));s.due=addDays(day,s.iv);
+  let iv=s.iv?Math.min(180,Math.round(s.iv*s.ease)):(s.lapse||1);delete s.lapse;
+  if(iv>=4)iv+=Math.round(iv*0.1*(hashFrac(key)*2-1)); // ±10%, fixed per item, so a unit learned together doesn't all fall due on one day
+  s.iv=iv;s.ease=Math.min(2.8,+(s.ease+0.05).toFixed(2));s.due=addDays(day,s.iv);
   return s;
 }
 const learned=(P,key,unit,day=dayKey())=>{P.srs??={};P.srs[key]??={u:unit,iv:0,ease:2.3,due:addDays(day,1)}}; // after an intro card
 // Learners from before Smart review: every item already answered right joins the schedule, spread over a week
 function seedSrs(P,day=dayKey()){
   P.srs??={};if(P.srsSeeded)return;P.srsSeeded=true;let n=0;
-  for(const u of UNITS)for(const it of u.items)if(P.stats[it.ch]?.right>0&&!P.srs[it.ch])P.srs[it.ch]={u:u.id,iv:1,ease:2.3,due:addDays(day,n++%7)};
+  for(const u of UNITS)for(const it of u.items)if(P.stats[it.ch]?.right>0&&!P.srs[keyOf(it)])P.srs[keyOf(it)]={u:u.id,iv:1,ease:2.3,due:addDays(day,n++%7)};
+}
+// Saves from before grammar keys: a schedule or mistake of a grammar unit filed under the plain spelling moves to its own key
+function migrateKeys(P){
+  for(const u of UNITS)if(u.kind==='grammar')for(const g of u.items){
+    if(!g.key)continue;
+    if(P.srs?.[g.ch]?.u===u.id){P.srs[g.key]??=P.srs[g.ch];delete P.srs[g.ch]}
+    if(P.mistakes?.[g.ch]===u.id){P.mistakes[g.key]=u.id;delete P.mistakes[g.ch]}
+    if(P.stats?.[g.ch]&&!P.stats[g.key])P.stats[g.key]={...P.stats[g.ch]};
+  }
 }
 const dueKeys=(P,day=dayKey())=>Object.entries(P.srs||{}).filter(([,s])=>s.due<=day).sort((a,b)=>a[1].due<b[1].due?-1:a[1].due>b[1].due?1:0).map(([k])=>k);
 // My words as a unit object, so the normal exercises work for them
 const notebookUnit=P=>({id:'mine',title:'My words',kind:'word',section:-1,items:(P.notebook||[]).map(w=>({ch:w.ch,meaning:w.meaning,say:w.ch}))});
 function itemFor(P,key,uid){
   if(uid==='mine'){const nu=notebookUnit(P),it=nu.items.find(x=>x.ch===key);return it?[nu,it]:null}
-  const i=UNITS.findIndex(u=>u.id===uid),it=i<0?null:UNITS[i].items.find(x=>x.ch===key);
+  const i=UNITS.findIndex(u=>u.id===uid),it=i<0?null:UNITS[i].items.find(x=>keyOf(x)===key);
   return it?[i,it]:null;
 }
 // Up to `limit` due items, oldest first, one question each
@@ -221,7 +241,7 @@ function mergeProgress(base,a,b,aNewer){
   const m={...(aNewer?b:a),...(aNewer?a:b)};
   for(const k of['days','log','stats','totals','drills','units','steps','talks'])m[k]=sum(base[k],a[k],b[k]);
   m.xp=add(base.xp,a.xp,b.xp);
-  m.srs=keyed(base.srs,a.srs,b.srs,(bs,x,y)=>same(x,bs)?y:same(y,bs)?x:x.due>=y.due?x:y);
+  m.srs=keyed(base.srs,a.srs,b.srs,(bs,x,y)=>same(x,bs)?y:same(y,bs)?x:(x.at||y.at)?((x.at||0)>=(y.at||0)?x:y):x.due>=y.due?x:y); // both answered: the later answer
   m.mistakes=keyed(base.mistakes,a.mistakes,b.mistakes);
   m.weekClaims=keyed(base.weekClaims,a.weekClaims,b.weekClaims,list);
   m.drillMiss=keyed(base.drillMiss,a.drillMiss,b.drillMiss,list);
@@ -304,6 +324,8 @@ function dailyQuests(day){
   const rnd=seeded(day);
   return[...pickSeeded(QUESTS.filter(q=>q.metric==='xp'),1,rnd),...pickSeeded(QUESTS.filter(q=>q.metric!=='xp'),3,rnd)];
 }
+// P.goalLog {day: goal}: when the daily goal was changed, so past days keep the goal they had
+const goalOn=(P,day)=>{const k=Object.keys(P.goalLog||{}).filter(x=>x<=day).sort().pop();return k?P.goalLog[k]:DAILY_GOAL};
 const emptyDaily=day=>({date:day,lessons:0,correct:0,combo:0,perfect:0,written:0,reviews:0,heard:0,challenges:0,
   practice:0,intros:0,listen:0,read:0,write:0,seconds:0,podcastSec:0,srs:0,typed:0,spoken:0,grammar:0,drill:0,dict:0,focus:0,talks:0,claimed:[]});
 function todayStats(P,day=dayKey()){P.log??={};return P.log[day]??=emptyDaily(day)}
@@ -337,7 +359,7 @@ const weeklyQuests=week=>pickSeeded(WEEKLY,3,seeded('week'+week));
 function weekProgress(P,q,week=weekKey()){
   const days=weekDays(week);
   const v=q.metric==='days'?days.filter(d=>(P.days[d]||0)>0).length
-    :q.metric==='goal'?days.filter(d=>(P.days[d]||0)>=DAILY_GOAL).length
+    :q.metric==='goal'?days.filter(d=>(P.days[d]||0)>=goalOn(P,d)).length
     :days.reduce((sum,d)=>sum+metricOn(P,d,q.metric),0);
   return Math.min(q.target,v);
 }
@@ -349,7 +371,7 @@ const unitPassed=(P,id)=>(P.units[id]||0)>0;
 const listenedMin=P=>Math.floor((P.totals.listenSec||0)/60);
 const drillRight=(P,kind)=>+P.drills?.[kind]?.right||0;
 const talksDone=P=>Object.values(P.talks||{}).filter(n=>+n>0).length;
-const storiesRead=P=>Object.values(P.stories||{}).filter(s=>s&&+s.best>=2).length; // every story has 2 questions
+const storiesRead=P=>typeof STORIES==='undefined'?0:STORIES.filter(s=>+P.stories?.[s.id]?.best>=s.qs.length).length; // all questions of a story right
 const TASKS=[
   {id:'t-hear',group:'Getting started',text:'Tap a letter to hear it',xp:5,get:P=>[heardCount(P,ALL),1]},
   {id:'t-first',group:'Getting started',text:'Finish your first lesson',xp:10,get:P=>[P.totals.lessons,1]},
@@ -370,7 +392,7 @@ const TASKS=[
   {id:'t-review',group:'Habits',text:'Clear mistakes in a review',xp:10,get:P=>[P.totals.reviews,1]},
   {id:'t-perfect',group:'Habits',text:'Finish a lesson without mistakes',xp:10,get:P=>[P.totals.perfect,1]},
   {id:'t-streak3',group:'Habits',text:'Study 3 days in a row',xp:20,get:P=>[P.bestStreak,3]},
-  {id:'t-goal3',group:'Habits',text:'Reach your daily goal on 3 days',xp:20,get:P=>[Object.values(P.days).filter(x=>x>=DAILY_GOAL).length,3]},
+  {id:'t-goal3',group:'Habits',text:'Reach your daily goal on 3 days',xp:20,get:P=>[Object.entries(P.days).filter(([d,x])=>x>=goalOn(P,d)).length,3]},
   {id:'t-allday',group:'Habits',text:'Complete all 4 daily quests in one day',xp:25,get:P=>[P.totals.fullDays,1]},
   {id:'t-weekly',group:'Habits',text:'Complete a weekly quest',xp:15,get:P=>[P.totals.weekly,1]},
   {id:'t-streak7',group:'Habits',text:'Study 7 days in a row',xp:40,get:P=>[P.bestStreak,7]},
@@ -383,10 +405,11 @@ const TASKS=[
   {id:'t-type',group:'Tools',text:'Type 10 words correctly',xp:15,get:P=>[P.totals.typed||0,10]},
   {id:'t-stroke',group:'Tools',text:'Score 80% or more on a stroke-order check',xp:15,get:P=>[P.bestStroke||0,80]},
   {id:'t-numbers',group:'Practice',text:'Get 20 number questions right',xp:15,get:P=>[drillRight(P,'num'),20]},
+  {id:'t-reply',group:'Practice',text:'Choose 10 right replies (Practice › Reply)',xp:15,get:P=>[drillRight(P,'reply'),10]},
   {id:'t-verbs',group:'Practice',text:'Get 20 verb-ending questions right',xp:15,get:P=>[drillRight(P,'verb'),20]},
   {id:'t-sounds',group:'Practice',text:'Get 15 sound-change questions right',xp:15,get:P=>[drillRight(P,'sound'),15]},
   {id:'t-story',group:'Practice',text:'Read a story and answer every question right',xp:10,get:P=>[storiesRead(P),1]},
-  {id:'t-stories',group:'Practice',text:'Read all 14 stories',xp:40,get:P=>[storiesRead(P),14]},
+  {id:'t-stories',group:'Practice',text:'Read every story on the Practice page',xp:40,get:P=>[storiesRead(P),STORIES.length]},
   {id:'t-dict',group:'Practice',text:'Type 10 words you hear (Write › Listen)',xp:15,get:P=>[P.totals.dictation||0,10]},
   {id:'t-shadow',group:'Practice',text:'Shadow a podcast: replay 5 seconds and record yourself',xp:10,get:P=>[P.totals.shadow||0,1]},
   {id:'t-focus',group:'Practice',text:'Finish a focus timer session',xp:10,get:P=>[P.totals.focus||0,1]},
@@ -422,7 +445,7 @@ const ACHIEVEMENTS=[
   {id:'speaker',name:'Brave speaker',desc:'Record yourself 50 times',icon:'mic',get:P=>[P.totals.recordings||0,50]},
   {id:'talker',name:'Conversation partner',desc:'Finish all 8 role-play conversations',icon:'mic',get:P=>[talksDone(P),8]},
   {id:'drills200',name:'Drill master',desc:'Answer 200 Practice-page questions right',icon:'target',get:P=>[['num','verb','part','sound','read'].reduce((s,k)=>s+drillRight(P,k),0),200]},
-  {id:'bookworm',name:'Bookworm',desc:'Read all 14 stories',icon:'book',get:P=>[storiesRead(P),14]},
+  {id:'bookworm',name:'Bookworm',desc:'Read every story',icon:'book',get:P=>[storiesRead(P),STORIES.length]},
   {id:'focus10',name:'Deep focus',desc:'Finish 10 focus timer sessions',icon:'clock',get:P=>[P.totals.focus||0,10]},
   ...SECTIONS.map((s,i)=>({id:'sec-'+s.id,name:i?`${s.title} graduate`:'Hangul hero',desc:`Pass every unit in ${s.title}`,icon:'award',
     get:P=>[sectionPassed(P,i),s.units.length]})),

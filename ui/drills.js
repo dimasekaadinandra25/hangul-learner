@@ -62,7 +62,17 @@ function trickyQ(ref){
   return makeQ({kind:'tricky',ref:w.ch,kicker:`Tricky word · missed ${s.tries-s.right} times`,big:w.ch,bigKo:true,sub:'Hint: '+trickyHint(w),say:w.say,
     right:w.meaning,wrong:pool,note:`${w.ch} = ${w.meaning}. Get it right a few times and it leaves this list.`});
 }
-const BUILD={num:numQ,verb:verbQ,part:partQ,sound:soundQ,tricky:trickyQ};
+// Reply (TOPIK listening): hear one line of a conversation, choose what the other person says next.
+// Wrong options are replies from other conversations, the same level first.
+const REPLIES=DIALOGUES.flatMap(d=>d.lines.slice(0,-1).map((l,i)=>[d,i]).filter(([,i])=>d.lines[i][0]!==d.lines[i+1][0]));
+function replyQ(ref){
+  let[d,i]=REPLIES.find(([x,k])=>`${x.id}|${k}`===ref)||pickOne(REPLIES.length>1&&DQ?.kind==='reply'?REPLIES.filter(([x,k])=>`${x.id}|${k}`!==DQ.ref):REPLIES);
+  const[,line,en]=d.lines[i],[,reply,ren]=d.lines[i+1];
+  const others=REPLIES.filter(([x])=>x!==d).sort((p,q)=>Math.abs(p[0].level-d.level)-Math.abs(q[0].level-d.level)||Math.random()-.5).map(([x,k])=>x.lines[k+1][1]);
+  return makeQ({kind:'reply',ref:`${d.id}|${i}`,kicker:`${d.en} · TOPIK ${d.level} · listening`,sub:'Listen, then choose the best reply.',say:line,listen:true,ko:true,
+    right:reply,wrong:shuffle(others.slice(0,8)),note:`“${line}” = ${en} → “${reply}” = ${ren}`});
+}
+const BUILD={num:numQ,verb:verbQ,part:partQ,sound:soundQ,tricky:trickyQ,reply:replyQ};
 function newQ(kind){
   if(PX.miss){const l=missList(kind);if(l.length)return BUILD[kind](pickOne(l.length>1&&DQ?.kind===kind?l.filter(r=>r!==DQ.ref):l));PX.miss=false}
   return BUILD[kind]();
@@ -91,7 +101,8 @@ function answerDrill(i){
   sfx(good?'ok':'bad');setTimeout(()=>speak(say,PX.slow?SLOW:1),good?200:450);save();
   document.querySelector('[data-dnext]')?.focus({focusVisible:false});
 }
-const nextDrill=()=>{DQ=BUILD[PT]?newQ(PT):null;renderPractice();document.querySelector('[data-dopt]')?.focus({focusVisible:false})};
+const nextDrill=()=>{DQ=BUILD[PT]?newQ(PT):null;renderPractice();if(DQ?.listen)setTimeout(()=>DQ?.listen&&DQ.picked==null&&speak(DQ.say,PX.slow?SLOW:1),250); // listening questions play on their own
+  document.querySelector('[data-dopt]')?.focus({focusVisible:false})};
 
 // ---- page ----
 const chips=(name,list,cur)=>`<div class="chips" role="group" aria-label="${name}">${list.map(([v,t])=>`<button data-chip="${name}" data-v="${v}" aria-pressed="${v===cur&&!PX.miss}">${t}</button>`).join('')}</div>`;
@@ -222,7 +233,7 @@ async function talkRecord(d){
     if(TK.urls[i])URL.revokeObjectURL(TK.urls[i]);TK.urls[i]=url;
     P.totals.recordings=(P.totals.recordings||0)+1;const t=todayStats(P);t.spoken=(t.spoken||0)+1;
     TK.rec=false;save();if(run===TK.run)await playUrl(url);
-  }catch(e){toast('sync','No microphone found','Check Windows Settings › Privacy › Microphone.','mic')}
+  }catch(e){toast('sync','No microphone found',micHelp(),'mic')}
   finally{TK.rec=false;renderPractice()}
 }
 const talkReset=()=>{stopHearAll();Object.values(TK.urls).forEach(u=>URL.revokeObjectURL(u));Object.assign(TK,{i:-1,urls:{},rec:false})};

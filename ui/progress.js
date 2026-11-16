@@ -13,7 +13,7 @@ function renderTest(){
 function renderPicker(){
   $('testBody').innerHTML=`<div class="panel place-cta"><div><b>Not sure where to start?</b><small>The placement test checks one level at a time (8 questions each) and stops at the first one that’s new to you.</small></div><button class="btn btn-ink" data-tplace>${icon('target')}Find my level</button></div><div class="levels-grid">${SECTIONS.map((s,si)=>{const b=bestOf(si);
     return`<button class="lvl-card" data-tlevel="${si}">${seal(LEVEL_SEAL[si],'s')}<b>${s.title}</b><small>${si?s.tag:'Letters, syllables and first words'}</small><small>${b==null?'Not taken yet':`Best: ${b}%`}</small></button>`}).join('')}</div>
-    <p class="muted" style="margin-top:20px;font-size:.88rem">Questions come from every unit of the level, including ones you have not studied yet. Wrong answers go to Review mistakes and Smart review.</p>`;
+    <p class="muted" style="margin-top:20px;font-size:.88rem">Questions come from every unit of the level, including ones you have not studied yet. Wrong answers on things you have studied go to Review mistakes and Smart review.</p>`;
 }
 // Reading, like the real exam: a short story of this level with its questions, in place of the same number of vocabulary questions.
 // Hangul basics has no story, so its test stays as it was.
@@ -97,9 +97,10 @@ function finishTest(){
   const day=dayKey(),d=todayStats(P,day),areas={},wrong=[];
   TS.qs.forEach((q,k)=>{
     const ok=TS.picks[k]===q.answer;(areas[q.area]??=[0,0])[1]++;if(ok)areas[q.area][0]++;
-    if(q.key)schedule(P,q.key,q.unit,ok,day); // reading questions are not review items
+    const known=q.key&&(P.srs?.[q.key]||unitPassed(P,q.unit)); // only items you have studied join Smart review and Mistakes (reading questions never do)
+    if(known)schedule(P,q.key,q.unit,ok,day);
     if(ok){d.correct++;d[q.skill]=(d[q.skill]||0)+1}
-    else{if(q.key)P.mistakes[q.key]=q.unit;wrong.push({q,pick:TS.picks[k]})}
+    else{if(known)P.mistakes[q.key]=q.unit;wrong.push({q,pick:TS.picks[k]})}
   });
   const score=TS.qs.filter((q,k)=>TS.picks[k]===q.answer).length,total=TS.qs.length,xp=Math.round(score/total*20);
   P.xp+=xp;P.days[day]=(P.days[day]||0)+xp;d.seconds+=Math.min(TEST_SECONDS,Math.round((Date.now()-TS.start)/1000));
@@ -119,7 +120,7 @@ function renderResult(){
 
 // ---------------- Stats ----------------
 function renderStatsPage(){
-  const days=Object.entries(P.days).filter(([,x])=>x>0),gram=GRAMMAR_ITEMS.filter(g=>isMastered(P,g.ch)).length;
+  const days=Object.entries(P.days).filter(([,x])=>x>0),gram=GRAMMAR_ITEMS.filter(g=>isMastered(P,keyOf(g))).length;
   const tiles=[[P.xp.toLocaleString(),'total XP'],[P.bestStreak||streak(activeDays(P)),'best streak (days)'],[days.length,'study days'],
     [`${wordsMastered(P)}<small>/${VOCAB.length}</small>`,'words mastered'],[`${gram}<small>/${GRAMMAR_ITEMS.length}</small>`,'grammar patterns mastered'],
     [((P.totals.listenSec||0)/3600).toFixed(1),'hours listened'],[P.totals.smart||0,'Smart reviews'],[(P.tests||[]).length,'practice tests']];

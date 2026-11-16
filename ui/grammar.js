@@ -1,4 +1,4 @@
-// TOPIK-style grammar by level: 4 units x 6 patterns. Like the vocabulary, the level of each pattern follows
+// TOPIK-style grammar by level: 5 units x 6 patterns. Like the vocabulary, the level of each pattern follows
 // common TOPIK textbooks; TOPIK itself publishes no official list.
 // Pattern: [pattern, meaning, note, [[example, English], [example, English]], [question with ___, English, answer, [3 wrong options]]]
 // The English line of each question makes exactly one option correct. Unit ids are `g<level>-<index>`: append, never reorder.
@@ -36,6 +36,14 @@ const GRAMMAR=[
       ['못','cannot','goes right before the verb',[['저는 운전을 못 해요.','I can’t drive.'],['바빠서 숙제를 못 했어요.','I was busy, so I couldn’t do my homework.']],['저는 매운 음식을 ___ 먹어요.','I can’t eat spicy food.','못',['안','잘','많이']]],
       ['-(으)ㅂ시다','let’s','ㅂ시다 after a vowel, 읍시다 after a consonant',[['같이 점심을 먹읍시다.','Let’s have lunch together.'],['여기에서 잠깐 쉽시다.','Let’s rest here for a moment.']],['버스가 왔어요. 빨리 ___.','The bus is here. Let’s get on quickly.','탑시다',['탔어요','타고 싶어요','탈 거예요']]],
     ]],
+    ['Polite and honorific basics',[
+      ['-네요','oh, …! (surprise or discovery)','for something you just noticed or feel right now',[['밖에 눈이 오네요.','Oh, it’s snowing outside.'],['이 음식 정말 맛있네요.','This food is really delicious!']],['와, 방이 정말 ___.','Wow, the room is really clean!','깨끗하네요',['깨끗했어요','깨끗할 거예요','깨끗하지 않아요']]],
+      ['-(으)시-','honorific (for someone you respect)','시 after a vowel, 으시 after a consonant: 가세요, 읽으세요',[['할아버지는 신문을 읽으세요.','My grandfather reads the newspaper.'],['선생님이 지금 오세요.','The teacher is coming now.']],['할머니는 매일 아침 공원에서 ___.','My grandmother takes a walk in the park every morning.','산책하세요',['산책했어요','산책할 거예요','산책하고 싶어요']]],
+      ['께서','honorific subject marker','replaces 이/가 for someone you respect; 께서는 replaces 은/는',[['아버지께서 운전하세요.','My father drives.'],['할머니께서 저녁을 만드세요.','My grandmother makes dinner.']],['선생님___ 교실에 들어오세요.','The teacher comes into the classroom.','께서',['께','에서','를']]],
+      ['께','to (someone you respect)','honorific 에게/한테; 주다 becomes 드리다',[['할머니께 선물을 드려요.','I give a present to my grandmother.'],['선생님께 편지를 써요.','I write a letter to my teacher.']],['어머니___ 꽃을 드렸어요.','I gave flowers to my mother.','께',['께서','에서','의']]],
+      ['-(으)십시오','please (formal request)','for announcements and formal speech; 으십시오 after a consonant',[['잠시만 기다리십시오.','Please wait a moment.'],['문을 닫으십시오.','Please close the door.']],['신발은 여기에서 ___.','Please take off your shoes here.','벗으십시오',['벗었습니다','벗을 겁니다','벗고 싶습니다']]],
+      ['이/가 아니에요','am not, is not (N is not N)','가 after a vowel, 이 after a consonant',[['저는 학생이 아니에요.','I am not a student.'],['이것은 제 가방이 아니에요.','This is not my bag.']],['그 사람은 의사___ 아니에요.','That person is not a doctor.','가',['이','를','에']]],
+    ]],
   ]},
   {level:2,units:[
     ['Connecting ideas',[
@@ -69,6 +77,14 @@ const GRAMMAR=[
       ['-아/어지다','become, get (more …)','after adjectives: a change of state',[['날씨가 따뜻해졌어요.','The weather has become warm.'],['한국어 실력이 좋아졌어요.','My Korean has gotten better.']],['요즘 날씨가 많이 ___.','The weather has gotten much colder lately.','추워졌어요',['추워야 해요','추울 거예요','추운 것 같아요']]],
       ['-(으)ㄹ래요','want to; would you like to?','a casual wish or offer; 을래요 after a consonant',[['뭐 마실래요?','What would you like to drink?'],['저는 비빔밥 먹을래요.','I’ll have bibimbap.']],['같이 영화 ___?','Do you want to watch a movie together?','볼래요',['봤어요','봐야 해요','보지 마세요']]],
       ['-지요','…, right? (asking for agreement)','often shortened to -죠',[['오늘 날씨가 덥지요?','It’s hot today, isn’t it?'],['한국 음식 좋아하시죠?','You like Korean food, right?']],['이 노래 정말 ___?','This song is really good, isn’t it?','좋지요',['좋았어요','좋아질 거예요','좋을까요']]],
+    ]],
+    ['Honorific speech',[
+      ['-(으)셨어요','did (honorific past)','시 + 었 becomes 셨; for someone you respect',[['할아버지께서 어제 오셨어요.','My grandfather came yesterday.'],['선생님은 벌써 집에 가셨어요.','The teacher has already gone home.']],['어머니께서 아침에 시장에 ___.','My mother went to the market this morning.','가셨어요',['가세요','가실 거예요','가실까요']]],
+      ['-(으)실 거예요','will (honorific future)','also a polite guess about someone you respect',[['사장님은 내일 출장을 가실 거예요.','The boss will go on a business trip tomorrow.'],['할머니께서 아주 좋아하실 거예요.','Grandma will really like it.']],['아버지는 다음 주에 ___.','My father will come back next week.','돌아오실 거예요',['돌아오셨어요','돌아오셔야 해요','돌아오고 싶어 하세요']]],
+      ['드시다','eat, drink (honorific)','honorific of 먹다 and 마시다',[['할머니, 많이 드세요.','Grandma, please eat a lot.'],['아버지는 커피를 안 드세요.','My father doesn’t drink coffee.']],['할아버지께서는 아침에 우유를 ___.','My grandfather drinks milk in the morning.','드세요',['주무세요','계세요','드려요']]],
+      ['계시다','be, stay (honorific)','honorific of 있다 for being somewhere; 안녕히 계세요 = goodbye (to someone staying)',[['사장님은 지금 사무실에 계세요.','The boss is in the office now.'],['할머니께서는 시골에 계세요.','My grandmother is in the countryside.']],['선생님은 지금 교무실에 ___.','The teacher is in the staff room now.','계세요',['드세요','주무세요','가세요']]],
+      ['주무시다','sleep (honorific)','honorific of 자다; 안녕히 주무세요 = good night',[['안녕히 주무세요.','Good night.'],['할아버지께서 방에서 주무세요.','My grandfather is sleeping in his room.']],['어젯밤에 할머니께서 일찍 ___.','My grandmother went to bed early last night.','주무셨어요',['드셨어요','계셨어요','주무세요']]],
+      ['진지/연세/성함/댁','honorific nouns: meal, age, name, home','밥 → 진지, 나이 → 연세, 이름 → 성함, 집 → 댁',[['할아버지, 진지 드세요.','Grandpa, please have your meal.'],['성함이 어떻게 되세요?','May I ask your name?']],['할머니 ___ 어떻게 되세요?','How old is your grandmother?','연세가',['성함이','댁이','진지가']]],
     ]],
   ]},
   {level:3,units:[
@@ -104,6 +120,14 @@ const GRAMMAR=[
       ['-(으)ㄴ 지','since (time has passed)','followed by a length of time + 되다 or 지나다',[['한국어를 배운 지 일 년이 됐어요.','It’s been a year since I started learning Korean.'],['밥을 먹은 지 한 시간 지났어요.','An hour has passed since I ate.']],['서울에 ___ 삼 년이 됐어요.','It has been three years since I came to Seoul.','온 지',['오는 동안','올 때','오려고']]],
       ['-다고 하다','they say that, (someone) said','indirect speech; verbs: -ㄴ/는다고 하다',[['친구가 내일 바쁘다고 했어요.','My friend said they are busy tomorrow.'],['뉴스에서 비가 온다고 해요.','The news says it will rain.']],['민수 씨가 오늘 학교에 안 ___.','Minsu said he isn’t going to school today.','간다고 했어요',['가도 돼요','가면 안 돼요','간 적이 있어요']]],
     ]],
+    ['Quoting and conversation',[
+      ['-냐고 하다','(someone) asked if / what …','a reported question; often 냐고 물어보다',[['친구가 주말에 뭐 하냐고 물어봤어요.','My friend asked what I am doing this weekend.'],['선생님이 숙제를 했냐고 하셨어요.','The teacher asked if I had done my homework.']],['동생이 저한테 언제 집에 ___ 물어봤어요.','My younger sibling asked me when I am coming home.','오냐고',['오자고','오라고','온다고']]],
+      ['-자고 하다','(someone) suggested doing','a reported “let’s …”',[['친구가 같이 영화를 보자고 했어요.','My friend suggested watching a movie together.'],['동생이 주말에 등산하자고 해요.','My younger sibling suggests going hiking this weekend.']],['남편이 오늘 저녁에 외식___ 했어요.','My husband suggested eating out tonight.','하자고',['하냐고','하라고','한다고']]],
+      ['-(으)라고 하다','(someone) told (me) to','a reported command; 으라고 after a consonant',[['의사가 푹 쉬라고 했어요.','The doctor told me to get plenty of rest.'],['엄마가 손을 씻으라고 하셨어요.','Mom told me to wash my hands.']],['선생님이 내일까지 숙제를 ___ 하셨어요.','The teacher told us to hand in our homework by tomorrow.','내라고',['내자고','내냐고','낸다고']]],
+      ['-(으)면서','while (doing two things at once)','the same person does both; 으면서 after a consonant',[['음악을 들으면서 공부해요.','I study while listening to music.'],['밥을 먹으면서 텔레비전을 봐요.','I watch TV while eating.']],['운전___ 전화하면 위험해요.','It’s dangerous to talk on the phone while driving.','하면서',['하니까','하려고','하거나']]],
+      ['-잖아요','you know, …','reminds the listener of something they already know',[['내일 시험이잖아요. 일찍 자요.','We have an exam tomorrow, you know. Go to bed early.'],['제가 어제 말했잖아요.','I told you yesterday, didn’t I?']],['오늘은 일요일___. 은행이 문을 닫았을 거예요.','It’s Sunday today, you know. The bank will be closed.','이잖아요',['이네요','이지만','이거나']]],
+      ['-거든요','(it’s) because, you see','gives a reason the listener didn’t know',[['오늘은 못 가요. 일이 많거든요.','I can’t go today. I have a lot of work, you see.'],['이 식당에 자주 와요. 음식이 맛있거든요.','I come to this restaurant often. The food is good, you see.']],['어제 학교에 안 갔어요. 몸이 ___.','I didn’t go to school yesterday. I was sick, you see.','아팠거든요',['아프잖아요','아프네요','아플 거예요']]],
+    ]],
   ]},
   {level:4,units:[
     ['Cause and contrast',[
@@ -137,6 +161,14 @@ const GRAMMAR=[
       ['-(으)ㄹ 만하다','be worth doing','verbs only',[['이 영화는 한번 볼 만해요.','This movie is worth watching.'],['그 식당 음식은 먹을 만해요.','The food at that restaurant is decent.']],['이 책은 정말 ___. 꼭 읽어 보세요.','This book is really worth reading. Be sure to read it.','읽을 만해요',['읽을 텐데요','읽도록 해요','읽는 척해요']]],
       ['-는 길에','on the way (to)','with 가다, 오다, 출근하다 …',[['집에 오는 길에 빵을 샀어요.','I bought bread on the way home.'],['출근하는 길에 친구를 만났어요.','I met a friend on my way to work.']],['학교에 가는 ___ 우체국에 들렀어요.','I stopped by the post office on the way to school.','길에',['대로','채로','바람에']]],
       ['-곤 하다','used to, often (do)','a repeated habit',[['어렸을 때 이 공원에서 놀곤 했어요.','I used to play in this park when I was young.'],['주말에는 등산을 하곤 해요.','On weekends I often go hiking.']],['대학생 때는 밤새 친구들과 ___.','In college, I used to talk with my friends all night.','이야기하곤 했어요',['이야기할 만했어요','이야기하는 척했어요','이야기하도록 했어요']]],
+    ]],
+    ['Passive and causative',[
+      ['-이/히/리/기 (passive)','be done (passive verbs)','보이다, 잡히다, 열리다, 안기다; the doer takes 에게/한테',[['문이 저절로 열렸어요.','The door opened by itself.'],['도둑이 경찰에게 잡혔어요.','The thief was caught by the police.']],['밤에 모기한테 많이 ___.','I got bitten a lot by mosquitoes at night.','물렸어요',['물었어요','물게 했어요','물어 버렸어요']]],
+      ['-이/히/리/기/우 (causative)','make (someone) do, let','먹이다, 입히다, 울리다, 웃기다, 재우다',[['엄마가 아기에게 밥을 먹여요.','The mother feeds the baby.'],['동생을 울리지 마세요.','Don’t make your younger sibling cry.']],['아이를 침대에 ___.','I put the child to sleep in bed.','재웠어요',['잤어요','자게 됐어요','자 버렸어요']]],
+      ['-게 하다','make / let (someone) do','works with any verb; the person takes 에게 or 을/를',[['선생님이 학생들에게 책을 읽게 했어요.','The teacher had the students read the book.'],['부모님이 저를 혼자 여행하게 하셨어요.','My parents let me travel alone.']],['의사가 아버지에게 담배를 ___.','The doctor made my father quit smoking.','끊게 했어요',['끊게 됐어요','끊어 버렸어요','끊기로 했어요']]],
+      ['-아/어지다 (passive)','be done, get done','after verbs; after adjectives it means “become”',[['이 다리는 백 년 전에 만들어졌어요.','This bridge was built a hundred years ago.'],['회의 날짜가 정해졌어요.','The meeting date has been set.']],['칠판의 글씨가 잘 안 ___.','The writing on the board doesn’t erase well.','지워져요',['지워요','지우게 해요','지울 수 있어요']]],
+      ['-군요','I see, so … (a realization)','reacting to new information; 는군요 after verbs in the present',[['한국어를 정말 잘하시는군요.','I see you speak Korean really well.'],['여기가 그 유명한 식당이군요.','So this is that famous restaurant.']],['사진을 보니까 고향이 정말 ___.','Looking at the photo, I see your hometown is really beautiful.','아름답군요',['아름답도록','아름답기 위해서','아름다운 척해요']]],
+      ['-기 위해(서)','in order to','with a noun: N을/를 위해(서) = for N',[['건강을 지키기 위해서 매일 걸어요.','I walk every day to stay healthy.'],['취직하기 위해 한국어를 배워요.','I learn Korean to get a job.']],['장학금을 ___ 열심히 공부했어요.','I studied hard in order to get a scholarship.','받기 위해서',['받는 바람에','받은 덕분에','받는 대로']]],
     ]],
   ]},
   {level:5,units:[
@@ -172,6 +204,14 @@ const GRAMMAR=[
       ['-는 둥 마는 둥','half-heartedly, barely','followed by 하다',[['늦어서 밥을 먹는 둥 마는 둥 하고 나갔어요.','I was late, so I barely ate before leaving.'],['그는 내 말을 듣는 둥 마는 둥 했다.','He barely listened to what I said.']],['너무 졸려서 숙제를 ___ 했어요.','I was so sleepy that I did my homework half-heartedly.','하는 둥 마는 둥',['할락 말락','하기가 무섭게','한 나머지']]],
       ['-(으)ㄹ세라','for fear that','literary; a worry that makes you act',[['아이가 깰세라 조용히 문을 닫았어요.','I closed the door quietly for fear the child would wake.'],['늦을세라 서둘러 집을 나섰다.','Afraid of being late, I hurried out of the house.']],['누가 ___ 작은 목소리로 말했다.','She spoke in a small voice for fear that someone might hear.','들을세라',['들은 나머지','듣기가 무섭게','들어서 그런지']]],
     ]],
+    ['Degree and outcome',[
+      ['-(으)ㄴ/는 만큼','as much as, to the degree that','what you put in matches what you get',[['노력한 만큼 결과가 나와요.','You get results in proportion to your effort.'],['비싼 만큼 품질이 좋아요.','The quality is as good as the price is high.']],['___ 많이 드세요.','Eat as much as you want.','먹고 싶은 만큼',['먹고 싶은 통에','먹고 싶은 끝에','먹고 싶을 바에야']]],
+      ['-는 통에','because of (a hectic situation)','a noisy or chaotic cause with a bad result; spoken',[['옆집이 떠드는 통에 잠을 못 잤어요.','I couldn’t sleep because the neighbors were so noisy.'],['아이가 우는 통에 전화 소리를 못 들었어요.','I didn’t hear the phone because the child was crying.']],['사람들이 서로 ___ 넘어질 뻔했어요.','Because people were pushing each other, I nearly fell.','밀치는 통에',['밀치는 만큼','밀친 끝에','밀칠 바에야']]],
+      ['-(으)ㄹ 지경이다','to the point of, so … that','stresses how extreme a state is',[['너무 배가 고파서 쓰러질 지경이에요.','I am so hungry I could collapse.'],['일이 많아서 미칠 지경이에요.','I have so much work I’m going crazy.']],['다리가 아파서 더 이상 못 ___.','My legs hurt so much that I can hardly walk anymore.','걸을 지경이에요',['걷는 만큼이에요','걷기 일쑤예요','걸은 끝이에요']]],
+      ['-기 일쑤이다','often (something bad), tend to','a frequent bad habit or event',[['그는 약속에 늦기 일쑤예요.','He is often late for appointments.'],['바쁘면 아침을 거르기 일쑤예요.','When I’m busy, I often skip breakfast.']],['저는 건망증이 심해서 우산을 ___.','I’m so forgetful that I often lose my umbrella.','잃어버리기 일쑤예요',['잃어버릴 지경이에요','잃어버린 끝이에요','잃어버리는 만큼이에요']]],
+      ['-(으)ㄴ 끝에','after a long (effort), finally','a result reached after a long struggle',[['여러 번 실패한 끝에 드디어 성공했어요.','After failing many times, I finally succeeded.'],['오래 기다린 끝에 표를 샀어요.','After waiting a long time, I bought a ticket.']],['밤새 ___ 문제를 해결했어요.','After discussing it all night, we finally solved the problem.','의논한 끝에',['의논하는 통에','의논할 바에야','의논하는 만큼']]],
+      ['-(으)ㄹ 바에야','rather than …, might as well','picks the less bad of two choices; often with 차라리',[['이렇게 기다릴 바에야 차라리 걸어가겠어요.','Rather than wait like this, I’d sooner walk.'],['억지로 할 바에야 안 하는 게 나아요.','Rather than do it unwillingly, it’s better not to.']],['비싼 돈 주고 ___ 차라리 집에서 해 먹을래요.','Rather than pay a lot to eat out, I’d sooner cook at home.','사 먹을 바에야',['사 먹는 만큼','사 먹은 끝에','사 먹는 통에']]],
+    ]],
   ]},
   {level:6,units:[
     ['Formal writing',[
@@ -205,6 +245,14 @@ const GRAMMAR=[
       ['-는 한이 있더라도','even if it means','accepts the worst to do something',[['밤을 새우는 한이 있더라도 이 일을 끝내겠다.','I will finish this even if it means staying up all night.'],['굶는 한이 있더라도 빚은 지지 않겠다.','Even if it means starving, I will not go into debt.']],['회사를 ___ 이 일은 할 수 없다.','Even if it means quitting the company, I cannot do this work.','그만두는 한이 있더라도',['그만둔 마당에','그만두기에','그만두는 터라']]],
       ['을/를 비롯해','including, starting with','before a noun: 을/를 비롯한',[['서울을 비롯해 전국에 비가 내렸다.','It rained across the country, including Seoul.'],['사장을 비롯한 직원들이 모두 참석했다.','All the staff, including the president, attended.']],['한국에는 김치를 ___ 다양한 발효 음식이 있다.','Korea has various fermented foods, including kimchi.','비롯해',['막론하고','불구하고','불과해']]],
       ['에 있어서','in, when it comes to (formal)','written style',[['외국어 공부에 있어서 가장 중요한 것은 꾸준함이다.','In learning a foreign language, consistency matters most.'],['이 문제에 있어서는 의견이 다르다.','Opinions differ on this issue.']],['교육___ 가장 중요한 것은 무엇인가?','What is most important when it comes to education?','에 있어서',['에 불과한','을 막론하고','을 비롯해']]],
+    ]],
+    ['Concession and emphasis',[
+      ['-(으)ㄹ망정','even if, would rather … than','strong resolve: accept the first rather than do the second',[['굶을망정 남의 돈은 빌리지 않겠다.','I would rather starve than borrow other people’s money.'],['가난할망정 정직하게 살겠다.','Even if I am poor, I will live honestly.']],['시합에 ___ 비겁한 방법은 쓰지 않겠다.','I may lose the match, but I will not use cowardly tricks.','질망정',['지기에','질뿐더러','짐으로써']]],
+      ['-기에 망정이지','it’s lucky that … (otherwise)','a narrow escape: thanks to it, something bad didn’t happen',[['우산을 가져왔기에 망정이지 다 젖을 뻔했다.','Luckily I brought an umbrella, or I would have got soaked.'],['일찍 출발했기에 망정이지 비행기를 놓칠 뻔했다.','Good thing we left early, or we would have missed the plane.']],['안전띠를 ___ 크게 다칠 뻔했다.','Good thing I wore a seat belt, or I would have been badly hurt.','맸기에 망정이지',['맬망정','맬뿐더러','맴으로써']]],
+      ['-(으)ㄹ뿐더러','not only … but also (formal)','adds a second point; written style',[['그 식당은 맛있을뿐더러 값도 싸다.','That restaurant is not only tasty but also cheap.'],['이 방법은 쉬울뿐더러 시간도 적게 든다.','This method is not only easy but also quick.']],['운동은 건강에 ___ 기분도 좋게 한다.','Exercise is not only good for your health but also lifts your mood.','좋을뿐더러',['좋을망정','좋기에 망정이지','좋음으로써']]],
+      ['-(으)ㅁ으로써','by (doing), through','formal: the means that leads to a result',[['꾸준히 운동함으로써 건강을 되찾았다.','By exercising regularly, he regained his health.'],['서로 대화함으로써 오해를 풀었다.','They cleared up the misunderstanding by talking.']],['정부는 세금을 ___ 경제를 살리려고 했다.','The government tried to revive the economy by cutting taxes.','낮춤으로써',['낮출망정','낮출뿐더러','낮췄기에 망정이지']]],
+      ['-(으)ㄹ 턱이 없다','there’s no way (that)','strong denial, spoken; like -(으)ㄹ 리가 없다',[['그 사람이 그런 말을 했을 턱이 없어요.','There’s no way he said such a thing.'],['연습도 안 했는데 잘할 턱이 있나?','You didn’t even practice; how could you do well?']],['한 번도 안 가 본 길을 그가 ___.','There’s no way he knows a road he has never taken.','알 턱이 없다',['알망정','알뿐더러','앎으로써']]],
+      ['-다손 치더라도','even supposing (that)','grants a point, then rejects it; after nouns (이)라손 치더라도',[['돈이 많다손 치더라도 행복한 것은 아니다.','Even supposing you are rich, it doesn’t make you happy.'],['네 말이 맞다손 치더라도 방법이 틀렸어.','Even if you are right, your method was wrong.']],['규칙을 ___ 책임은 져야 한다.','Even supposing he didn’t know the rule, he still has to take responsibility.','몰랐다손 치더라도',['몰랐기에 망정이지','몰랐을뿐더러','모름으로써']]],
     ]],
   ]},
 ];

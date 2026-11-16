@@ -63,7 +63,10 @@ window.T={
   answer(right){
     const ex=L.ex;
     if(ex.type==='intro'){T.click('#action');return}
-    if(ex.type==='choice'){
+    if(ex.type==='type'){
+      const code=j=>Object.keys(KEY_JAMO).find(c=>KEY_JAMO[c]===j)||Object.keys(SHIFT_JAMO).find(c=>SHIFT_JAMO[c]===j);
+      for(const j of keysFor(right?ex.answer:ex.answer+'가'))document.dispatchEvent(new KeyboardEvent('keydown',{code:j===' '?'Space':code(j),shiftKey:!KEY_JAMO[code(j)]||KEY_JAMO[code(j)]!==j,bubbles:true}));
+    }else if(ex.type==='choice'){
       const o=ex.options.find(o=>right?o.value===ex.answer:o.value!==ex.answer);
       T.click([...document.querySelectorAll('.opt')].find(b=>b.dataset.v===o.value));
     }else if(right){
@@ -123,6 +126,8 @@ const visible = t => win('state', t).visible;
   win('build');
   const hadData = fs.existsSync(DATA);
   if (hadData) fs.copyFileSync(DATA, BACKUP);
+  const MINI_POS = path.join(path.dirname(DATA), 'mini-pos.txt'), miniPos = fs.existsSync(MINI_POS) ? fs.readFileSync(MINI_POS) : null;
+  fs.rmSync(MINI_POS, {force: true}); // the mini window starts in its default corner during the tests
   let savedStorage = null;
   try {
     if (hadData) fs.unlinkSync(DATA); // first launch on a fresh profile
@@ -137,7 +142,7 @@ const visible = t => win('state', t).visible;
     });
     await test('first launch: fresh progress, Learn page, Hangul basics', async () => {
       const r = await main.run(`return {xp:P.xp,view,hero:document.querySelector('.hero h2').textContent,units:document.querySelectorAll('#path details.unit').length,locked:document.querySelectorAll('#path details.unit.locked').length,words:VOCAB.length}`);
-      eq(r.xp, 0, 'xp'); eq(r.view, 'learn', 'view'); eq(r.hero, 'Hangul basics', 'hero'); eq(r.units, 10, 'units'); eq(r.locked, 9, 'locked units'); eq(r.words, 1020, 'words');
+      eq(r.xp, 0, 'xp'); eq(r.view, 'learn', 'view'); eq(r.hero, 'Hangul basics', 'hero'); eq(r.units, 11, 'units'); eq(r.locked, 10, 'locked units'); eq(r.words, 1020, 'words');
     });
     await test('every nav item opens its page', async () => {
       const r = await main.run(`const out={};for(const b of document.querySelectorAll('.nav-item')){b.click();out[b.dataset.tab]=!$(b.dataset.tab).hidden&&b.getAttribute('aria-current')==='page'&&[...document.querySelectorAll('main>section')].filter(s=>!s.hidden).length===1}show('learn');return out`);
@@ -158,7 +163,7 @@ const visible = t => win('state', t).visible;
     });
     await test('a wrong answer costs a heart, comes back at the end, and is saved for review', async () => {
       const r = await main.run(`T.start(1,0);while(L.ex.type==='intro')T.answer(true);const ex=L.ex,h=L.hearts;T.answer(false);
-        const r={heartLost:h-L.hearts,requeued:L.queue[L.queue.length-1]===ex,mistake:P.mistakes[ex.key]==='cons1'};const res=await T.lesson();T.click('#action');return {...r,...res}`);
+        const r={heartLost:h-L.hearts,requeued:L.queue[L.queue.length-1].key===ex.key&&L.queue[L.queue.length-1].answer===ex.answer,mistake:P.mistakes[ex.key]==='cons1'};const res=await T.lesson();T.click('#action');return {...r,...res}`);
       eq(r.heartLost, 1, 'hearts lost'); ok(r.requeued, 'missed question not re-queued'); ok(r.mistake, 'mistake not saved'); ok(r.passed, 'lesson should still pass'); eq(r.wrong, 1, 'wrong count');
     });
     await test('Challenge: running out of hearts fails, Try again restarts with full hearts', async () => {
@@ -185,9 +190,9 @@ const visible = t => win('state', t).visible;
         return {before,isReview,passed:res.passed,after:Object.keys(P.mistakes).length,reviews:P.totals.reviews,slip:!!document.querySelector('[data-review]')}`);
       ok(r.before > 0, 'no mistakes to review'); ok(r.isReview, 'not a review lesson'); ok(r.passed, 'review failed'); eq(r.after, 0, 'mistakes left'); eq(r.reviews, 1, 'reviews'); ok(!r.slip, 'review slip still shown');
     });
-    await test('level tabs switch to TOPIK 3 (8 word + 4 grammar units, first open) and back', async () => {
+    await test('level tabs switch to TOPIK 3 (8 word + 5 grammar units, first open) and back', async () => {
       const r = await main.run(`T.click('#levels [data-sec="3"]');const a={hero:document.querySelector('.hero h2').textContent,units:document.querySelectorAll('#path details.unit').length,firstOpen:!document.querySelector('#path details.unit').classList.contains('locked')};T.click('#levels [data-sec="0"]');return {...a,back:document.querySelector('.hero h2').textContent}`);
-      eq(r, {hero: 'TOPIK 3', units: 12, firstOpen: true, back: 'Hangul basics'}, 'tabs');
+      eq(r, {hero: 'TOPIK 3', units: 13, firstOpen: true, back: 'Hangul basics'}, 'tabs');
     });
     await test('units fold and unfold, and stay open after the page redraws', async () => {
       const r = await main.run(`const d=()=>document.querySelectorAll('#path details.unit')[4];const was=d().open;T.click(d().querySelector('summary'));await T.sleep(50);save();await T.sleep(50);const kept=d().open;T.click(d().querySelector('summary'));await T.sleep(50);save();return {was,kept,closed:!d().open}`);
@@ -270,7 +275,7 @@ const visible = t => win('state', t).visible;
     await test('TOPIK 1 has a Grammar track whose first unit is open on its own', async () => {
       const r = await main.run(`show('learn');T.click('#levels [data-sec="1"]');const g=[...document.querySelectorAll('#path details.unit.grammar')];
         return {track:[...document.querySelectorAll('#path .track')].map(t=>t.textContent),n:g.length,firstOpen:!g[0].classList.contains('locked'),secondLocked:g[1].classList.contains('locked'),units:document.querySelectorAll('#path details.unit').length}`);
-      eq(r.track, ['단어Words', '문법Grammar'], 'track headings'); eq(r.n, 4, 'grammar units'); ok(r.firstOpen, 'first grammar unit locked'); ok(r.secondLocked, 'second grammar unit should wait'); eq(r.units, 13, 'units in TOPIK 1');
+      eq(r.track, ['단어Words', '문법Grammar'], 'track headings'); eq(r.n, 5, 'grammar units'); ok(r.firstOpen, 'first grammar unit locked'); ok(r.secondLocked, 'second grammar unit should wait'); eq(r.units, 14, 'units in TOPIK 1');
     });
     await test('grammar Learn 1: pattern cards with an example, then questions; all pass', async () => {
       const r = await main.run(`const gi=UNITS.findIndex(u=>u.id==='g1-0');T.start(gi,0);const intro={kicker:document.querySelector('.intro-card .kicker').textContent,ex:!!document.querySelector('.intro-ex')};
@@ -372,7 +377,7 @@ const visible = t => win('state', t).visible;
         const s=STORIES.find(x=>x.id==='family');s.qs.forEach(([,,a],i)=>T.click('[data-sq="'+i+'"][data-so="'+a+'"]'));const xp=P.xp;T.click('[data-scheck]');
         const g=document.querySelector('.wc[data-gloss]').dataset.gloss;T.click('.wc[data-gloss]');const saved=inNotebook(g);removeFromNotebook(g);save();T.click('[data-story=""]');
         return {cards,one,all,yes:words.includes('네'),family:words.includes('가족'),gloss:gloss>=3,best:P.stories.family.best,xp:P.xp-xp===5+(TASKS.find(t=>t.id==='t-story').xp),task:P.tasks.includes('t-story'),saved,done:!!document.querySelector('[data-story=family] .story-done')}`);
-      eq(r, {cards: 14, one: 1, all: 6, yes: false, family: true, gloss: true, best: 2, xp: true, task: true, saved: true, done: true}, 'story');
+      eq(r, {cards: 22, one: 1, all: 6, yes: false, family: true, gloss: true, best: 2, xp: true, task: true, saved: true, done: true}, 'story');
     });
     await test('Particles: the right form for the noun; a wrong answer goes to Mistakes and leaves when answered right', async () => {
       const r = await main.run(`show('practice');T.click('[data-ptab=part]');const q=DQ,[noun,k]=q.ref.split('|');const right=q.opts[q.answer]===withParticle(noun,k)&&q.opts.includes(wrongParticle(noun,k));
@@ -546,15 +551,15 @@ const visible = t => win('state', t).visible;
         pod.currentTime=100;await T.sleep(300);T.click('#dBack');const back=pod.currentTime;T.click('#dFwd');const fwd=pod.currentTime;
         const rates=[];for(let i=0;i<4;i++){T.click('#dRate');rates.push(pod.playbackRate)}
         const s=$('dSeek');s.value=500;s.dispatchEvent(new Event('input'));s.dispatchEvent(new Event('change'));await T.sleep(300);const half=pod.currentTime/pod.duration;return {paused,back,fwd,rates,half}`);
-      ok(r.paused, 'pause'); ok(r.back > 83 && r.back < 88, 'back 15 s: ' + r.back); ok(r.fwd - r.back > 29 && r.fwd - r.back < 31, 'forward 30 s'); eq(r.rates, [1.25, 1.5, 0.75, 1], 'speeds'); ok(r.half > 0.45 && r.half < 0.55, 'seek to middle: ' + r.half);
+      ok(r.paused, 'pause'); ok(r.back > 83 && r.back < 88, 'back 15 s: ' + r.back); ok(r.fwd - r.back > 29 && r.fwd - r.back < 31, 'forward 30 s'); eq(r.rates, [1.25, 1.5, 0.5, 0.75], 'speeds'); ok(r.half > 0.45 && r.half < 0.55, 'seek to middle: ' + r.half);
     });
     await test('listening time counts toward quests and the listening task', async () => {
       const r = await main.run(`const d=todayStats(P),a=d.podcastSec,b=P.totals.listenSec;P.totals.listenSec=Math.max(b,299);await T.sleep(2500);save();return {day:d.podcastSec-a,task:P.tasks.includes('t-podcast')}`);
       ok(r.day >= 2, 'daily listening not counted'); ok(r.task, 'task "Listen for 5 minutes" not claimed');
     });
-    await test('starting a lesson pauses the podcast', async () => {
-      const r = await main.run(`const was=PL.playing();T.start(0,0);const now=pod.paused;$('ask').close();closeLesson();show('listen');T.click('#dPlay');await T.until(()=>!pod.paused,5000);return {was,now}`);
-      eq(r, {was: true, now: true}, 'pause on lesson');
+    await test('starting a lesson pauses the podcast; it plays on after the lesson', async () => {
+      const r = await main.run(`const was=PL.playing();T.start(0,0);const now=pod.paused;$('ask').close();closeLesson();show('listen');await T.until(()=>!pod.paused,5000,'resume after the lesson');return {was,now,after:!pod.paused}`);
+      eq(r, {was: true, now: true, after: true}, 'pause on lesson');
     });
     await test('YouTube video plays inside the app and replaces the podcast', async () => {
       needYT();
@@ -747,7 +752,7 @@ const visible = t => win('state', t).visible;
       eq(r, {ok: [true, true, true], a: true, b: true}, 'voices');
     });
     await test('practice test: TOPIK levels end with a reading passage; Hangul basics stays plain', async () => {
-      eq(await main.run(`const q=withReading(buildTest(1),1),r=q.filter(x=>x.area==='reading');return [q.length,r.length,!!r[0].passage&&q.at(-1).area,withReading(buildTest(5),5).some(x=>x.area==='reading'),withReading(buildTest(0),0).some(x=>x.area==='reading')]`), [20, 2, 'reading', true, false], 'test');
+      eq(await main.run(`const q=withReading(buildTest(1),1),r=q.filter(x=>x.area==='reading');return [q.length,r.length>=2&&r.length===STORIES.find(s=>storyText(s)===r[0].passage).qs.length,!!r[0].passage&&q.at(-1).area,withReading(buildTest(5),5).some(x=>x.area==='reading'),withReading(buildTest(0),0).some(x=>x.area==='reading')]`), [20, true, 'reading', true, false], 'test');
     });
     await test('focus timer alarm comes from the Rust side (not slowed in the tray)', async () => {
       ok(await main.run(`let got=0;const un=await __TAURI__.event.listen('alarm',()=>got++);await __TAURI__.core.invoke('alarm',{ms:300});await T.until(()=>got>0,3000,'alarm');un();return got>0`), 'no alarm');
@@ -885,6 +890,58 @@ const visible = t => win('state', t).visible;
       eq(r, {path: true, local: true, size: true}, 'offline episode');
     });
 
+    group('Review fixes: typed answers, missed words, final consonants, Reply, stroke order, keys'); await fresh();
+    await test('Challenge: typed answer with the 2-beolsik keys; R types ㄱ instead of replaying', async () => {
+      const r = await main.run(`T.mute();UNITS.filter(u=>u.section===0).forEach(u=>P.units[u.id]=1);P.units['t1-0']=1;['0','1','2'].forEach(s=>P.steps['t1-0:'+s]=1);save();const ui=UNITS.findIndex(u=>u.id==='t1-0');T.start(ui,3);const w=UNITS[ui].items[0];
+        L.queue.unshift({...makeExercise(ui,w,'hard'),type:'type',prompt:'Type',answer:w.ch,play:undefined});nextExercise();
+        const box=!!$('lType'),before=$('action').disabled;T.answer(true);const ok=L.right===1;
+        L.queue.unshift({...makeExercise(ui,w,'hard'),type:'type',answer:'가'});nextExercise();document.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyR',key:'r',bubbles:true}));
+        const typed=$('lType').textContent;closeLesson();return {box,before,ok,typed}`);
+      eq(r, {box: true, before: true, ok: true, typed: 'ㄱ'}, 'typed answer');
+    });
+    await test('lesson end lists the missed items with Save; next unlock follows the same track', async () => {
+      const r = await main.run(`T.mute();UNITS.filter(u=>u.section===0).forEach(u=>P.units[u.id]=1);delete P.units['t1-0'];['0','1'].forEach(s=>P.steps['t1-0:'+s]=1);save();const ui=UNITS.findIndex(u=>u.id==='t1-0');T.start(ui,2);const res=await T.lesson(1);
+        const rows=document.querySelectorAll('.missed li').length,btn=document.querySelector('[data-msave]'),n=(P.notebook||[]).length;if(btn)T.click(btn);
+        const saved=(P.notebook||[]).length-n,unlock=document.querySelector('.unlock')?.textContent||'';closeLesson();
+        return {passed:res.passed,rows,saved,unlock:unlock.includes(UNITS[ui+1].title)}`);
+      eq(r, {passed: true, rows: 1, saved: 1, unlock: true}, 'missed list');
+    });
+    await test('My words text is shown as text in lessons, never as HTML', async () => {
+      const r = await main.run(`T.mute();P.notebook=[...(P.notebook||[]),{ch:'테스트',meaning:'<i id="inj">x</i> & co',added:1}];
+        const u=notebookUnit(P);startLesson(()=>[makeExercise(u,u.items.find(i=>i.ch==='테스트'),'easy')].map(e=>({...e,type:'choice',prompt:'Which one means “'+e.explain+'”?',options:[{value:'테스트',label:'<i id="inj">x</i> & co'}],answer:'테스트'})),{step:null});
+        const html=!!document.getElementById('inj'),shown=$('exercise').textContent.includes('<i id="inj">x</i> & co');closeLesson();P.notebook=P.notebook.filter(w=>w.ch!=='테스트');return {html,shown}`);
+      eq(r, {html: false, shown: true}, 'escaped');
+    });
+    await test('Hangul basics: Final consonants (받침) unit asks how 낮 / 옷 are said', async () => {
+      const r = await main.run(`const ui=UNITS.findIndex(u=>u.id==='finals'),u=UNITS[ui],it=u.items.find(i=>i.ch==='낮');let ex;for(let k=0;k<40&&!(ex?.prompt==='How is this said?');k++)ex=makeExercise(ui,it,'hard');
+        return {section:u.section,n:u.items.length,prompt:ex.prompt,right:ex.options.find(o=>o.value===ex.answer).label,distinct:new Set(ex.options.map(o=>o.label)).size===ex.options.length,clip:RECORDED.includes('낮')}`);
+      eq(r, {section: 0, n: 13, prompt: 'How is this said?', right: '[낟]', distinct: true, clip: true}, 'finals');
+    });
+    await test('Practice › Reply: hear a line, choose the next line of the conversation', async () => {
+      const r = await main.run(`T.mute();show('practice');T.click('[data-ptab=reply]');const q=DQ,[id,i]=q.ref.split('|'),d=DIALOGUES.find(x=>x.id===id);
+        const right=q.opts[q.answer]===d.lines[+i+1][1]&&q.say===d.lines[+i][1]&&q.opts.length===4,n=drillStats('reply').right;T.click('[data-dopt="'+q.answer+'"]');
+        const counted=drillStats('reply').right-n;T.click('[data-ptab=num]');return {right,counted}`);
+      eq(r, {right: true, counted: 1}, 'reply');
+    });
+    await test('Write › Trace: the right shape drawn in the wrong direction is flagged', async () => {
+      const r = await main.run(`show('write');T.click('[data-wtab=trace]');$('wSel').value=String(ALL.findIndex(l=>l.ch==='ㅏ'));$('wSel').dispatchEvent(new Event('change'));
+        myStrokes=STROKES['ㅏ'].map(s=>[...s].reverse());T.click('#wCheck');const bad=$('wScore').textContent;myStrokes=STROKES['ㅏ'].map(s=>[...s]);T.click('#wCheck');const good=$('wScore').textContent;
+        return {bad:/stroke 1 is out of order/.test(bad)&&bad.includes('★★☆'),good:!/out of order/.test(good)&&good.includes('★★★')}`);
+      eq(r, {bad: true, good: true}, 'stroke order');
+    });
+    await test('grammar 보다 (than) and the verb 보다 keep separate Smart review schedules', async () => {
+      const r = await main.run(`const g=GRAMMAR_ITEMS.find(x=>x.ch==='보다'),gu=UNITS.find(u=>u.items.some(i=>i.key==='g:보다')).id;
+        const s=P.srs;P.srs={};schedule(P,keyOf(g),gu,true);schedule(P,'보다','t1-4',false);const res={g:P.srs['g:보다'].u===gu,v:P.srs['보다'].u==='t1-4'};P.srs=s;return res`);
+      eq(r, {g: true, v: true}, 'keys');
+    });
+    await test('slow recordings exist for letters, syllables and words; Shift+R plays one', async () => {
+      const d = require(path.join(ROOT, 'ui', 'data.js'));
+      const missing = [...d.SLOW_CLIPS].filter(t => !fs.existsSync(path.join(ROOT, 'ui', 'audio', 's-' + d.audioName(t))));
+      eq(missing.slice(0, 5), [], missing.length + ' slow clips missing');
+      const r = await main.run(`T.mute();speak('학교',.7);const slow=player.src.includes('/audio/s-');speak('학교');const normal=!player.src.includes('/audio/s-');return {slow,normal}`);
+      eq(r, {slow: true, normal: true}, 'slow clip');
+    });
+
     group('Tray and closing'); await fresh();
     await test('closing the main window hides it to the tray; audio keeps playing', async () => {
       await main.run(`LV={tab:'pod',open:'ttmik',err:'',loading:false};renderListen();T.click('#lBody [data-ep="0"]');T.mute();await T.until(()=>PL.playing()&&pod.currentTime>1,30000);return true`);
@@ -960,6 +1017,7 @@ const visible = t => win('state', t).visible;
     if (appPid()) { execFileSync('taskkill', ['/F', '/IM', 'hangul-learner.exe']); await sleep(1000) }
     if (clipSaved) try { win('cliprestore') } catch {}
     if (hadData) fs.copyFileSync(BACKUP, DATA); else fs.rmSync(DATA, {force: true});
+    if (miniPos) fs.writeFileSync(MINI_POS, miniPos); else fs.rmSync(MINI_POS, {force: true});
     for (const f of exported) fs.rmSync(f, {force: true});
     const failed = results.filter(r => !r.ok), skipped = results.filter(r => r.skip);
     if (skipped.length) console.log(`\nSkipped (outside the app):\n${skipped.map(r => `  [${r.section}] ${r.name}: ${r.skip}`).join('\n')}`);

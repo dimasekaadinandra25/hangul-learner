@@ -35,13 +35,13 @@ for(const d of DIALOGUES){assert(d.lines.length>=6&&d.lines.every(([r,ko,en])=>/
 for(const n of NOUNS)for(const k of Object.keys(PARTICLES))assert(RECORDED.includes(withParticle(n.ch,k)),'not recorded: '+withParticle(n.ch,k));
 // sounds and stories: every example has a distinct answer, every story has its answers and recorded lines
 for(const r of SOUNDS)for(const[w,p,m,bad]of r.ex)assert(w&&p&&m&&bad&&new Set([w,p,bad]).size===3,'sound example '+w);
-for(const s of STORIES){assert(s.lines.length>=5&&s.qs.length===2&&s.qs.every(([q,o,a])=>q&&o.length===4&&o[a]),'story '+s.id);
+for(const s of STORIES){assert(s.lines.length>=5&&s.qs.length>=2&&s.qs.every(([q,o,a])=>q&&o.length===4&&o[a]),'story '+s.id);
   assert(storyWords(s).length>=5,'story words '+s.id);assert(!storyWords(s).some(w=>(s.skip||[]).includes(w.ch)));assert(storyGloss(s).every(([ko])=>!VOCAB.some(w=>w.ch===ko)))}
 assert(!storyWords(STORIES[0]).some(w=>w.ch==='네'),'네 명 is not 네 (yes)');
 for(const t of[...NUM_ITEMS.map(n=>n.ko),...STORIES.flatMap(s=>s.lines.map(l=>l[0])),conj('가다','past')])assert(RECORDED.includes(t),'not recorded: '+t);
 // new tasks read the new progress fields
 assert.deepStrictEqual(TASKS.find(t=>t.id==='t-numbers').get({...freshProgress(),drills:{num:{right:7,tries:9}}}),[7,20]);
-assert.deepStrictEqual(TASKS.find(t=>t.id==='t-stories').get({...freshProgress(),stories:{family:{best:2},cafe:{best:1}}}),[1,14]);
+assert.deepStrictEqual(TASKS.find(t=>t.id==='t-stories').get({...freshProgress(),stories:{family:{best:2},cafe:{best:1}}}),[1,STORIES.length]);
 
 // episode words: words start a Korean word; short nouns need an ending; verbs match by stem
 {const f=t=>findWords(t).map(w=>w.ch);
@@ -64,6 +64,11 @@ for(const l of ALL)assert(strokeScore(STROKES[l.ch],STROKES[l.ch])>=98,'perfect 
 assert(strokeScore(STROKES['ㄱ'],STROKES['ㄴ'])<50,'ㄴ is not ㄱ');
 assert(strokeScore(STROKES['ㅏ'],STROKES['ㅏ'].map(s=>s.map(([x,y])=>[x+3,y-2])))>=90,'small offsets are fine');
 assert.strictEqual(strokeScore(STROKES['ㅏ'],[]),0);
+for(const l of ALL)assert.strictEqual(strokeOrderIssue(STROKES[l.ch],STROKES[l.ch]),0,'right order '+l.ch);
+assert.strictEqual(strokeOrderIssue(STROKES['ㅏ'],STROKES['ㅏ'].map(s=>[...s].reverse())),1,'ㅏ drawn bottom to top');
+assert.strictEqual(strokeOrderIssue(STROKES['ㅏ'],[...STROKES['ㅏ']].reverse()),1,'ㅏ strokes swapped');
+assert.strictEqual(strokeOrderIssue(STROKES['ㅇ'],STROKES['ㅇ'].map(s=>[...s].reverse())),1,'ㅇ drawn clockwise');
+assert.strictEqual(strokeOrderIssue(STROKES['ㅏ'],STROKES['ㅏ'].slice(0,1)),-1);
 `+`
 const keys=VOCAB.map(w=>w.ch); // a word may equal a practice syllable (코, 비); that's fine
 assert.strictEqual(parseWordList('\\ufeff학교,school\\r\\n"책, 공책","book, notebook"\\r\\n').length,2,'exported CSV reads back');
@@ -100,7 +105,7 @@ for(const w of VOCAB)assert(w.ch&&w.meaning&&!/[=|]/.test(w.ch+w.meaning),'bad v
 for(let round=0;round<100;round++)UNITS.forEach((u,i)=>STEPS.forEach((st,s)=>{
   const lesson=buildStep(i,s);
   assert(lesson.length>=8,u.id+' step '+s+' too short');
-  if(s<PASS_STEP)assert(lesson.some(e=>e.type==='intro')&&!lesson.some(e=>e.type==='tiles'&&u.kind!=='syllable'),'learn steps teach first, no word tiles');
+  if(s<PASS_STEP)assert(lesson.some(e=>e.type==='intro')&&!lesson.some(e=>e.type==='tiles'&&!['syllable','final'].includes(u.kind)),'learn steps teach first, no word tiles');
   for(const ex of lesson){
     assert(RECORDED.includes(ex.say),'no audio for '+ex.say);
     if(ex.play)assert(RECORDED.includes(ex.play),'no audio for '+ex.play);
@@ -114,6 +119,8 @@ for(let round=0;round<100;round++)UNITS.forEach((u,i)=>STEPS.forEach((st,s)=>{
       assert.strictEqual(ex.parts.join(''),ex.answer);
       let rest=[...ex.tiles];
       for(const t of ex.parts){const k=rest.indexOf(t);assert(k>=0,'missing tile '+t);rest.splice(k,1)}
+    }else if(ex.type==='type'){
+      assert(keysFor(ex.answer).every(j=>j===' '||JAMO_KEY[j]),'typed answer must be typeable '+ex.answer);assert.strictEqual(composeJamo(keysFor(ex.answer)),ex.answer);
     }else assert.strictEqual(ex.type,'intro');
   }
 }));
@@ -125,7 +132,7 @@ for(const g of GRAMMAR_ITEMS){
   assert(RECORDED.includes(fillQ(g.q)),'no audio for '+fillQ(g.q));
 }
 assert.strictEqual(new Set(GRAMMAR_ITEMS.map(g=>g.ch)).size,GRAMMAR_ITEMS.length,'duplicate grammar pattern');
-assert(SECTIONS.slice(1).every(s=>s.units.filter(u=>u.kind==='grammar').length===4),'4 grammar units per TOPIK level');
+assert(SECTIONS.slice(1).every(s=>s.units.filter(u=>u.kind==='grammar').length===5),'5 grammar units per TOPIK level');
 
 // smart review: first right answer -> tomorrow, then growing; early answers don't move it; wrong -> today
 {const S={srs:{}},day='2026-11-10';
@@ -186,5 +193,26 @@ assert.strictEqual(weekProgress(P,WEEKLY.find(q=>q.id==='w-minutes60'),'2026-11-
 assert.strictEqual(weekProgress(P,WEEKLY.find(q=>q.id==='w-days5'),'2026-11-09'),2);
 assert.strictEqual(weekProgress(P,WEEKLY.find(q=>q.id==='w-goal4'),'2026-11-09'),1);
 assert.strictEqual(questProgress(P,QUESTS.find(q=>q.id==='minutes20'),'2026-11-10'),20,'capped at target');
+// item keys: grammar spelled like a word gets its own key; old saves move over
+{const g=GRAMMAR_ITEMS.find(x=>x.ch==='보다');assert.strictEqual(keyOf(g),'g:보다');assert.strictEqual(keyOf(VOCAB.find(w=>w.ch==='보다')),'보다');
+  const keys=UNITS.flatMap(u=>u.items.filter(()=>!['syllable','final'].includes(u.kind)).map(keyOf));assert.strictEqual(new Set(keys).size,keys.length,'no shared keys outside syllables');
+  const u=UNITS.find(x=>x.items.includes(UNITS.flatMap(y=>y.items).find(i=>i.key==='g:보다'))).id;
+  const S={srs:{보다:{u,iv:5,ease:2.3,due:'2026-11-20'}},mistakes:{보다:u},stats:{보다:{heard:1,right:2,tries:3,written:0}}};migrateKeys(S);
+  assert(!S.srs['보다']&&S.srs['g:보다'].iv===5&&S.mistakes['g:보다']===u&&!S.mistakes['보다']&&S.stats['g:보다'].right===2,'grammar keys migrate');
+  assert.strictEqual(itemFor(S,'g:보다',u)[1].ch,'보다');}
+// smart review: a lapse keeps a quarter of the interval; intervals spread +-10%, fixed per item; the later answer wins a sync
+{const S={srs:{}};schedule(S,'학교','t1-0',true,'2026-11-01');S.srs['학교'].iv=40;schedule(S,'학교','t1-0',false,'2026-11-10');
+  assert.strictEqual(S.srs['학교'].iv,0);assert.strictEqual(S.srs['학교'].due,'2026-11-10');schedule(S,'학교','t1-0',true,'2026-11-10');
+  assert(S.srs['학교'].iv>=9&&S.srs['학교'].iv<=11,'relearned: about 10 days, not 1: '+S.srs['학교'].iv);
+  const T={srs:{}},U={srs:{}};for(const X of[T,U]){X.srs.a={u:'x',iv:20,ease:2.5,due:'2026-11-10'};schedule(X,'a','x',true,'2026-11-10')}
+  assert.strictEqual(T.srs.a.iv,U.srs.a.iv,'fuzz is stable');assert(Math.abs(T.srs.a.iv-50)<=5);
+  const base={srs:{k:{u:'x',iv:1,ease:2.3,due:'2026-11-11'}}},a={srs:{k:{u:'x',iv:3,ease:2.4,due:'2026-11-20',at:100}}},b={srs:{k:{u:'x',iv:0,ease:2.1,due:'2026-11-12',at:200}}};
+  assert.strictEqual(mergeProgress(base,a,b,true).srs.k.at,200,'later answer wins');}
+// daily goal: past days keep the goal they had
+{const S={goalLog:{'2026-11-01':50,'2026-11-10':10}};DAILY_GOAL=10;assert.strictEqual(goalOn(S,'2026-11-05'),50);assert.strictEqual(goalOn(S,'2026-11-12'),10);assert.strictEqual(goalOn({},'2026-11-12'),10);DAILY_GOAL=30}
 console.log('all checks passed');
 `);
+// The UI scripts share one global scope: two of them declaring the same top-level name stops the later one from loading
+{const order=['vocab.js','grammar.js','data.js','lesson.js','hangul-ime.js','strokes.js','practice-data.js','index.html','listen.js','settings.js','practice.js','progress.js','drills.js','desk.js'],seen={};
+  for(const f of order){const src=f.endsWith('.html')?[...ui(f).matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]).join('\n'):ui(f);
+    for(const m of src.matchAll(/^(?:const|let|function|class)\s+([A-Za-z_$][\w$]*)/gm)){assert(!seen[m[1]]||seen[m[1]]===f,`${m[1]} is declared in both ${seen[m[1]]} and ${f}`);seen[m[1]]=f}}}

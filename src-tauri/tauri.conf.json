@@ -33,21 +33,47 @@
       }
     ],
     "security": {
-      "csp": null,
-      "assetProtocol": { "enable": true, "scope": ["$APPDATA/episodes/**"] }
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self' https://www.youtube.com https://s.ytimg.com",
+        "style-src": "'self' 'unsafe-inline'",
+        "font-src": "'self' data:",
+        "img-src": "'self' data: blob: https: asset: http://asset.localhost",
+        "media-src": "'self' blob: https: asset: http://asset.localhost",
+        "connect-src": "'self' ipc: http://ipc.localhost",
+        "frame-src": "https://www.youtube-nocookie.com https://www.youtube.com",
+        "object-src": "'none'",
+        "base-uri": "'self'"
+      },
+      "assetProtocol": {
+        "enable": true,
+        "scope": [
+          "$APPDATA/episodes/**"
+        ]
+      }
     }
   },
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVEMzJFRTU4NDIzQjgzMEIKUldRTGd6dENXTzR5N2V3M1N5M2ljWk41aHliaXE2OW50aFVBN1ZCdzdWNWpZMUo3NmVDV0NJdUwK",
-      "endpoints": ["https://github.com/dimasekaadinandra25/hangul-learner/releases/latest/download/latest.json"],
-      "windows": { "installMode": "passive" }
+      "endpoints": [
+        "https://github.com/dimasekaadinandra25/hangul-learner/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
     }
   },
   "bundle": {
     "active": true,
     "createUpdaterArtifacts": true,
-    "targets": ["nsis", "app", "dmg", "appimage", "deb"],
+    "targets": [
+      "nsis",
+      "app",
+      "dmg",
+      "appimage",
+      "deb"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -59,13 +85,22 @@
     "shortDescription": "Learn Hangul and TOPIK Korean",
     "longDescription": "Read, write and listen to Korean: Hangul letters and TOPIK 1-6 vocabulary with saved progress.",
     "category": "Education",
-    "macOS": { "signingIdentity": "-" },
+    "macOS": {
+      "signingIdentity": "-"
+    },
     "windows": {
       "webviewInstallMode": {
         "type": "embedBootstrapper"
       },
       "nsis": {
         "installMode": "currentUser"
+      }
+    },
+    "linux": {
+      "deb": {
+        "depends": [
+          "curl"
+        ]
       }
     }
   }

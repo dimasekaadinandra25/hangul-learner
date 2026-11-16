@@ -58,4 +58,14 @@ function strokeScore(template,drawn,near=9){
   const recall=T.filter(p=>close(p,D)).length/T.length,precision=D.filter(p=>close(p,T)).length/D.length;
   return recall+precision?Math.round(200*recall*precision/(recall+precision)):0;
 }
-if(typeof module!=='undefined')module.exports={STROKES,samplePoints,strokeScore};
+// Stroke order and direction: each drawn stroke must start, pass its first quarter and end near the template stroke with the same
+// number (the quarter point tells clockwise from anticlockwise in ㅇ). Returns the number (1-based) of the first stroke that is off,
+// 0 if all are right, or -1 when the stroke count differs (the count message covers that).
+function strokeOrderIssue(template,drawn,near=24){
+  drawn=drawn.filter(s=>s.length);if(drawn.length!==template.length)return -1;
+  const at=(s,f)=>{const p=samplePoints([s],1);return p[Math.min(p.length-1,Math.round(f*(p.length-1)))]};
+  const close=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1])<=near;
+  for(let i=0;i<template.length;i++)if(![0,0.25,1].every(f=>close(at(template[i],f),at(drawn[i],f))))return i+1;
+  return 0;
+}
+if(typeof module!=='undefined')module.exports={STROKES,samplePoints,strokeScore,strokeOrderIssue};

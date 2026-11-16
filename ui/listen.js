@@ -43,7 +43,7 @@ function parsePodcast(xml){
     const d=tag(it,'itunes:duration');
     return{title:tag(it,'title'),desc:plain(tag(it,'description')||tag(it,'itunes:summary')).slice(0,1500),date:Date.parse(tag(it,'pubDate'))||0,url:it.getElementsByTagName('enclosure')[0]?.getAttribute('url')||'',
       dur:/^\d+$/.test(d)?fmt(+d):d.replace(/^00:/,'')};
-  }).filter(e=>/^https?:\/\//.test(e.url));
+  }).map(e=>({...e,url:e.url.replace(/^http:\/\//,'https://')})).filter(e=>/^https:\/\//.test(e.url));
   return{items:newestFirst(items).slice(0,40),about:about.length>220?about.slice(0,217)+'…':about};
 }
 function parseYouTube(xml){
@@ -173,7 +173,7 @@ async function playVid(src,v,start=0){
   try{await ytApi()}catch(e){$('ytNote').hidden=false;return}
   if(yt?.loadVideoById){yt.loadVideoById({videoId:v.id,startSeconds:start});yt.setPlaybackRate(rate);return}
   yt=new YT.Player('ytPlayer',{videoId:v.id,host:'https://www.youtube-nocookie.com',
-    playerVars:{autoplay:1,start:Math.floor(start),rel:0,playsinline:1,...(location.origin.startsWith('http')?{origin:location.origin}:{})},
+    playerVars:{autoplay:1,start:Math.floor(start),rel:0,playsinline:1,cc_load_policy:1,cc_lang_pref:'ko',...(location.origin.startsWith('http')?{origin:location.origin}:{})},
     events:{onReady:e=>{e.target.setPlaybackRate(rate);e.target.playVideo()},onStateChange:refresh,onError:()=>{$('ytNote').hidden=false}}});
 }
 function stopAll(){
@@ -193,6 +193,9 @@ function episodeWords(){
 
 // Dock (bottom of every page) + state for the mini window. refresh() also redraws the episode list.
 const refresh=()=>{update();if(view==='listen')renderListen()};
+// Quieter podcast / video while a word plays (main window or mini window)
+function duck(ms=1800){pod.volume=.2;yt?.setVolume?.(20);clearTimeout(duckT);duckT=setTimeout(unduck,ms)}
+function unduck(){clearTimeout(duckT);pod.volume=1;yt?.setVolume?.(100)}
 function update(){
   $('dock').hidden=!NP;
   if(NP){
@@ -203,6 +206,7 @@ function update(){
     $('dRate').textContent=rate+'×';
   }
   // the mini window's word card: copied Korean first, then words from the playing episode, then words due for Smart review, then your level
+  if(!miniOpen)return;
   const due=dueKeys(P).slice(0,30).map(k=>VOCAB.find(w=>w.ch===k)).filter(Boolean).map(w=>({ch:w.ch,meaning:w.meaning,say:w.say}));
   const ep=episodeWords();
   tauri?.event.emit('player-state',{ep,clip:typeof clipWords==='function'?clipWords():[],focus:typeof focusState==='function'?focusState():null,saved:(P.notebook||[]).map(w=>w.ch),...(NP&&{title:NP.title,show:NP.show,seal:NP.seal,color:NP.color,playing:PL.playing(),t:PL.time(),d:PL.dur()}),section:P.section||0,due}).catch(()=>{});
@@ -220,7 +224,7 @@ $('dPlay').onclick=()=>PL.toggle();
 $('dBack').onclick=()=>PL.skip(-15);
 $('dFwd').onclick=()=>PL.skip(30);
 $('dClose').onclick=stopAll;
-$('dRate').onclick=()=>{const R=[0.75,1,1.25,1.5];rate=R[(R.indexOf(rate)+1)%R.length];lsSet('rate',rate);pod.playbackRate=rate;yt?.setPlaybackRate?.(rate);if(remote)miniCmd({cmd:'rate',r:rate});update()};
+$('dRate').onclick=()=>{const R=[0.5,0.75,1,1.25,1.5];rate=R[(R.indexOf(rate)+1)%R.length];lsSet('rate',rate);pod.playbackRate=rate;yt?.setPlaybackRate?.(rate);if(remote)miniCmd({cmd:'rate',r:rate});update()};
 $('dSeek').oninput=e=>{seeking=true;const d=PL.dur();$('dTime').textContent=`${fmt(e.target.value/1000*d)} / ${fmt(d)}`};
 $('dSeek').onchange=e=>{seeking=false;PL.seek(e.target.value/1000*PL.dur())};
 $('dMini').onclick=$('lMini').onclick=()=>tauri?tauri.core.invoke('toggle_mini'):toast('sync','Mini player','The mini player works in the desktop app.','pip');
@@ -230,14 +234,16 @@ let SH=null; // {a,b: seconds, url: your recording, timer, rec}
 function shadowOpen(){
   if(!NP)return;
   if(SH)return shadowClose();
-  const t=PL.time();SH={a:Math.max(0,t-5),b:Math.max(5,t),url:null};
+  const t=PL.time(),n=shLen();SH={a:Math.max(0,t-n),b:Math.max(n,t),url:null};
   $('shadow').hidden=false;$('dShadow').setAttribute('aria-pressed',true);renderShadow();shPlay();
 }
 function shadowClose(){
   if(!SH)return;shStop(SH);if(SH.url)URL.revokeObjectURL(SH.url);SH=null;
   $('shadow').hidden=true;$('dShadow').setAttribute('aria-pressed',false);
 }
-function renderShadow(){if(!SH)return;$('shSeg').textContent=`${fmt(SH.a)} – ${fmt(SH.b)}`;$('shMine').disabled=$('shBoth').disabled=!SH.url}
+const SH_LENS=[3,5,8],shLen=()=>SH_LENS.includes(+lsGet('shLen',5))?+lsGet('shLen',5):5;
+$('shLen').onclick=()=>{const n=SH_LENS[(SH_LENS.indexOf(shLen())+1)%SH_LENS.length];lsSet('shLen',n);if(SH){SH.b=Math.min(PL.dur()||Infinity,SH.a+n);shPlay()}renderShadow()};
+function renderShadow(){if(!SH)return;$('shLen').textContent=shLen()+' s';$('shSeg').textContent=`${fmt(SH.a)} – ${fmt(SH.b)}`;$('shMine').disabled=$('shBoth').disabled=!SH.url}
 // plays the piece once, then pauses (a seek can take a moment, so the end check waits a little)
 // resolves true when the piece played to its end, false when something else (Replay, Next, Close) took over
 function shPlay(){
@@ -264,7 +270,7 @@ async function shRecord(){
     if(sh.url)URL.revokeObjectURL(sh.url);sh.url=url;
     P.totals.recordings=(P.totals.recordings||0)+1;P.totals.shadow=(P.totals.shadow||0)+1;const d=todayStats(P);d.spoken=(d.spoken||0)+1;save();
     renderShadow();await playUrl(url);
-  }catch(e){toast('sync','No microphone found','Check Windows Settings › Privacy › Microphone.','mic')}
+  }catch(e){toast('sync','No microphone found',micHelp(),'mic')}
   finally{sh.rec=false;$('shRec').classList.remove('recording');$('shRecLbl').textContent='Record me';renderShadow()}
 }
 const shMove=d=>{if(!SH)return;const len=SH.b-SH.a,dur=PL.dur();SH.a=Math.max(0,SH.a+d*len);SH.b=SH.a+len;if(dur&&SH.b>dur){SH.b=dur;SH.a=Math.max(0,dur-len)}renderShadow();shPlay()};
@@ -277,7 +283,7 @@ $('shPrev').onclick=()=>shMove(-1);
 $('shNext').onclick=()=>shMove(1);
 $('shClose').onclick=shadowClose;
 
-if('mediaSession' in navigator)[['play',()=>PL.toggle()],['pause',()=>PL.toggle()],['seekbackward',()=>PL.skip(-15)],['seekforward',()=>PL.skip(30)]]
+if('mediaSession' in navigator)[['play',()=>!PL.playing()&&PL.toggle()],['pause',()=>PL.playing()&&PL.toggle()],['seekbackward',()=>PL.skip(-15)],['seekforward',()=>PL.skip(30)]]
   .forEach(([a,f])=>{try{navigator.mediaSession.setActionHandler(a,f)}catch(e){}});
 
 // ---- Listen page: show grid -> episodes / videos ----
@@ -333,7 +339,7 @@ tauri?.event.listen('player-cmd',e=>{
   const c=e.payload;
   if(c==='toggle')PL.toggle();else if(c==='back')PL.skip(-15);else if(c==='fwd')PL.skip(30);
   else if(c==='listen'){tauri.core.invoke('show_main');show('listen')}
-  else if(c==='duck'){pod.volume=.2;yt?.setVolume?.(20);clearTimeout(duckT);duckT=setTimeout(()=>{pod.volume=1;yt?.setVolume?.(100)},1800)} // mini window speaks a word
+  else if(c==='duck')duck(); // mini window speaks a word
 });
 tauri?.event.listen('mini-ready',update);
 tauri?.event.listen('mini-shown',()=>{miniOpen=true;if(ytOn()&&!remote)sendToMini(PL.playing(),PL.time());update()});
@@ -360,6 +366,6 @@ tauri?.core.invoke('close_to_tray',{on:trayOn()});renderTray();
 
 // Resume where you left off (paused)
 {const s=lsGet('np',null);
-  if(s?.kind==='pod'&&s.url){NP=s;resumeAt=s.t||0;pod.src=s.url+(resumeAt?'#t='+resumeAt:'');pod.playbackRate=rate}
+  if(s?.kind==='pod'&&s.url){NP=s;resumeAt=s.t||0;pod.src=epSrc(s.url)+(resumeAt?'#t='+resumeAt:'');pod.playbackRate=rate}
   else if(s?.kind==='yt'&&s.id){NP=s;resumeAt=s.t||0}
   update();}

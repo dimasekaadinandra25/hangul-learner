@@ -103,7 +103,7 @@ async function record(){
   if(micOpening)return;
   let stream;micOpening=true;
   try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}
-  catch(e){return setMsg('wsMsg','No microphone found, or the app may not use it. Check Windows Settings › Privacy › Microphone.',true)}
+  catch(e){return setMsg('wsMsg','No microphone found, or the app may not use it. '+micHelp(),true)}
   finally{micOpening=false}
   const chunks=[],w=wsW;mediaRec=new MediaRecorder(stream);
   mediaRec.ondataavailable=e=>e.data.size&&chunks.push(e.data);
@@ -204,7 +204,7 @@ $('wOrder').onclick=()=>{
 };
 $('wGuide').onclick=e=>{guideCv.hidden=!guideCv.hidden;e.currentTarget.textContent='Guide '+(guideCv.hidden?'off':'on');e.currentTarget.setAttribute('aria-pressed',!guideCv.hidden);drawGuide()};
 // collect what you draw (in template units) next to the main pad handlers
-const padPos=e=>{const r=cv.getBoundingClientRect();return fromPad([(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height])};
+const padPos=e=>{const r=cv.getBoundingClientRect();return fromPad([(e.clientX-r.left)*PAD/r.width,(e.clientY-r.top)*PAD/r.height])};
 let drawingNow=false;
 cv.addEventListener('pointerdown',e=>{drawingNow=true;myStrokes.push([padPos(e)])});
 cv.addEventListener('pointermove',e=>{if(drawingNow)myStrokes[myStrokes.length-1].push(padPos(e))});
@@ -216,10 +216,10 @@ $('wSel').addEventListener('change',()=>{resetStrokes();drawGuide()});
 $('wCheck').onclick=()=>{
   const ch=cur().ch,tpl=STROKES[ch],mine=myStrokes.filter(s=>s.length>1||s.length===1);
   if(!mine.length)return $('wScore').innerHTML='<span class="muted">Draw the letter first, then check.</span>';
-  const score=strokeScore(tpl,mine),stars=score>=90?3:score>=75?2:score>=55?1:0;
+  const score=strokeScore(tpl,mine),order=strokeOrderIssue(tpl,mine),stars=Math.min(order>0?2:3,score>=90?3:score>=75?2:score>=55?1:0); // right shape, wrong order: 2 stars at most
   P.bestStroke=Math.max(P.bestStroke||0,score);P.totals.strokes=(P.totals.strokes||0)+1;save();
   const count=mine.length===tpl.length?`${tpl.length} stroke${tpl.length===1?'':'s'}, right count`:`you used ${mine.length} stroke${mine.length===1?'':'s'}; ${ch} has ${tpl.length}`;
-  $('wScore').innerHTML=`<b>${score}%</b><span>${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</span><span class="muted">match · ${count}${score<75?' · try “Show stroke order”':''}</span>`;
+  $('wScore').innerHTML=`<b>${score}%</b><span>${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</span><span class="muted">match · ${count}${order>0?` · stroke ${order} is out of order or drawn the wrong way: try “Show stroke order”`:score<75?' · try “Show stroke order”':''}</span>`;
 };
 $('wGhost').hidden=true; // the stroke guide replaces the font ghost
 drawGuide();
