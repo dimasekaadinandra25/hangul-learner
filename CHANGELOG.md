@@ -9,6 +9,8 @@ What changed in each version of Hangul Learner. Newest first. Installed apps upd
 - **Verb practice knows more irregular verbs:** ㅂ verbs like 새롭다, 그립다 and 어지럽다 now conjugate correctly (새로워요), while 입다 and 잡다 keep their ㅂ (입어요).
 - **Exam countdown:** when there are more units left than days, it says how many units a day you need.
 - **Faster Words page** with thousands of words: only the words on screen are drawn.
+- **Fixes:** importing a word list now keeps quoted cells with commas together ("책, 공책"); Drill master counts every Practice tab; a podcast without its own summary no longer shows its first episode's; one broken video title no longer empties a channel; the podcast comes back up when a line can't play; a damaged progress file is never half-loaded; notification text can't break the card.
+- **Code rewritten for readability:** the code is split into one file per part of the app, with clear names, comments and docs/CODE_STYLE.md, so anyone can find their way around. Nothing changes for learners.
 
 ## 1.7.2
 

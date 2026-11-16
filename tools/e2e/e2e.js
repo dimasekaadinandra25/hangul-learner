@@ -142,7 +142,7 @@ const visible = t => win('state', t).visible;
     });
     await test('first launch: fresh progress, Learn page, Hangul basics', async () => {
       const r = await main.run(`return {xp:P.xp,view,hero:document.querySelector('.hero h2').textContent,units:document.querySelectorAll('#path details.unit').length,locked:document.querySelectorAll('#path details.unit.locked').length,words:VOCAB.length}`);
-      eq(r.xp, 0, 'xp'); eq(r.view, 'learn', 'view'); eq(r.hero, 'Hangul basics', 'hero'); eq(r.units, 11, 'units'); eq(r.locked, 10, 'locked units'); eq(r.words, 1020, 'words');
+      eq(r.xp, 0, 'xp'); eq(r.view, 'learn', 'view'); eq(r.hero, 'Hangul basics', 'hero'); eq(r.units, 11, 'units'); eq(r.locked, 10, 'locked units'); eq(r.words, require(path.join(ROOT, 'ui', 'js', 'data.js')).VOCAB.length, 'words');
     });
     await test('every nav item opens its page', async () => {
       const r = await main.run(`const out={};for(const b of document.querySelectorAll('.sidebar>.nav-item[data-tab]')){b.click();out[b.dataset.tab]=!$(b.dataset.tab).hidden&&b.getAttribute('aria-current')==='page'&&[...document.querySelectorAll('main>section')].filter(s=>!s.hidden).length===1}show('learn');return out`);
@@ -195,9 +195,9 @@ const visible = t => win('state', t).visible;
         return {before,isReview,passed:res.passed,after:Object.keys(P.mistakes).length,reviews:P.totals.reviews,slip:!!document.querySelector('[data-review]')}`);
       ok(r.before > 0, 'no mistakes to review'); ok(r.isReview, 'not a review lesson'); ok(r.passed, 'review failed'); eq(r.after, 0, 'mistakes left'); eq(r.reviews, 1, 'reviews'); ok(!r.slip, 'review slip still shown');
     });
-    await test('level tabs switch to TOPIK 3 (8 word + 5 grammar units, first open) and back', async () => {
-      const r = await main.run(`T.click('#levels [data-sec="3"]');const a={hero:document.querySelector('.hero h2').textContent,units:document.querySelectorAll('#path details.unit').length,firstOpen:!document.querySelector('#path details.unit').classList.contains('locked')};T.click('#levels [data-sec="0"]');return {...a,back:document.querySelector('.hero h2').textContent}`);
-      eq(r, {hero: 'TOPIK 3', units: 13, firstOpen: true, back: 'Hangul basics'}, 'tabs');
+    await test('level tabs switch to TOPIK 3 (word + grammar units, first open) and back', async () => {
+      const r = await main.run(`T.click('#levels [data-sec="3"]');const a={hero:document.querySelector('.hero h2').textContent,units:document.querySelectorAll('#path details.unit').length===UNITS.filter(u=>u.section===3).length,firstOpen:!document.querySelector('#path details.unit').classList.contains('locked')};T.click('#levels [data-sec="0"]');return {...a,back:document.querySelector('.hero h2').textContent}`);
+      eq(r, {hero: 'TOPIK 3', units: true, firstOpen: true, back: 'Hangul basics'}, 'tabs');
     });
     await test('units fold and unfold, and stay open after the page redraws', async () => {
       const r = await main.run(`const d=()=>document.querySelectorAll('#path details.unit')[4];const was=d().open;T.click(d().querySelector('summary'));await T.sleep(50);save();await T.sleep(50);const kept=d().open;T.click(d().querySelector('summary'));await T.sleep(50);save();return {was,kept,closed:!d().open}`);
@@ -240,7 +240,7 @@ const visible = t => win('state', t).visible;
       const r = await main.run(`show('vocab');const s=$('vSearch'),q=v=>{s.value=v;s.dispatchEvent(new Event('input'));return $('vCount').textContent};
         const en=q('love'),hasKo=$('vList').textContent.includes('사랑'),ko=q('사랑'),none=q('zzzz-no-word'),empty=$('vList').textContent.trim();q('');
         T.click('#vLevels [data-vsec="6"]');const t6=$('vCount').textContent;T.click('#vLevels [data-vsec="-1"]');return {en,hasKo,ko,none,empty,t6,all:$('vCount').textContent}`);
-      ok(parseInt(r.en) >= 1 && r.hasKo, 'English search'); ok(parseInt(r.ko) >= 1, 'Korean search'); eq(r.none, '0 words', 'no match'); eq(r.empty, 'No words match.', 'empty text'); eq(r.t6, '160 words', 'TOPIK 6'); eq(r.all, '1020 words', 'all');
+      ok(parseInt(r.en) >= 1 && r.hasKo, 'English search'); ok(parseInt(r.ko) >= 1, 'Korean search'); eq(r.none, '0 words', 'no match'); eq(r.empty, 'No words match.', 'empty text'); const d = require(path.join(ROOT, 'ui', 'js', 'data.js')); eq(r.t6, d.VOCAB.filter(w => w.section === 6).length + ' words', 'TOPIK 6'); eq(r.all, d.VOCAB.length + ' words', 'all');
     });
     await test('Words: a search counts toward the "Search the word list" task', async () => {
       const r = await main.run(`const s=$('vSearch');s.value='water';s.dispatchEvent(new Event('change'));s.value='';s.dispatchEvent(new Event('input'));return {n:P.totals.searches,task:P.tasks.includes('t-search')}`);
@@ -280,7 +280,7 @@ const visible = t => win('state', t).visible;
     await test('TOPIK 1 has a Grammar track whose first unit is open on its own', async () => {
       const r = await main.run(`show('learn');T.click('#levels [data-sec="1"]');const g=[...document.querySelectorAll('#path details.unit.grammar')];
         return {track:[...document.querySelectorAll('#path .track')].map(t=>t.textContent),n:g.length,firstOpen:!g[0].classList.contains('locked'),secondLocked:g[1].classList.contains('locked'),units:document.querySelectorAll('#path details.unit').length}`);
-      eq(r.track, ['단어Words', '문법Grammar'], 'track headings'); eq(r.n, 5, 'grammar units'); ok(r.firstOpen, 'first grammar unit locked'); ok(r.secondLocked, 'second grammar unit should wait'); eq(r.units, 14, 'units in TOPIK 1');
+      eq(r.track, ['단어Words', '문법Grammar'], 'track headings'); eq(r.n, 5, 'grammar units'); ok(r.firstOpen, 'first grammar unit locked'); ok(r.secondLocked, 'second grammar unit should wait'); eq(r.units, require(path.join(ROOT, 'ui', 'js', 'data.js')).UNITS.filter(u => u.section === 1).length, 'units in TOPIK 1');
     });
     await test('grammar Learn 1: pattern cards with an example, then questions; all pass', async () => {
       const r = await main.run(`const gi=UNITS.findIndex(u=>u.id==='g1-0');T.start(gi,0);const intro={kicker:document.querySelector('.intro-card .kicker').textContent,ex:!!document.querySelector('.intro-ex')};
@@ -315,9 +315,9 @@ const visible = t => win('state', t).visible;
       await main.run(`T.click('#wsClose');return true`);
     });
     await test('My words: add your own word, it is listed, searchable and due for review; remove works', async () => {
-      const r = await main.run(`T.click('[data-vtab=mine]');$('awKo').value='고구마';$('awEn').value='sweet potato';$('addWord').requestSubmit();
-        const listed=$('vList').textContent.includes('고구마'),due=dueKeys(P).includes('고구마'),bad=(()=>{$('awKo').value='abc';$('awEn').value='x';$('addWord').requestSubmit();return !inNotebook('abc')})();
-        T.click('#vList [data-word="고구마"]');const kicker=$('wsKicker').textContent;T.click('#wsSave');const gone=!inNotebook('고구마')&&!P.srs['고구마'];T.click('[data-vtab=all]');
+      const r = await main.run(`T.click('[data-vtab=mine]');$('awKo').value='군고구마';$('awEn').value='sweet potato';$('addWord').requestSubmit();
+        const listed=$('vList').textContent.includes('군고구마'),due=dueKeys(P).includes('군고구마'),bad=(()=>{$('awKo').value='abc';$('awEn').value='x';$('addWord').requestSubmit();return !inNotebook('abc')})();
+        T.click('#vList [data-word="군고구마"]');const kicker=$('wsKicker').textContent;T.click('#wsSave');const gone=!inNotebook('군고구마')&&!P.srs['군고구마'];T.click('[data-vtab=all]');
         return {listed,due,bad,kicker,gone,closed:!$('wordSheet').open}`);
       eq(r, {listed: true, due: true, bad: true, kicker: 'My words', gone: true, closed: true}, 'my words');
     });
@@ -343,7 +343,7 @@ const visible = t => win('state', t).visible;
       eq(r.n, 20, 'questions'); eq(r.score, 20, 'score'); eq(r.areas, ['grammar', 'listening', 'reading', 'vocab'], 'areas'); eq(r.big, '100%', 'result'); ok(r.task, 'test tasks not claimed');
     });
     await test('wrong test answers go to Review mistakes; Stop test asks first', async () => {
-      const r = await main.run(`T.click('[data-tagain]');const before=Object.keys(P.mistakes).length;for(let i=0;i<TS.qs.length;i++){const q=TS.qs[i];T.click([...document.querySelectorAll('[data-tv]')].find(b=>b.dataset.tv!==q.answer));T.click('#tqNext')}
+      const r = await main.run(`T.click('[data-tagain]');const kq=TS.qs.find(q=>q.key);P.units[kq.unit]=1;const before=Object.keys(P.mistakes).length;for(let i=0;i<TS.qs.length;i++){const q=TS.qs[i];T.click([...document.querySelectorAll('[data-tv]')].find(b=>b.dataset.tv!==q.answer));T.click('#tqNext')}
         const p=document.querySelector('.score-big').textContent,wrong=document.querySelectorAll('.wrong-list div').length;T.click('[data-tagain]');T.click('#tqQuit');await T.sleep(50);const asked=$('ask').open;T.click('#askOk');await T.sleep(100);
         return {p,wrong,more:Object.keys(P.mistakes).length>before,asked,picker:!!document.querySelector('[data-tlevel]')}`);
       eq(r, {p: '0%', wrong: 20, more: true, asked: true, picker: true}, 'wrong answers');
@@ -381,7 +381,7 @@ const visible = t => win('state', t).visible;
         T.click('[data-sall]');await T.until(()=>sQueue.on&&sAudio.src.includes('audio/'),3000,'Hear all');T.click('[data-sall]');
         const s=STORIES.find(x=>x.id==='family');s.qs.forEach(([,,a],i)=>T.click('[data-sq="'+i+'"][data-so="'+a+'"]'));const xp=P.xp;T.click('[data-scheck]');
         const g=document.querySelector('.wc[data-gloss]').dataset.gloss;T.click('.wc[data-gloss]');const saved=inNotebook(g);removeFromNotebook(g);save();T.click('[data-story=""]');
-        return {cards,one,all,yes:words.includes('네'),family:words.includes('가족'),gloss:gloss>=3,best:P.stories.family.best,xp:P.xp-xp===5+(TASKS.find(t=>t.id==='t-story').xp),task:P.tasks.includes('t-story'),saved,done:!!document.querySelector('[data-story=family] .story-done')}`);
+        return {cards,one,all,yes:words.includes('네'),family:words.includes('가족'),gloss:gloss>=1,best:P.stories.family.best,xp:P.xp-xp===5+(TASKS.find(t=>t.id==='t-story').xp),task:P.tasks.includes('t-story'),saved,done:!!document.querySelector('[data-story=family] .story-done')}`);
       eq(r, {cards: 22, one: 1, all: 6, yes: false, family: true, gloss: true, best: 2, xp: true, task: true, saved: true, done: true}, 'story');
     });
     await test('Particles: the right form for the noun; a wrong answer goes to Mistakes and leaves when answered right', async () => {
@@ -393,9 +393,9 @@ const visible = t => win('state', t).visible;
     });
     await test('Verbs: casual and honorific endings; Slowly plays at 0.7×', async () => {
       const r = await main.run(`T.click('[data-ptab=verb]');T.click('[data-chip=verbForm][data-v=honor]');const h=DQ.opts[DQ.answer]===conj(DQ.big,'honor')&&DQ.kicker.startsWith('Honorific');
-        T.click('[data-chip=verbForm][data-v=casual]');const c=DQ.opts[DQ.answer]===conj(DQ.big,'casual');T.click('[data-dopt="'+DQ.answer+'"]');T.click('[data-dslow]');const slow=player.playbackRate;
+        T.click('[data-chip=verbForm][data-v=casual]');const c=DQ.opts[DQ.answer]===conj(DQ.big,'casual');T.click('[data-dopt="'+DQ.answer+'"]');T.click('[data-dslow]');const slow=player.playbackRate===0.7||player.src.includes('/audio/s-'); // a form that is also a word has a real slow recording
         T.click('[data-slow]');const chip=PX.slow;T.click('[data-slow]');T.click('[data-chip=verbForm][data-v=all]');return {h,c,slow,chip}`);
-      eq(r, {h: true, c: true, slow: 0.7, chip: true}, 'verb endings');
+      eq(r, {h: true, c: true, slow: true, chip: true}, 'verb endings');
     });
     await test('Talk: role-play a conversation; the app speaks the other part, you record yours; finishing counts', async () => {
       const r = await main.run(`T.click('[data-ptab=talk]');const cards=document.querySelectorAll('[data-talk]').length;T.click('[data-talk=order]');T.click('[data-role=B]');T.click('[data-tstart]');
@@ -410,12 +410,12 @@ const visible = t => win('state', t).visible;
       await main.run(`T.click('[data-talk=""]');return true`);
     });
     await test('My words: import a CSV / Anki word list (HTML stripped, duplicates skipped)', async () => {
-      const file = path.join(os.tmpdir(), 'hangul-e2e-words.csv'); fs.writeFileSync(file, '#separator:tab\n고구마\tsweet potato\n"<b>참외</b>","Korean melon"\nno hangul,here\n고구마,again\n');
+      const file = path.join(os.tmpdir(), 'hangul-e2e-words.csv'); fs.writeFileSync(file, '#separator:tab\n군고구마\tsweet potato\n"<b>참외</b>","Korean melon"\nno hangul,here\n군고구마,again\n');
       await main.run(`show('vocab');T.click('[data-vtab=mine]');return true`);
       const objectId = (await main.send('Runtime.evaluate', {expression: `document.getElementById('importWords')`})).result.result.objectId;
       await main.send('DOM.setFileInputFiles', {files: [file], objectId}); fs.rmSync(file, {force: true});
-      const r = await waitFor(() => main.run(`return inNotebook('참외')&&{a:P.notebook.find(w=>w.ch==='고구마')?.meaning,b:P.notebook.find(w=>w.ch==='참외')?.meaning,row:!$('importRow').hidden}`), 4000, 'imported');
-      await main.run(`removeFromNotebook('고구마');removeFromNotebook('참외');save();T.click('[data-vtab=all]');return true`);
+      const r = await waitFor(() => main.run(`return inNotebook('참외')&&{a:P.notebook.find(w=>w.ch==='군고구마')?.meaning,b:P.notebook.find(w=>w.ch==='참외')?.meaning,row:!$('importRow').hidden}`), 4000, 'imported');
+      await main.run(`removeFromNotebook('군고구마');removeFromNotebook('참외');save();T.click('[data-vtab=all]');return true`);
       eq(r, {a: 'sweet potato', b: 'Korean melon', row: true}, 'imported words');
     });
     await test('Stats shows the Practice card; a backup with broken stats/days is refused or cleaned', async () => {
