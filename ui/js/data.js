@@ -36,8 +36,8 @@ const FINALS=[['각','ㄱㅏㄱ','각','ㄱ at the end: a short k, the mouth sta
 const SYLL=SYL_C.flatMap(c=>SYL_V.map(v=>{const ch=compose(INIT.indexOf(c),VOW.indexOf(v));return{ch,parts:[c,v],say:ch}}));
 
 // Lesson path: sections of units. Unit ids are saved in progress files: never change or reuse one.
-const TOPIK_DATA=typeof TOPIK!=='undefined'?TOPIK:require('./vocab.js').TOPIK; // vocab.js: global in the app, require() in node tools
-const GRAMMAR_DATA=typeof GRAMMAR!=='undefined'?GRAMMAR:require('./grammar.js').GRAMMAR;
+const TOPIK_DATA=typeof TOPIK!=='undefined'?TOPIK:require('../content/vocab.js').TOPIK; // vocab.js: global in the app, require() in node tools
+const GRAMMAR_DATA=typeof GRAMMAR!=='undefined'?GRAMMAR:require('../content/grammar.js').GRAMMAR;
 // A grammar item: ch = the pattern (its id), ex = [[Korean, English] x2], q = fill-in question; say = first example
 const grammarItems=list=>list.map(([ch,meaning,note,ex,q])=>({ch,meaning,note,ex,q,say:ex[0][0]}));
 const fillQ=q=>q[0].replace('___',q[2]); // the question sentence with the right answer filled in

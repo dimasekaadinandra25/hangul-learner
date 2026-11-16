@@ -1,6 +1,6 @@
 // Practice page data: number reading, verb endings, sound-change rules, graded stories. Shared by the app and tools/*.js.
 // Loaded after data.js. Every Korean answer here is added to RECORDED, so `npm run audio` records it.
-const PD=typeof VOCAB!=='undefined'?{VOCAB,UNITS,VOW,FIN,RECORDED,findWords}:require('./data.js');
+const PD=typeof VOCAB!=='undefined'?{VOCAB,UNITS,VOW,FIN,RECORDED,findWords}:require('../js/data.js');
 
 // ---------------- Numbers ----------------
 // Sino-Korean (일 이 삼): money, minutes, dates, phone numbers. Native (하나 둘 셋): hours, age, counting things.

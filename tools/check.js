@@ -2,7 +2,10 @@
 const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert');
 const ui=f=>fs.readFileSync(path.join(__dirname,'..','ui',f),'utf8');
 globalThis.assert=assert;
-vm.runInThisContext(ui('vocab.js')+ui('grammar.js')+ui('data.js')+ui('lesson.js')+ui('hangul-ime.js')+ui('strokes.js')+ui('practice-data.js')+`
+// The page's scripts in load order (index.html). The ones before icons.js don't touch the page, so they run here in node.
+const SCRIPTS=[...ui('index.html').matchAll(/<script src="([^"]+)"><\/script>/g)].map(m=>m[1]);
+const LOGIC=SCRIPTS.slice(0,SCRIPTS.indexOf('js/icons.js'));
+vm.runInThisContext(LOGIC.map(ui).join('\n')+`
 // numbers: sino / native readings, counters, 만 groups, month exceptions
 assert.strictEqual(sino(15000),'만 오천');assert.strictEqual(sino(34500),'삼만 사천오백');assert.strictEqual(sino(120000),'십이만');assert.strictEqual(sino(2026),'이천이십육');assert.strictEqual(sino(10),'십');
 assert.strictEqual(native(20,1),'스무');assert.strictEqual(native(21,1),'스물한');assert.strictEqual(native(4,0),'넷');assert.strictEqual(native(4,1),'네');
@@ -218,6 +221,6 @@ assert.strictEqual(questProgress(P,QUESTS.find(q=>q.id==='minutes20'),'2026-11-1
 console.log('all checks passed');
 `);
 // The UI scripts share one global scope: two of them declaring the same top-level name stops the later one from loading
-{const order=['vocab.js','grammar.js','data.js','lesson.js','hangul-ime.js','strokes.js','practice-data.js','index.html','listen.js','settings.js','practice.js','progress.js','drills.js','desk.js'],seen={};
-  for(const f of order){const src=f.endsWith('.html')?[...ui(f).matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]).join('\n'):ui(f);
+{const seen={};
+  for(const f of SCRIPTS){const src=ui(f);
     for(const m of src.matchAll(/^(?:const|let|function|class)\s+([A-Za-z_$][\w$]*)/gm)){assert(!seen[m[1]]||seen[m[1]]===f,`${m[1]} is declared in both ${seen[m[1]]} and ${f}`);seen[m[1]]=f}}}

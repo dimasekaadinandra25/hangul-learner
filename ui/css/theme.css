@@ -1,5 +1,5 @@
 /* Hanji Studio tokens, shared by index.html and mini.html. Light by default, dark from Windows or data-theme=dark on <html>. */
-@font-face{font-family:"Gowun Batang";src:url(fonts/gowun-batang-bold.woff2) format("woff2");font-weight:700;font-display:swap}
+@font-face{font-family:"Gowun Batang";src:url(../fonts/gowun-batang-bold.woff2) format("woff2");font-weight:700;font-display:swap}
 :root{
   --paper:#F4EEE2;--paper-2:#ECE4D4;--card:#FFFCF5;--ink:#1E1A16;--ink-2:#463F37;--muted:#776D60;--hair:#D9CCB6;--hair-2:#E7DDCB;
   --red:#B3322B;--red-bg:#F5E1DC;--blue:#22477E;--blue-bg:#E1E8F2;--jade:#2A7558;--jade-bg:#DBEDE3;--gold:#B8860B;--gold-bg:#F3E8C9;

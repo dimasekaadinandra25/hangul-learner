@@ -7,8 +7,8 @@
 //                 so the times match the clip exactly)
 const {execFile}=require('child_process');
 const fs=require('fs'),path=require('path');
-const {RECORDED,SLOW_CLIPS,MALE_CLIPS,audioName}=require('../ui/data.js');
-const {DIALOGUES,STORIES}=require('../ui/practice-data.js'); // adds numbers, verb forms, sound-change words and story lines to RECORDED
+const {RECORDED,SLOW_CLIPS,MALE_CLIPS,audioName}=require('../ui/js/data.js');
+const {DIALOGUES,STORIES}=require('../ui/content/practice-data.js'); // adds numbers, verb forms, sound-change words and story lines to RECORDED
 const {polish}=require('./clear-audio.js'); // even loudness, saved as Opus
 
 const dir=path.join(__dirname,'..','ui','audio');

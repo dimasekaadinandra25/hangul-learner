@@ -425,7 +425,7 @@ const visible = t => win('state', t).visible;
       eq(r, {card: true, bad: true, days: {'2026-01-01': 5}}, 'stats and backup');
     });
     await test('every practice answer and story line has a recorded clip', async () => {
-      const d = require(path.join(ROOT, 'ui', 'data.js')); require(path.join(ROOT, 'ui', 'practice-data.js'));
+      const d = require(path.join(ROOT, 'ui', 'js', 'data.js')); require(path.join(ROOT, 'ui', 'content', 'practice-data.js'));
       const missing = d.RECORDED.filter(t => !fs.existsSync(path.join(ROOT, 'ui', 'audio', d.audioName(t))));
       eq(missing.slice(0, 5), [], missing.length + ' clips missing');
     });
@@ -954,7 +954,7 @@ const visible = t => win('state', t).visible;
       eq(r, {g: true, v: true}, 'keys');
     });
     await test('slow recordings exist for letters, syllables and words; Shift+R plays one', async () => {
-      const d = require(path.join(ROOT, 'ui', 'data.js'));
+      const d = require(path.join(ROOT, 'ui', 'js', 'data.js'));
       const missing = [...d.SLOW_CLIPS].filter(t => !fs.existsSync(path.join(ROOT, 'ui', 'audio', 's-' + d.audioName(t))));
       eq(missing.slice(0, 5), [], missing.length + ' slow clips missing');
       const r = await main.run(`T.mute();speak('학교',.7);const slow=player.src.includes('/audio/s-');speak('학교');const normal=!player.src.includes('/audio/s-');return {slow,normal}`);
@@ -982,7 +982,7 @@ const visible = t => win('state', t).visible;
 
     group('Voices, word highlighting, your own shows, stopping downloads'); await fresh();
     await test('every syllable and the male voice clips are recorded; Settings › Voice switches words to 인준', async () => {
-      const d = require(path.join(ROOT, 'ui', 'data.js'));
+      const d = require(path.join(ROOT, 'ui', 'js', 'data.js'));
       const missing = [...d.ALL_SYLL.map(t => d.audioName(t)), ...[...d.MALE_CLIPS].map(t => 'm-' + d.audioName(t))].filter(n => !fs.existsSync(path.join(ROOT, 'ui', 'audio', n)));
       eq(missing.slice(0, 5), [], missing.length + ' clips missing'); eq(d.ALL_SYLL.length, 11172, 'syllables');
       const r = await main.run(`T.mute();const v=lsGet('voice','female');openSettings();$('voiceSel').value='male';$('voiceSel').dispatchEvent(new Event('change'));const male=player.src.includes('/audio/m-');
