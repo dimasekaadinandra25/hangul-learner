@@ -95,6 +95,7 @@ async function checkWeekly(now=new Date()){
 // ---- Review reminder: one evening notification when Smart review words are due and nothing was reviewed today ----
 async function checkReviewReminder(now=new Date()){
   if(!lsGet('reviewRemind',true)||now.getHours()<18||lsGet('reviewSent','')===dayKey(now))return false;
+  if(typeof reminder==='function'&&reminder().on)return false; // one nudge an evening: the daily reminder covers due words
   const due=dueKeys(P).length;if(!due||(todayStats(P).srs||0)>0)return false;
   lsSet('reviewSent',dayKey(now));
   try{await notify('복습 · Review time',`${due} word${due===1?'':'s'} due for Smart review. A few minutes keeps them fresh.`)}catch(e){}

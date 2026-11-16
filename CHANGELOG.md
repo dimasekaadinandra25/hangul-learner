@@ -2,6 +2,17 @@
 
 What changed in each version of Hangul Learner. Newest first. Installed apps update themselves; Settings › Updates shows your version.
 
+## 1.7.1
+
+- **Practice › Pairs:** hear syllables learners mix up (가 / 카 / 까, 어 / 오 / 우, 우 / 으, 이 / 에) and pick the one you heard, with a tip on how each is said.
+- **Podcasts remember each episode:** an episode carries on where you stopped it, and finished ones are marked played.
+- **Sleep timer:** ☾ on the player stops playback after 15, 30 or 60 minutes.
+- **Downloaded shelf:** every downloaded episode is listed on the Podcasts page, also ones that dropped off their show’s latest list; play or delete each one there.
+- **By skill on Stats:** vocabulary, listening, grammar and reading over your last practice tests, up or down from the tests before.
+- **Fewer evening notifications:** the review reminder stays quiet when the daily reminder is on (it already says how many words are due).
+- **Tricky words** answered on the Practice page now count for Smart review, and words Smart review spaces 3+ weeks out count as mastered.
+- **Fix:** a download interrupted by closing the app no longer leaves a half file behind.
+
 ## 1.7.0
 
 - **TOPIK exam countdown:** set your exam date and level in Settings › Goals; Learn shows the days left and the pace (about 1 unit every N days).

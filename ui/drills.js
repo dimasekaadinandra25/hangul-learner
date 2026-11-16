@@ -72,7 +72,22 @@ function replyQ(ref){
   return makeQ({kind:'reply',ref:`${d.id}|${i}`,kicker:`${d.en} · TOPIK ${d.level} · listening`,sub:'Listen, then choose the best reply.',say:line,listen:true,ko:true,
     right:reply,wrong:shuffle(others.slice(0,8)),note:`“${line}” = ${en} → “${reply}” = ${ren}`});
 }
-const BUILD={num:numQ,verb:verbQ,part:partQ,sound:soundQ,tricky:trickyQ,reply:replyQ};
+// Sound pairs: syllables learners mix up, all recorded. Hear one, pick it from its set.
+const PAIRS=[
+  ...[['가','카','까'],['다','타','따'],['바','파','빠'],['자','차','짜'],['사','싸']].map(s=>({s,label:'Plain · aspirated · tense',
+    note:'Plain (가) is soft, aspirated (카) comes with a puff of air, tense (까) is tight with no air at all.'})),
+  ...[['어','오','우'],['거','고','구'],['버','보','부'],['더','도','두']].map(s=>({s,label:'ㅓ · ㅗ · ㅜ',
+    note:'ㅓ: mouth open, lips relaxed. ㅗ: lips rounded. ㅜ: lips rounded and pushed forward, mouth almost closed.'})),
+  {s:['우','으'],label:'ㅜ · ㅡ',note:'ㅜ has rounded lips; ㅡ keeps the lips flat, as in a small smile.'},
+  {s:['이','에'],label:'ㅣ · ㅔ',note:'ㅣ is like “ee”; ㅔ is like the “e” in “bed”, the mouth a little more open.'},
+];
+function pairQ(ref){
+  let[si,k]=(ref||'').split('|').map(Number);
+  if(!PAIRS[si]?.s[k]){si=Math.floor(Math.random()*PAIRS.length);k=Math.floor(Math.random()*PAIRS[si].s.length)}
+  const p=PAIRS[si],w=p.s[k];
+  return makeQ({kind:'pair',ref:`${si}|${k}`,kicker:`${p.label} · listening`,sub:'Listen: which one do you hear?',say:w,listen:true,ko:true,right:w,wrong:p.s.filter(x=>x!==w),note:p.note});
+}
+const BUILD={num:numQ,verb:verbQ,part:partQ,sound:soundQ,tricky:trickyQ,reply:replyQ,pair:pairQ};
 function newQ(kind){
   if(PX.miss){const l=missList(kind);if(l.length)return BUILD[kind](pickOne(l.length>1&&DQ?.kind===kind?l.filter(r=>r!==DQ.ref):l));PX.miss=false}
   return BUILD[kind]();
@@ -95,7 +110,7 @@ function answerDrill(i){
   if(!DQ||DQ.picked!=null)return;
   DQ.picked=i;const good=i===DQ.answer,s=drillStats(DQ.kind),say=DQ.say,day=dayKey();
   s.tries++;
-  if(DQ.kind==='tricky'){const ws=stat(DQ.ref);ws.tries++;if(good)ws.right++} // counts toward mastering the word itself
+  if(DQ.kind==='tricky'){const ws=stat(DQ.ref);ws.tries++;if(good)ws.right++;const u=unitOfWord(DQ.ref);if(u)schedule(P,DQ.ref,u.id,good)} // counts toward the word itself, and its Smart review
   if(good){s.right++;const d=todayStats(P);d.drill=(d.drill||0)+1;P.xp+=1;P.days[day]=(P.days[day]||0)+1;dropMiss(DQ.kind,DQ.ref)}
   else addMiss(DQ.kind,DQ.ref);
   sfx(good?'ok':'bad');setTimeout(()=>speak(say,PX.slow?SLOW:1),good?200:450);save();

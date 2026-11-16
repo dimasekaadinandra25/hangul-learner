@@ -141,24 +141,32 @@ function sendToMini(playing,t){
 const dropRemote=()=>{if(remote){remote=null;tauri?.event.emit('mini-video',null).catch(()=>{})}};
 // ---- Offline episodes: downloaded into the app's data folder, played from there (works without internet) ----
 let DL=lsGet('dl',{}); // episode url -> local file path
+let DLM=lsGet('dlMeta',{}); // episode url -> {title, src (show id), date, dur}: for the Downloaded shelf
 const DLING=new Set(); // urls downloading right now
 const epSrc=url=>DL[url]&&tauri?tauri.core.convertFileSrc(DL[url]):url;
 async function toggleDownload(it){
   if(!tauri||DLING.has(it.url))return;
   if(DL[it.url]){
     if(!await ask({title:'Delete this download?',text:'“'+it.title+'” will stream from the internet again.',ok:'Delete',danger:true,sealText:'×'}))return;
-    await tauri.core.invoke('delete_episodes',{path:DL[it.url]}).catch(()=>{});delete DL[it.url];lsSet('dl',DL);return renderListen();
+    await tauri.core.invoke('delete_episodes',{path:DL[it.url]}).catch(()=>{});delete DL[it.url];delete DLM[it.url];lsSet('dl',DL);lsSet('dlMeta',DLM);return renderListen();
   }
   DLING.add(it.url);renderListen();
-  try{DL[it.url]=await tauri.core.invoke('download_episode',{url:it.url});lsSet('dl',DL);toast('sync','Downloaded','Plays without internet now','download')}
+  try{DL[it.url]=await tauri.core.invoke('download_episode',{url:it.url});lsSet('dl',DL);DLM[it.url]={title:it.title,src:LV.open,date:it.date||0,dur:it.dur||''};lsSet('dlMeta',DLM);toast('sync','Downloaded','Plays without internet now','download')}
   catch(e){toast('sync','Download failed',String(e).slice(0,120),'download')}
   finally{DLING.delete(it.url);if(view==='listen')renderListen()}
 }
 const dlBtn=(it,i)=>!tauri||!it.url?'':`<button class="icon-btn dl-btn${DL[it.url]?' on':''}" data-dl="${i}" title="${DLING.has(it.url)?'Downloading…':DL[it.url]?'Downloaded: tap to delete':'Download to listen offline'}" aria-label="${DL[it.url]?'Delete download':'Download'}"${DLING.has(it.url)?' disabled':''}>${icon(DLING.has(it.url)?'clock':DL[it.url]?'check':'download')}</button>`;
+function dlShelf(){
+  const urls=Object.keys(DL);if(!tauri||!urls.length)return'';
+  const on=PL.playing();
+  return`<h3 class="shelf-head">${icon('download')}Downloaded · ${urls.length}</h3><div class="eps">${urls.map(u=>{const m=DLM[u]||{},s=PODCASTS.find(p=>p.id===m.src),now=NP?.url===u;
+    return`<div class="ep${now?' now':''}"><button class="play-btn" data-dlplay="${esc(u)}" aria-label="${now&&on?'Pause':'Play'}: ${esc(m.title||'Downloaded episode')}">${icon(now&&on?'pause':'play')}</button><div><b>${esc(m.title||'Downloaded episode')}</b><small>${esc(s?.name||'Podcast')}${m.date?' · '+dateOf(m.date):''}${m.dur?' · '+esc(m.dur):''}</small></div><button class="icon-btn dl-btn on" data-dldel="${esc(u)}" title="Downloaded: tap to delete" aria-label="Delete download">${icon('check')}</button></div>`}).join('')}</div>`;
+}
 function playEp(src,e){
   dropRemote();if(yt?.stopVideo)yt.stopVideo();$('ytWrap').hidden=true;$('ytNote').hidden=true;
   setNow(src,{title:e.title,url:e.url});
-  pod.src=epSrc(e.url);pod.playbackRate=rate;pod.play().catch(playErr);refresh();
+  const at=EPOS[e.url]||0; // carry on where you stopped this episode
+  pod.src=epSrc(e.url)+(at?'#t='+at:'');pod.playbackRate=rate;pod.play().catch(playErr);refresh();
 }
 const ytApi=()=>ytReady??=new Promise((res,rej)=>{
   window.onYouTubeIframeAPIReady=res;
@@ -180,7 +188,17 @@ function stopAll(){
   shadowClose();dropRemote();pod.pause();pod.removeAttribute('src');pod.load();if(yt?.stopVideo)yt.stopVideo();
   NP=null;lsSet('np',null);$('ytWrap').hidden=true;$('ytNote').hidden=true;refresh();
 }
-const remember=()=>NP&&lsSet('np',{...NP,t:Math.floor(PL.time())});
+// Each podcast episode keeps where you stopped (EPOS, last 100) and is marked played near its end
+const EPOS=lsGet('epPos',{}),PLAYED=lsGet('played',{});
+function rememberEp(){
+  if(NP?.kind!=='pod'||!NP.url)return;
+  const t=PL.time(),d=PL.dur();
+  if(d&&t>d-30){PLAYED[NP.url]=1;delete EPOS[NP.url];lsSet('played',PLAYED)}
+  else if(t>30){delete EPOS[NP.url];EPOS[NP.url]=Math.floor(t);const k=Object.keys(EPOS);if(k.length>100)delete EPOS[k[0]]}
+  lsSet('epPos',EPOS);
+}
+const remember=()=>{if(!NP)return;lsSet('np',{...NP,t:Math.floor(PL.time())});rememberEp()};
+const epMark=u=>PLAYED[u]?` · <span class="ep-played">${icon('check')}played</span>`:EPOS[u]?` · stopped at ${fmt(EPOS[u])}`:'';
 
 // App words found in the playing episode's title and description (cached per episode)
 let epKey='',epList=[];
@@ -224,6 +242,11 @@ $('dPlay').onclick=()=>PL.toggle();
 $('dBack').onclick=()=>PL.skip(-15);
 $('dFwd').onclick=()=>PL.skip(30);
 $('dClose').onclick=stopAll;
+let sleepAt=0;const SLEEPS=[0,15,30,60];
+function sleepLabel(){const m=sleepAt?Math.max(1,Math.ceil((sleepAt-Date.now())/60000)):0;$('dSleep').textContent=m?`☾ ${m}m`:'☾';$('dSleep').setAttribute('aria-pressed',!!m)}
+$('dSleep').onclick=()=>{const left=sleepAt?Math.ceil((sleepAt-Date.now())/60000):0,next=SLEEPS.find(m=>m>left)||0;sleepAt=next?Date.now()+next*60000:0;sleepLabel();
+  if(next)toast('sync','Sleep timer',`Playback stops in ${next} minutes.`,'clock')};
+setInterval(()=>{if(!sleepAt)return;if(Date.now()>=sleepAt){sleepAt=0;if(PL.playing())PL.toggle()}sleepLabel()},5000);
 $('dRate').onclick=()=>{const R=[0.5,0.75,1,1.25,1.5];rate=R[(R.indexOf(rate)+1)%R.length];lsSet('rate',rate);pod.playbackRate=rate;yt?.setPlaybackRate?.(rate);if(remote)miniCmd({cmd:'rate',r:rate});update()};
 $('dSeek').oninput=e=>{seeking=true;const d=PL.dur();$('dTime').textContent=`${fmt(e.target.value/1000*d)} / ${fmt(d)}`};
 $('dSeek').onchange=e=>{seeking=false;PL.seek(e.target.value/1000*PL.dur())};
@@ -296,6 +319,7 @@ function renderListen(){
   $('ytMini').hidden=!(LV.tab==='yt'&&remote);
   if(!src){
     $('lBody').innerHTML=`<div class="shows">${list.map(s=>`<button class="show${NP?.src===s.id?' now':''}" data-show="${s.id}">${seal(esc(s.seal),'m',s.color)}<span><b>${esc(s.name)}</b><small>${esc(s.level)}</small></span>${NP?.src===s.id?`<span class="eq" aria-label="Playing">${icon('headphones')}</span>`:''}</button>`).join('')}</div>`;
+    if(LV.tab==='pod')$('lBody').insertAdjacentHTML('beforeend',dlShelf());
     return;
   }
   const kept=savedFeed(src);
@@ -316,13 +340,16 @@ function renderListen(){
   const on=PL.playing();
   $('lBody').innerHTML=head+(src.feed
     ?`<div class="eps">${f.items.map((e,i)=>{const now=NP?.url===e.url;
-      return`<div class="ep${now?' now':''}"><button class="play-btn" data-ep="${i}" aria-label="${now&&on?'Pause':'Play'}: ${esc(e.title)}">${icon(now&&on?'pause':'play')}</button><div><b>${esc(e.title)}</b><small>${dateOf(e.date)}${e.dur?' · '+esc(e.dur):''}${wordsChip(e)}</small></div>${dlBtn(e,i)}</div>`}).join('')}</div>`
+      return`<div class="ep${now?' now':''}"><button class="play-btn" data-ep="${i}" aria-label="${now&&on?'Pause':'Play'}: ${esc(e.title)}">${icon(now&&on?'pause':'play')}</button><div><b>${esc(e.title)}</b><small>${dateOf(e.date)}${e.dur?' · '+esc(e.dur):''}${epMark(e.url)}${wordsChip(e)}</small></div>${dlBtn(e,i)}</div>`}).join('')}</div>`
     :`<div class="vids">${f.items.map((v,i)=>`<button class="vid${NP?.id===v.id?' now':''}" data-vid="${i}"><span class="thumb"><img src="https://i.ytimg.com/vi/${v.id}/mqdefault.jpg" alt="" loading="lazy">${NP?.id===v.id?`<span class="eq">${icon(on?'pause':'play')}</span>`:''}</span><b>${esc(v.title)}</b><small>${dateOf(v.date)}${wordsChip(v)}</small></button>`).join('')}</div>`);
 }
 $('listen').addEventListener('click',e=>{
   const t=e.target.closest('[data-ltab]');if(t){LV={tab:t.dataset.ltab,open:null,err:'',loading:false};return renderListen()}
   const s=e.target.closest('[data-show]');if(s){LV.open=s.dataset.show||null;LV.err='';LV.fetched=null;renderListen();return scrollTo(0,0)}
   if(e.target.closest('[data-refresh]')){LV.fetched=null;LV.force=true;return renderListen()}
+  const dp=e.target.closest('[data-dlplay]');if(dp){const u=dp.dataset.dlplay,m=DLM[u]||{};if(NP?.url===u)return PL.toggle();
+    return playEp(PODCASTS.find(p=>p.id===m.src)||{id:'dl',name:'Downloaded',seal:'↓',color:''},{title:m.title||'Downloaded episode',url:u})}
+  const dd=e.target.closest('[data-dldel]');if(dd)return toggleDownload({url:dd.dataset.dldel,title:DLM[dd.dataset.dldel]?.title||'this episode'});
   const src=(LV.tab==='pod'?PODCASTS:CHANNELS).find(x=>x.id===LV.open),f=src&&savedFeed(src);if(!f)return;
   const dl=e.target.closest('[data-dl]');if(dl)return toggleDownload(f.items[+dl.dataset.dl]);
   const ep=e.target.closest('[data-ep]');

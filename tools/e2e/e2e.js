@@ -886,8 +886,10 @@ const visible = t => win('state', t).visible;
         const it=feeds.ttmik.items.reduce((a,b)=>(b.dur||'9')<(a.dur||'9')?b:a);const i=feeds.ttmik.items.indexOf(it);renderListen();
         await toggleDownload(it);const path=DL[it.url]||'';playEp(PODCASTS.find(p=>p.id==='ttmik'),it);await T.until(()=>pod.currentTime>0.5,30000,'local playback');
         const local=pod.src.includes('asset.localhost');PL.toggle();const size=(await __TAURI__.core.invoke('episodes_size'))[0];
-        await __TAURI__.core.invoke('delete_episodes',{path});delete DL[it.url];lsSet('dl',DL);return {path:!!path,local,size:size>=1}`);
-      eq(r, {path: true, local: true, size: true}, 'offline episode');
+        LV={tab:'pod',open:null,err:'',loading:false};renderListen();const shelf=[...document.querySelectorAll('[data-dlplay]')].some(b=>b.dataset.dlplay===it.url)&&document.querySelector('.shelf-head')?.textContent.includes('Downloaded');
+        await __TAURI__.core.invoke('delete_episodes',{path});delete DL[it.url];delete DLM[it.url];lsSet('dl',DL);lsSet('dlMeta',DLM);renderListen();const gone=!document.querySelector('[data-dlplay]');
+        return {path:!!path,local,size:size>=1,shelf,gone}`);
+      eq(r, {path: true, local: true, size: true, shelf: true, gone: true}, 'offline episode');
     });
 
     group('Review fixes: typed answers, missed words, final consonants, Reply, stroke order, keys'); await fresh();
@@ -923,6 +925,11 @@ const visible = t => win('state', t).visible;
         const counted=drillStats('reply').right-n;T.click('[data-ptab=num]');return {right,counted}`);
       eq(r, {right: true, counted: 1}, 'reply');
     });
+    await test('Practice › Pairs: hear 가 / 카 / 까 style sets and pick the one you heard', async () => {
+      const r = await main.run(`T.mute();show('practice');T.click('[data-ptab=pair]');const q=DQ,[si,k]=q.ref.split('|').map(Number),set=PAIRS[si].s;
+        const ok=q.opts[q.answer]===set[k]&&q.opts.length===set.length&&q.opts.every(o=>set.includes(o))&&RECORDED.includes(q.say);T.click('[data-ptab=num]');return ok`);
+      ok(r, 'pairs question');
+    });
     await test('Write › Trace: the right shape drawn in the wrong direction is flagged', async () => {
       const r = await main.run(`show('write');T.click('[data-wtab=trace]');$('wSel').value=String(ALL.findIndex(l=>l.ch==='ㅏ'));$('wSel').dispatchEvent(new Event('change'));
         myStrokes=STROKES['ㅏ'].map(s=>[...s].reverse());T.click('#wCheck');const bad=$('wScore').textContent;myStrokes=STROKES['ㅏ'].map(s=>[...s]);T.click('#wCheck');const good=$('wScore').textContent;
@@ -940,6 +947,25 @@ const visible = t => win('state', t).visible;
       eq(missing.slice(0, 5), [], missing.length + ' slow clips missing');
       const r = await main.run(`T.mute();speak('학교',.7);const slow=player.src.includes('/audio/s-');speak('학교');const normal=!player.src.includes('/audio/s-');return {slow,normal}`);
       eq(r, {slow: true, normal: true}, 'slow clip');
+    });
+
+    await test('podcast episodes remember where you stopped, and are marked played near the end', async () => {
+      const r = await main.run(`T.mute();show('listen');LV={tab:'pod',open:'ttmik',err:'',loading:false};renderListen();const src=PODCASTS.find(p=>p.id==='ttmik');await T.until(()=>feeds.ttmik,30000,'feed');const it=feeds.ttmik.items[1];
+        playEp(src,it);await T.until(()=>pod.duration>60,30000,'metadata');pod.currentTime=95;await T.sleep(300);PL.toggle();remember();const kept=EPOS[it.url];
+        playEp(src,feeds.ttmik.items[2]);await T.sleep(200);PL.toggle();playEp(src,it);await T.until(()=>pod.currentTime>80,20000,'resumed');const back=Math.round(pod.currentTime);
+        pod.currentTime=pod.duration-10;await T.sleep(300);PL.toggle();remember();const played=!!PLAYED[it.url]&&!EPOS[it.url];
+        delete PLAYED[it.url];lsSet('played',PLAYED);return {kept:kept>=94&&kept<=96,back:back>=93&&back<=98,played}`);
+      eq(r, {kept: true, back: true, played: true}, 'resume');
+    });
+    await test('sleep timer: 15 → 30 → 60 → off, and it pauses playback when time is up', async () => {
+      const r = await main.run(`const seen=[];for(let k=0;k<4;k++){T.click('#dSleep');seen.push($('dSleep').textContent)}
+        PL.playing()||PL.toggle();await T.until(()=>PL.playing(),10000,'play');sleepAt=Date.now()-1;await T.sleep(5500);return {seen,paused:!PL.playing(),label:$('dSleep').textContent}`);
+      eq(r, {seen: ['☾ 15m', '☾ 30m', '☾ 60m', '☾'], paused: true, label: '☾'}, 'sleep');
+    });
+    await test('only one reminder an evening: the review reminder stays quiet while the daily reminder is on', async () => {
+      const r = await main.run(`const k='__e2e2';P.srs[k]={u:'x',iv:1,ease:2.3,due:'2000-01-01'};const s=todayStats(P).srs;todayStats(P).srs=0;lsSet('reviewSent',null);const rem=lsGet('reminder',{});
+        lsSet('reminder',{...rem,on:true});const ev=new Date();ev.setHours(19,30,0,0);const quiet=!(await checkReviewReminder(ev));lsSet('reminder',rem);delete P.srs[k];todayStats(P).srs=s;lsSet('reviewSent',null);return quiet`);
+      ok(r, 'review reminder should be quiet');
     });
 
     group('Tray and closing'); await fresh();

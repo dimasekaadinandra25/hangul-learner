@@ -253,7 +253,7 @@ function mergeProgress(base,a,b,aNewer){
   m.inbox=a.inbox||[];
   return m;
 }
-const isMastered=(P,k)=>{const s=P.stats[k];return!!s&&s.right>=3&&s.right/s.tries>=0.75};
+const isMastered=(P,k)=>{const s=P.stats[k];return!!s&&s.right>=3&&(s.right/s.tries>=0.75||(P.srs?.[k]?.iv||0)>=21)}; // or Smart review already spaces it 3+ weeks out
 // Units passed before steps existed count as having their Learn and Practice steps done.
 const stepDone=(P,unit,step)=>(P.steps[unit.id+':'+step]||0)>0||(step<=PASS_STEP&&(P.units[unit.id]||0)>0);
 const stepXp=(step,heartsLeft)=>step==null?10:STEPS[step].xp+heartsLeft*(step===CHALLENGE_STEP?2:1);

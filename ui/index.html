@@ -661,6 +661,9 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
 .sent-row{display:flex;align-items:flex-start;gap:4px}.sent-row .sent{flex:1}
 .s-save{flex:none;width:34px;height:34px;color:var(--muted);opacity:.55}.s-save:hover,.s-save:focus-visible{opacity:1}.s-save.on{color:var(--gold);opacity:1}.s-save.on svg{fill:currentColor}
 .bubble .s-save{float:right;margin:-4px -6px 0 4px}
+.ep-played{color:var(--jade);display:inline-flex;align-items:center;gap:2px}.ep-played svg{width:12px;height:12px}
+#dSleep[aria-pressed="true"]{color:var(--red)}
+.shelf-head{display:flex;align-items:center;gap:8px;font-size:1rem;margin:26px 0 4px}
 .ep{align-items:center}.dl-btn{flex:none;margin-left:auto;color:var(--muted)}.dl-btn.on{color:var(--jade)}
 .t-check{flex-basis:100%;font-size:.9rem}.t-check.good{color:var(--jade)}.t-check.bad{color:var(--red)}
 .s-look{flex:none;width:34px;height:34px;color:var(--muted);opacity:.55}.s-look:hover,.s-look:focus-visible{opacity:1}.bubble .s-look{float:right;margin:-4px 0 0 0}
@@ -815,7 +818,7 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
 
     <section id="practice" hidden>
       <div class="page-head"><span class="kicker">연습</span><h1>Practice</h1><p>Short drills for the tricky parts of Korean: numbers, verb endings, particles, graded stories, role-play conversations and the sound changes between spelling and speech. Each right answer is +1 XP; wrong ones come back in Mistakes.</p></div>
-      <div class="seg seg-text" id="pTabs" role="group" aria-label="Drill"><button data-ptab="num">Numbers</button><button data-ptab="verb">Verbs</button><button data-ptab="part">Particles</button><button data-ptab="read">Reading</button><button data-ptab="talk">Talk</button><button data-ptab="reply">Reply</button><button data-ptab="sound">Sounds</button><button data-ptab="tricky">Tricky</button></div>
+      <div class="seg seg-text" id="pTabs" role="group" aria-label="Drill"><button data-ptab="num">Numbers</button><button data-ptab="verb">Verbs</button><button data-ptab="part">Particles</button><button data-ptab="read">Reading</button><button data-ptab="talk">Talk</button><button data-ptab="reply">Reply</button><button data-ptab="sound">Sounds</button><button data-ptab="pair">Pairs</button><button data-ptab="tricky">Tricky</button></div>
       <div id="pBody"></div>
     </section>
 
@@ -847,6 +850,7 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
       <button class="icon-btn" id="dFwd" aria-label="Forward 30 seconds" title="Forward 30 s"><i data-icon="fwd"></i></button>
       <span class="d-time" id="dTime"></span>
       <button class="d-rate" id="dRate" title="Playback speed" aria-label="Playback speed"></button>
+      <button class="d-rate" id="dSleep" title="Sleep timer: stop playing after 15, 30 or 60 minutes" aria-label="Sleep timer" aria-pressed="false">☾</button>
       <button class="icon-btn" id="dShadow" aria-pressed="false" aria-label="Shadow: repeat the last 5 seconds and record yourself" title="Shadow: repeat the last 5 s"><i data-icon="mic"></i></button>
       <button class="icon-btn" id="dMini" aria-label="Open mini player" title="Mini player"><i data-icon="pip"></i></button>
       <button class="icon-btn" id="dClose" aria-label="Stop and close the player" title="Stop"><i data-icon="x"></i></button>
@@ -928,7 +932,7 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
       <div class="set-row"><div><b>Word of the day</b><small>One word a day, with its meaning: a word due for review, or one from your level. Works while the app is in the tray. <button class="link" id="wotdTry">Show one now</button></small></div><button class="switch" id="wotdSw" role="switch" aria-checked="false" aria-label="Word of the day"></button></div>
       <div class="set-row"><div><b>Time</b><small>At or after this time</small></div><input type="time" id="wotdTime" value="09:00" aria-label="Word of the day time"></div>
       <div class="set-row"><div><b>Weekly report</b><small>Sunday evening: XP, study days, minutes and your best day this week. <button class="link" id="weekTry">Show it now</button></small></div><button class="switch" id="weekSw" role="switch" aria-checked="false" aria-label="Weekly report"></button></div>
-      <div class="set-row"><div><b>Review reminder</b><small>In the evening, if Smart review words are due and you haven’t reviewed today: “15 words due”.</small></div><button class="switch" id="reviewSw" role="switch" aria-checked="false" aria-label="Review reminder"></button></div>
+      <div class="set-row"><div><b>Review reminder</b><small>In the evening, if Smart review words are due and you haven’t reviewed today: “15 words due”. Not sent when the daily reminder is on: that one says so too.</small></div><button class="switch" id="reviewSw" role="switch" aria-checked="false" aria-label="Review reminder"></button></div>
       <p class="set-msg" id="wotdMsg"></p></div>
     <div class="set-group" id="syncGroup"><h3>Sync between PCs</h3>
       <div class="set-row"><div><b>Sync progress</b><small>Keeps your progress in a OneDrive or Google Drive folder, so every PC continues where you left off. Studied on two PCs at once? Both get added together. Turn it on on each PC.</small></div><button class="switch" id="syncSw" role="switch" aria-checked="false" aria-label="Sync progress"></button></div>

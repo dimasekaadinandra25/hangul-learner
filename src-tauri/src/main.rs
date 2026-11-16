@@ -187,6 +187,12 @@ fn delete_episodes(app: AppHandle, path: String) -> Result<(), String> {
 /// Number of downloaded episodes and their total size in bytes.
 #[tauri::command]
 fn episodes_size(app: AppHandle) -> Result<(usize, u64), String> {
+    for f in fs::read_dir(episodes_dir(&app)?).map_err(|e| e.to_string())?.flatten() {
+        let old = f.metadata().and_then(|m| m.modified()).ok().and_then(|t| t.elapsed().ok()).is_some_and(|d| d.as_secs() > 7200);
+        if old && f.path().extension().is_some_and(|x| x == "part") {
+            let _ = fs::remove_file(f.path()); // left by a download that never finished
+        }
+    }
     let files: Vec<u64> = fs::read_dir(episodes_dir(&app)?)
         .map_err(|e| e.to_string())?
         .flatten()

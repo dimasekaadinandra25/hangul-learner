@@ -76,7 +76,7 @@ async function renderDownloads(){
 }
 $('dlClear').onclick=async()=>{
   if(!await ask({title:'Delete all downloaded episodes?',text:'They will stream from the internet again.',ok:'Delete all',danger:true,sealText:'×'}))return;
-  await tauri.core.invoke('delete_episodes',{path:''}).catch(()=>{});DL={};lsSet('dl',DL);renderDownloads();if(view==='listen')renderListen();
+  await tauri.core.invoke('delete_episodes',{path:''}).catch(()=>{});DL={};DLM={};lsSet('dl',DL);lsSet('dlMeta',DLM);renderDownloads();if(view==='listen')renderListen();
 };
 // ---- Goals: daily XP goal and TOPIK exam date (both in progress, so they sync) ----
 function renderGoals(){$('goalSel').value=String(GOALS.includes(+P.goal)?+P.goal:30);$('examDate').value=P.exam?.date||'';$('examLevel').value=String(P.exam?.level||2)}
@@ -162,11 +162,11 @@ function cleanBackup(obj){
     exam:p.exam&&day(String(p.exam.date))&&+p.exam.level>=1&&+p.exam.level<=6?{date:p.exam.date,level:+p.exam.level}:null,
     notebook:(Array.isArray(p.notebook)?p.notebook:[]).slice(0,2000).map(w=>({ch:str(w?.ch,120),meaning:str(w?.meaning,200),added:+w?.added||0})).filter(w=>w.ch&&w.meaning),
     tests:(Array.isArray(p.tests)?p.tests:[]).slice(-50).filter(t=>Number.isFinite(t?.score)&&Number.isFinite(t?.total)&&t.total>0),
-    drills:Object.fromEntries(['num','verb','part','sound','read','tricky','reply'].map(k=>[k,{right:Math.max(0,+p.drills?.[k]?.right||0),tries:Math.max(0,+p.drills?.[k]?.tries||0)}])),
+    drills:Object.fromEntries(['num','verb','part','sound','read','tricky','reply','pair'].map(k=>[k,{right:Math.max(0,+p.drills?.[k]?.right||0),tries:Math.max(0,+p.drills?.[k]?.tries||0)}])),
     stories:Object.fromEntries(STORIES.filter(s=>p.stories?.[s.id]).map(s=>[s.id,{best:Math.max(0,Math.min(s.qs.length,+p.stories[s.id].best||0)),at:+p.stories[s.id].at||0}])),
     section:Math.max(0,Math.min(SECTIONS.length-1,+p.section||0)),
     days:Object.fromEntries(Object.entries(p.days&&typeof p.days==='object'?p.days:{}).filter(([k,v])=>/^\d{4}-\d\d-\d\d$/.test(k)&&Number.isFinite(+v)).map(([k,v])=>[k,+v])),
-    drillMiss:Object.fromEntries(['num','verb','part','sound','tricky','reply'].map(k=>[k,(Array.isArray(p.drillMiss?.[k])?p.drillMiss[k]:[]).filter(r=>typeof r==='string'&&r.length<60).slice(-60)])),
+    drillMiss:Object.fromEntries(['num','verb','part','sound','tricky','reply','pair'].map(k=>[k,(Array.isArray(p.drillMiss?.[k])?p.drillMiss[k]:[]).filter(r=>typeof r==='string'&&r.length<60).slice(-60)])),
     talks:Object.fromEntries(DIALOGUES.filter(d=>p.talks?.[d.id]).map(d=>[d.id,Math.max(0,+p.talks[d.id]||0)]))};
 }
 // Replaces progress (and the shared settings) with a cleaned backup. savedAt: keep the copy's save time (sync).

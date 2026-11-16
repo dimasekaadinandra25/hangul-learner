@@ -119,6 +119,13 @@ function renderResult(){
 }
 
 // ---------------- Stats ----------------
+// Each skill over your practice tests: the last 3 tests that had it, against the 3 before
+function skillTrend(){
+  const rows=Object.keys(AREA_NAME).map(a=>{const t=(P.tests||[]).filter(x=>x.areas?.[a]?.[1]>0),avg=l=>l.length?Math.round(l.reduce((s,x)=>s+x.areas[a][0]/x.areas[a][1],0)/l.length*100):null;
+    return{a,now:avg(t.slice(-3)),before:avg(t.slice(-6,-3))}}).filter(r=>r.now!=null);
+  if(!rows.length)return'';
+  return`<div class="chart-card"><h3>By skill</h3><p>Your last 3 practice tests, against the 3 before.</p><div class="hbars">${rows.map(r=>`<div><span>${AREA_NAME[r.a]}</span><div class="line" role="progressbar" aria-valuenow="${r.now}" aria-valuemax="100" aria-label="${AREA_NAME[r.a]}"><i style="width:${r.now}%;background:${r.now>=PASS_PCT?'var(--jade)':'var(--gold)'}"></i></div><em>${r.now}%${r.before!=null?` · ${r.now>r.before?'▲ up':r.now<r.before?'▼ down':'same as'} ${r.now===r.before?'':'from '}${r.before}%`:''}</em></div>`).join('')}</div></div>`;
+}
 function renderStatsPage(){
   const days=Object.entries(P.days).filter(([,x])=>x>0),gram=GRAMMAR_ITEMS.filter(g=>isMastered(P,keyOf(g))).length;
   const tiles=[[P.xp.toLocaleString(),'total XP'],[P.bestStreak||streak(activeDays(P)),'best streak (days)'],[days.length,'study days'],
@@ -155,5 +162,5 @@ function renderStatsPage(){
       <div class="tiles" style="margin:0">${[['num','Numbers'],['verb','Verb endings'],['part','Particles'],['sound','Sound changes']].map(([k,l])=>{const s=P.drills?.[k]||{},r=+s.right||0,t=+s.tries||0;return`<div><b>${r}${t?`<small> · ${Math.round(r/t*100)}%</small>`:''}</b><small>${l}</small></div>`}).join('')}
         <div><b>${storiesRead(P)}<small>/${STORIES.length}</small></b><small>stories read</small></div><div><b>${talksDone(P)}<small>/${DIALOGUES.length}</small></b><small>conversations</small></div>
         <div><b>${+P.totals.focus||0}</b><small>focus sessions</small></div><div><b>${+P.totals.shadow||0}</b><small>shadowing recordings</small></div><div><b>${+P.totals.dictation||0}</b><small>words typed from listening</small></div></div></div>
-    ${(P.tests||[]).length?`<div class="chart-card"><h3>Practice tests</h3><p>Most recent first.</p><div class="hbars">${P.tests.slice(-6).reverse().map(t=>`<div><span>${SECTIONS[t.level]?.title||'?'}</span><div class="line" role="progressbar" aria-valuenow="${t.score}" aria-valuemax="${t.total}" aria-label="Score"><i style="width:${pct(t.score,t.total)}%;background:${pct(t.score,t.total)>=PASS_PCT?'var(--jade)':'var(--gold)'}"></i></div><em>${pct(t.score,t.total)}% · ${new Date(t.at).toLocaleDateString(undefined,{month:'short',day:'numeric'})}</em></div>`).join('')}</div></div>`:''}`;
+    ${(P.tests||[]).length?`<div class="chart-card"><h3>Practice tests</h3><p>Most recent first.</p><div class="hbars">${P.tests.slice(-6).reverse().map(t=>`<div><span>${SECTIONS[t.level]?.title||'?'}</span><div class="line" role="progressbar" aria-valuenow="${t.score}" aria-valuemax="${t.total}" aria-label="Score"><i style="width:${pct(t.score,t.total)}%;background:${pct(t.score,t.total)>=PASS_PCT?'var(--jade)':'var(--gold)'}"></i></div><em>${pct(t.score,t.total)}% · ${new Date(t.at).toLocaleDateString(undefined,{month:'short',day:'numeric'})}</em></div>`).join('')}</div></div>${skillTrend()}`:''}`;
 }
