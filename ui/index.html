@@ -253,6 +253,7 @@ h2.section-title{font-size:1.25rem;margin:30px 0 12px}
 .gref{display:grid;gap:12px}.gref-item{padding:14px 16px}.gref-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;margin-bottom:2px}.gref-head b{font-size:1.25rem}
 .gref-ex{display:flex;align-items:flex-start;gap:10px;width:100%;margin-top:8px;padding:8px 10px;border:0;border-radius:10px;background:var(--paper);text-align:left;color:var(--ink)}.gref-ex:hover{background:var(--paper-2)}.gref-ex svg{flex:none;margin-top:3px;color:var(--muted)}.gref-ex small{display:block;color:var(--muted)}
 #askText{white-space:pre-line}
+.exam-line{display:flex;align-items:center;gap:8px;margin:10px 2px 0;font-size:.92rem;color:var(--ink-2)}.exam-line svg{flex:none;color:var(--gold)}
 .search{position:relative;margin-bottom:14px}
 .search .i{position:absolute;left:2px;top:50%;translate:0 -50%;color:var(--muted)}
 .search input{width:100%;min-height:50px;padding:10px 4px 10px 34px;border:0;border-bottom:1px solid var(--hair);background:none;font-size:1.05rem}
@@ -500,6 +501,7 @@ dialog.sheet::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
 .type-target b{font-family:var(--ko);font-size:2.6rem;color:var(--ink);line-height:1.2}
 .type-box{display:flex;align-items:center;min-height:64px;padding:8px 16px;border:1.5px solid var(--hair);border-radius:12px;background:var(--card);font-family:var(--ko);font-size:2rem;color:var(--ink);cursor:text}
 .type-box:focus{outline:none;border-color:var(--ink)}
+.type-box.long{flex-wrap:wrap;font-size:1.4rem;min-height:56px}.type-target b.long{font-size:1.5rem}
 .type-box.ok{border-color:var(--jade);background:var(--jade-bg)}
 .type-box.bad{border-color:var(--red)}
 .type-box .caret{display:inline-block;width:2px;height:1.1em;margin-left:2px;background:var(--ink);animation:blink 1s steps(1) infinite}
@@ -654,6 +656,9 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
 .sent-row{display:flex;align-items:flex-start;gap:4px}.sent-row .sent{flex:1}
 .s-save{flex:none;width:34px;height:34px;color:var(--muted);opacity:.55}.s-save:hover,.s-save:focus-visible{opacity:1}.s-save.on{color:var(--gold);opacity:1}.s-save.on svg{fill:currentColor}
 .bubble .s-save{float:right;margin:-4px -6px 0 4px}
+.ep{align-items:center}.dl-btn{flex:none;margin-left:auto;color:var(--muted)}.dl-btn.on{color:var(--jade)}
+.t-check{flex-basis:100%;font-size:.9rem}.t-check.good{color:var(--jade)}.t-check.bad{color:var(--red)}
+.s-look{flex:none;width:34px;height:34px;color:var(--muted);opacity:.55}.s-look:hover,.s-look:focus-visible{opacity:1}.bubble .s-look{float:right;margin:-4px 0 0 0}
 .sent{display:block;text-align:left;padding:10px 12px;border-radius:10px;border:0;background:none}
 .sent:hover{background:var(--paper-2)}
 .sent.now{background:var(--blue-bg)}
@@ -893,10 +898,15 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
 <dialog class="sheet" id="settings" aria-labelledby="setTitle">
   <div class="sheet-head"><h2 id="setTitle">Settings</h2><button class="icon-btn" id="setClose" aria-label="Close settings"><i data-icon="x"></i></button></div>
   <div class="sheet-body">
+    <div class="set-group"><h3>Goals</h3>
+      <div class="set-row"><div><b>Daily goal</b><small>XP per day for the ring, the streak hint and the daily reminder</small></div><select id="goalSel" aria-label="Daily goal"><option value="10">10 XP · light</option><option value="30">30 XP · normal</option><option value="50">50 XP · serious</option><option value="100">100 XP · intense</option></select></div>
+      <div class="set-row"><div><b>TOPIK exam</b><small>Learn shows the days left and the pace to finish your level in time</small></div><input type="date" id="examDate" aria-label="Exam date"><select id="examLevel" aria-label="Exam level"><option value="1">TOPIK 1</option><option value="2">TOPIK 2</option><option value="3">TOPIK 3</option><option value="4">TOPIK 4</option><option value="5">TOPIK 5</option><option value="6">TOPIK 6</option></select></div></div>
     <div class="set-group"><h3>Text</h3>
       <div class="set-row"><div><b>Korean text size</b><small>Makes Hangul bigger everywhere: words, stories, conversations. Handy for dense syllables like 읽 and 됐.</small></div><select id="koSize" aria-label="Korean text size"><option value="1">Normal</option><option value="1.15">Large</option><option value="1.3">Larger</option><option value="1.5">Largest</option></select></div></div>
     <div class="set-group"><h3>Sound</h3>
       <div class="set-row"><div><b>Sound effects</b><small>Bell, wood block and stamp sounds in lessons</small></div><button class="link" id="sfxToggle"></button></div></div>
+    <div class="set-group" id="dlGroup"><h3>Downloads</h3>
+      <div class="set-row"><div><b>Offline podcast episodes</b><small id="dlInfo">Tap ↓ next to an episode on the Listen page to keep it for listening without internet.</small></div><button class="btn" id="dlClear"><i data-icon="trash"></i>Delete all</button></div></div>
     <div class="set-group"><h3>Desktop</h3>
       <div class="set-row"><div><b>Close to tray</b><small>The close button keeps the app (and audio) running in the tray</small></div><button class="link" id="trayToggle"></button></div>
       <div class="set-row"><div><b>Start with Windows</b><small>Opens quietly in the tray when you sign in</small></div><button class="switch" id="autoSw" role="switch" aria-checked="false" aria-label="Start with Windows"></button></div>
@@ -937,7 +947,7 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
     <div class="ws-word" id="wsWord" lang="ko"></div>
     <p class="ws-mean" id="wsMean"></p>
     <div class="ws-fam" id="wsFam"></div>
-    <div class="btn-row" style="justify-content:center;margin-bottom:16px"><button class="btn" id="wsHear"><i data-icon="volume"></i>Hear</button><button class="btn" id="wsSlow" title="Play at 0.7× speed"><i data-icon="clock"></i>Slowly</button><button class="btn" id="wsSave"></button></div>
+    <div class="btn-row" style="justify-content:center;margin-bottom:16px"><button class="btn" id="wsHear"><i data-icon="volume"></i>Hear</button><button class="btn" id="wsSlow" title="Play at 0.7× speed"><i data-icon="clock"></i>Slowly</button><button class="btn" id="wsSave"></button><button class="btn" id="wsLook" title="Open this word in Naver Dictionary (browser)"><i data-icon="search"></i>Naver</button></div>
     <div class="sayit">
       <h3>Say it</h3>
       <p class="muted" style="margin:2px 0 12px;font-size:.9rem">Record yourself, then compare with the native speaker. Match the length and the rise and fall.</p>
@@ -1205,6 +1215,7 @@ function show(v){
 document.querySelectorAll('.nav-item').forEach(b=>b.onclick=()=>show(b.dataset.tab));
 
 function render(){
+  DAILY_GOAL=GOALS.includes(+P.goal)?+P.goal:30;
   renderStats();renderSfx();renderTheme();
   if(view==='learn')renderPath();
   if(view==='quests')renderQuests();
@@ -1291,7 +1302,7 @@ function renderPath(){
     ${seal(LEVEL_SEAL[si],'l')}<span class="sun" aria-hidden="true"></span>${WASH}</div>`;
   const today=P.days[dayKey()]||0,dd=todayStats(P);
   $('todayStrip').innerHTML=`<div class="today"><svg class="ring" viewBox="0 0 36 36" aria-hidden="true"><circle class="ring-bg" cx="18" cy="18" r="15.9"/><circle cx="18" cy="18" r="15.9" pathLength="100" stroke-dasharray="100" style="stroke:var(--red);stroke-linecap:round;stroke-dashoffset:${100-Math.min(1,today/DAILY_GOAL)*100}"/></svg>
-    <div><b>${Math.min(today,DAILY_GOAL)}/${DAILY_GOAL}</b><small>XP today</small></div><div><b>${dd.claimed.length}/4</b><small>daily quests</small></div><div><b>${streak(P.days)}</b><small>day streak</small></div><button class="link" data-go="quests">Quests</button></div>`;
+    <div><b>${Math.min(today,DAILY_GOAL)}/${DAILY_GOAL}</b><small>XP today</small></div><div><b>${dd.claimed.length}/4</b><small>daily quests</small></div><div><b>${streak(activeDays(P))}</b><small>day streak</small></div><button class="link" data-mix title="10 mixed questions from everything you've passed">Daily mix</button><button class="link" data-go="quests">Quests</button></div>${examLine()}`;
   const t=nextTask(),[tc,tn]=t?t.get(P):[0,0];
   $('taskSlot').innerHTML=t?`<button class="slip task" data-go="quests"><span class="kicker">할 일</span><span style="flex:1"><b>${t.text}</b><small class="muted">Next task · ${Math.min(tc,tn)}/${tn} · +${t.xp} XP</small></span>${icon('arrow')}</button>`:'';
   const n=Object.keys(P.mistakes).length;
@@ -1319,6 +1330,7 @@ $('learn').onclick=e=>{
   const sm=e.target.closest('summary');if(sm){const d=sm.parentElement,i=+d.dataset.u;d.open?openUnits.delete(i):openUnits.add(i);return} // remember hand-opened units
   const c=e.target.closest('[data-sec]');if(c){P.section=+c.dataset.sec;return save()}
   if(e.target.closest('[data-review]'))return startLesson(()=>buildReview(P.mistakes,P),{step:null});
+  if(e.target.closest('[data-mix]'))return buildMix(P).length?startLesson(()=>buildMix(P),{step:null}):toast('sync','Nothing to mix yet','Pass a unit first, then Daily mix asks about everything you know.','layers');
   if(e.target.closest('[data-smart]'))return startLesson(()=>buildSmart(P),{step:null,smart:true});
   const b=e.target.closest('[data-step]');if(!b||b.disabled)return;
   const i=+b.dataset.unit,s=+b.dataset.step;
@@ -1328,6 +1340,16 @@ $('learn').onclick=e=>{
 // ---- Lesson player ----
 let L=null; // {make, meta:{unitIdx,step}, queue, total, done, hearts, right, wrong, combo, start, ex, sel, picked, answered, finished, passed}
 const PRAISE=['Correct','Well done','Exactly','Nicely done','That’s right'];
+// TOPIK exam countdown on Learn (set in Settings › Goals)
+function examLine(){
+  const x=examPlan(P);if(!x)return'';
+  const lv=SECTIONS[x.level].title;
+  const txt=x.days<0?`Your ${lv} exam date has passed. Set the next one in Settings › Goals.`
+    :x.days===0?`${lv} exam today. 화이팅!`
+    :x.left?`<b>${x.days} day${x.days===1?'':'s'}</b> to your ${lv} exam · ${x.left} unit${x.left===1?'':'s'} to go · about 1 unit every ${x.every} day${x.every===1?'':'s'}`
+    :`<b>${x.days} day${x.days===1?'':'s'}</b> to your ${lv} exam · every unit passed: keep reviewing and take practice tests`;
+  return`<p class="exam-line">${icon('award')}<span>${txt}</span></p>`;
+}
 function startLesson(make,meta){
   if(typeof PL!=='undefined'&&PL.playing())PL.toggle(); // pause the podcast so lesson audio is clear
   const queue=make();if(!queue.length)return;

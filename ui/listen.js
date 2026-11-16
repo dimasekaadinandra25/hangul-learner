@@ -17,6 +17,11 @@ const CHANNELS=[ // YouTube channel ids; the latest videos come from youtube.com
   {id:'UCJpIsrXze5HT3X64LDIIHUg',name:'Korean with Miss Vicky 빅키쌤',level:'Lessons',seal:'빅키',color:''},
 ];
 const tauri=window.__TAURI__;
+// Opens a web page in the default browser (the app window never navigates away)
+const openLink=url=>tauri?tauri.core.invoke('open_external',{url}).catch(()=>{}):open(url,'_blank');
+// Look up Korean outside the app: Naver's Korean-English dictionary for words, Papago for sentences
+const naverUrl=w=>'https://korean.dict.naver.com/koendict/#/search?query='+encodeURIComponent(w);
+const papagoUrl=s=>'https://papago.naver.com/?sk=ko&tk=en&st='+encodeURIComponent(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); // feed text is untrusted
 const fmt=s=>{s=Math.max(0,Math.floor(s||0));const h=Math.floor(s/3600),m=Math.floor(s/60)%60,x=String(s%60).padStart(2,'0');return h?`${h}:${String(m).padStart(2,'0')}:${x}`:`${m}:${x}`};
 const lsGet=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}};
@@ -134,10 +139,26 @@ function sendToMini(playing,t){
   tauri.event.emit('mini-video',{id:NP.id,t,playing,rate}).catch(()=>{});refresh();
 }
 const dropRemote=()=>{if(remote){remote=null;tauri?.event.emit('mini-video',null).catch(()=>{})}};
+// ---- Offline episodes: downloaded into the app's data folder, played from there (works without internet) ----
+let DL=lsGet('dl',{}); // episode url -> local file path
+const DLING=new Set(); // urls downloading right now
+const epSrc=url=>DL[url]&&tauri?tauri.core.convertFileSrc(DL[url]):url;
+async function toggleDownload(it){
+  if(!tauri||DLING.has(it.url))return;
+  if(DL[it.url]){
+    if(!await ask({title:'Delete this download?',text:'“'+it.title+'” will stream from the internet again.',ok:'Delete',danger:true,sealText:'×'}))return;
+    await tauri.core.invoke('delete_episodes',{path:DL[it.url]}).catch(()=>{});delete DL[it.url];lsSet('dl',DL);return renderListen();
+  }
+  DLING.add(it.url);renderListen();
+  try{DL[it.url]=await tauri.core.invoke('download_episode',{url:it.url});lsSet('dl',DL);toast('sync','Downloaded','Plays without internet now','download')}
+  catch(e){toast('sync','Download failed',String(e).slice(0,120),'download')}
+  finally{DLING.delete(it.url);if(view==='listen')renderListen()}
+}
+const dlBtn=(it,i)=>!tauri||!it.url?'':`<button class="icon-btn dl-btn${DL[it.url]?' on':''}" data-dl="${i}" title="${DLING.has(it.url)?'Downloading…':DL[it.url]?'Downloaded: tap to delete':'Download to listen offline'}" aria-label="${DL[it.url]?'Delete download':'Download'}"${DLING.has(it.url)?' disabled':''}>${icon(DLING.has(it.url)?'clock':DL[it.url]?'check':'download')}</button>`;
 function playEp(src,e){
   dropRemote();if(yt?.stopVideo)yt.stopVideo();$('ytWrap').hidden=true;$('ytNote').hidden=true;
   setNow(src,{title:e.title,url:e.url});
-  pod.src=e.url;pod.playbackRate=rate;pod.play().catch(playErr);refresh();
+  pod.src=epSrc(e.url);pod.playbackRate=rate;pod.play().catch(playErr);refresh();
 }
 const ytApi=()=>ytReady??=new Promise((res,rej)=>{
   window.onYouTubeIframeAPIReady=res;
@@ -289,7 +310,7 @@ function renderListen(){
   const on=PL.playing();
   $('lBody').innerHTML=head+(src.feed
     ?`<div class="eps">${f.items.map((e,i)=>{const now=NP?.url===e.url;
-      return`<div class="ep${now?' now':''}"><button class="play-btn" data-ep="${i}" aria-label="${now&&on?'Pause':'Play'}: ${esc(e.title)}">${icon(now&&on?'pause':'play')}</button><div><b>${esc(e.title)}</b><small>${dateOf(e.date)}${e.dur?' · '+esc(e.dur):''}${wordsChip(e)}</small></div></div>`}).join('')}</div>`
+      return`<div class="ep${now?' now':''}"><button class="play-btn" data-ep="${i}" aria-label="${now&&on?'Pause':'Play'}: ${esc(e.title)}">${icon(now&&on?'pause':'play')}</button><div><b>${esc(e.title)}</b><small>${dateOf(e.date)}${e.dur?' · '+esc(e.dur):''}${wordsChip(e)}</small></div>${dlBtn(e,i)}</div>`}).join('')}</div>`
     :`<div class="vids">${f.items.map((v,i)=>`<button class="vid${NP?.id===v.id?' now':''}" data-vid="${i}"><span class="thumb"><img src="https://i.ytimg.com/vi/${v.id}/mqdefault.jpg" alt="" loading="lazy">${NP?.id===v.id?`<span class="eq">${icon(on?'pause':'play')}</span>`:''}</span><b>${esc(v.title)}</b><small>${dateOf(v.date)}${wordsChip(v)}</small></button>`).join('')}</div>`);
 }
 $('listen').addEventListener('click',e=>{
@@ -297,6 +318,7 @@ $('listen').addEventListener('click',e=>{
   const s=e.target.closest('[data-show]');if(s){LV.open=s.dataset.show||null;LV.err='';LV.fetched=null;renderListen();return scrollTo(0,0)}
   if(e.target.closest('[data-refresh]')){LV.fetched=null;LV.force=true;return renderListen()}
   const src=(LV.tab==='pod'?PODCASTS:CHANNELS).find(x=>x.id===LV.open),f=src&&savedFeed(src);if(!f)return;
+  const dl=e.target.closest('[data-dl]');if(dl)return toggleDownload(f.items[+dl.dataset.dl]);
   const ep=e.target.closest('[data-ep]');
   if(ep){const it=f.items[+ep.dataset.ep];return NP?.url===it.url?PL.toggle():playEp(src,it)}
   const v=e.target.closest('[data-vid]');

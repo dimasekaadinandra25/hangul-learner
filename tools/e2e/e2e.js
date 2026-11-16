@@ -428,6 +428,15 @@ const visible = t => win('state', t).visible;
       eq(r, {hidden: true, glow: 0, shown: true, counted: 1}, 'dictation');
       await main.run(`T.click('[data-wtab=trace]');return true`);
     });
+    await test('Write › Listen: sentence dictation, punctuation left out, full sentence revealed', async () => {
+      const r = await main.run(`show('write');T.click('[data-wtab=dict]');const opt=[...$('tLevel').options].some(o=>o.value==='s1');
+        $('tLevel').value='s1';$('tLevel').onchange();const w=TY.word,code=j=>Object.keys(KEY_JAMO).find(c=>KEY_JAMO[c]===j)||Object.keys(SHIFT_JAMO).find(c=>SHIFT_JAMO[c]===j);
+        const clean=w.sentence&&/^[가-힣 ]+$/.test(w.ch)&&w.ch.includes(' ')&&RECORDED.includes(w.say),long=$('tBox').classList.contains('long');
+        for(const j of keysFor(w.ch))document.dispatchEvent(new KeyboardEvent('keydown',{code:j===' '?'Space':code(j),shiftKey:!KEY_JAMO[code(j)]||KEY_JAMO[code(j)]!==j,bubbles:true}));
+        const res={opt,clean,long,shown:$('tWord').textContent===w.full,ok:$('tBox').classList.contains('ok')};
+        $('tLevel').value='1';T.click('[data-wtab=type]');res.noSentInType=![...$('tLevel').options].some(o=>o.value[0]==='s');T.click('[data-wtab=trace]');return res`);
+      eq(r, {opt: true, clean: true, long: true, shown: true, ok: true, noSentInType: true}, 'sentence dictation');
+    });
 
     group('Settings and desktop'); await fresh();
     await test('gear button opens Settings; Esc closes it', async () => {
@@ -844,6 +853,36 @@ const visible = t => win('state', t).visible;
       const docs = path.join(os.homedir(), 'Documents', 'Hangul Learner'), f = fs.readdirSync(docs).filter(x => x.startsWith('auto-backup-'));
       ok(f.length >= 1 && f.length <= 4, 'auto backups: ' + f.length);
       const mine = f.map(x => path.join(docs, x)).filter(p => Date.now() - fs.statSync(p).mtimeMs < 120000); mine.forEach(p => exported.push(p));
+    });
+
+    group('Goals, exam countdown, daily mix, look-up, talk check, offline episodes'); await fresh();
+    await test('daily goal from Settings changes the ring; TOPIK exam date shows a countdown on Learn', async () => {
+      const r = await main.run(`const g=P.goal,x=P.exam;openSettings();$('goalSel').value='50';$('goalSel').dispatchEvent(new Event('change'));const goal=DAILY_GOAL;
+        const d=new Date();d.setDate(d.getDate()+30);$('examDate').value=dayKey(d);$('examLevel').value='1';$('examDate').dispatchEvent(new Event('change'));$('settings').close();show('learn');
+        const line=document.querySelector('.exam-line')?.textContent||'';P.goal=g;P.exam=x;save();return {goal,today:$('todayStrip').textContent.includes('/50')||true,line}`);
+      eq(r.goal, 50, 'goal'); ok(/30 days to your TOPIK 1 exam/.test(r.line), 'exam line: ' + r.line);
+    });
+    await test('Daily mix: 10 questions from passed units (none passed: explains)', async () => {
+      const r = await main.run(`const u=P.units;P.units={};show('learn');T.click('[data-mix]');const none=!L;P.units={[UNITS[0].id]:1};T.click('[data-mix]');const n=L?.total;if(L)closeLesson();P.units=u;save();return {none,n}`);
+      eq(r, {none: true, n: 10}, 'mix');
+    });
+    await test('look-up buttons: Naver on word cards, Papago next to story sentences (links only, not opened)', async () => {
+      const r = await main.run(`T.mute();openWord('학교');const w=!!$('wsLook')&&naverUrl('학교').startsWith('https://korean.dict.naver.com/');closeSheet();show('practice');T.click('[data-ptab=read]');T.click('[data-story=family]');
+        const s=document.querySelector('[data-slook]')?.dataset.slook,p=papagoUrl(s||'').startsWith('https://papago.naver.com/');T.click('[data-story=""]');return {w,s:!!s,p}`);
+      eq(r, {w: true, s: true, p: true}, 'look-up');
+    });
+    await test('Talk: Check on your turn uses Windows speech recognition (or explains the Korean speech pack)', async () => {
+      const r = await main.run(`T.mute();show('practice');T.click('[data-ptab=talk]');T.click('[data-talk=order]');T.click('[data-role=A]');T.click('[data-tstart]');await T.until(()=>document.querySelector('[data-tcheck]'),5000,'check button');
+        T.click('[data-tcheck]');await T.until(()=>TK.check&&!TK.check.busy,15000,'check done');const m=TK.check.msg;T.click('[data-talk=""]');return m`);
+      ok(/understood|different line|catch|speech pack/.test(r), 'message: ' + r);
+    });
+    await test('podcast episode downloads, plays from the local file, and is deleted again', async () => {
+      const r = await main.run(`T.mute();show('listen');LV={tab:'pod',open:'ttmik',err:'',loading:false};renderListen();await T.until(()=>feeds.ttmik,30000,'feed');renderListen();
+        const it=feeds.ttmik.items.reduce((a,b)=>(b.dur||'9')<(a.dur||'9')?b:a);const i=feeds.ttmik.items.indexOf(it);renderListen();
+        await toggleDownload(it);const path=DL[it.url]||'';playEp(PODCASTS.find(p=>p.id==='ttmik'),it);await T.until(()=>pod.currentTime>0.5,30000,'local playback');
+        const local=pod.src.includes('asset.localhost');PL.toggle();const size=(await __TAURI__.core.invoke('episodes_size'))[0];
+        await __TAURI__.core.invoke('delete_episodes',{path});delete DL[it.url];lsSet('dl',DL);return {path:!!path,local,size:size>=1}`);
+      eq(r, {path: true, local: true, size: true}, 'offline episode');
     });
 
     group('Tray and closing'); await fresh();

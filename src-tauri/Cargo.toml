@@ -1,6 +1,6 @@
 [package]
 name = "hangul-learner"
-version = "1.6.1"
+version = "1.7.0"
 description = "Learn to read, write and hear Korean Hangul"
 edition = "2021"
 
@@ -8,7 +8,7 @@ edition = "2021"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["tray-icon"] }
+tauri = { version = "2", features = ["tray-icon", "protocol-asset"] }
 tauri-plugin-autostart = "2"
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-notification = "2"

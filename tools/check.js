@@ -67,6 +67,9 @@ assert.strictEqual(strokeScore(STROKES['ㅏ'],[]),0);
 `+`
 const keys=VOCAB.map(w=>w.ch); // a word may equal a practice syllable (코, 비); that's fine
 assert.strictEqual(parseWordList('\\ufeff학교,school\\r\\n"책, 공책","book, notebook"\\r\\n').length,2,'exported CSV reads back');
+// exam plan and daily mix
+{const P={units:{},exam:{date:'2026-12-13',level:1}},x=examPlan(P,new Date(2026,10,13,12));assert.strictEqual(x.days,30);assert.strictEqual(x.left,UNITS.filter(u=>u.section===1).length);assert.strictEqual(x.every,Math.floor(30/x.left));
+  assert.strictEqual(examPlan({units:{}},new Date()),null);assert.strictEqual(buildMix({units:{}}).length,0);const Q={units:{[UNITS[0].id]:1,[UNITS[1].id]:1}};assert.strictEqual(buildMix(Q).length,10)}
 // rest days: a missed yesterday is covered while the streak is alive; none left = streak breaks
 {const t=new Date(2026,10,13,12),P={days:{'2026-11-10':10,'2026-11-11':10},freezes:1};assert.deepStrictEqual(useRestDays(P,t),['2026-11-12']);assert.strictEqual(P.freezes,0);assert.strictEqual(streak(activeDays(P),t),3);
   const Q={days:{'2026-11-10':10},freezes:0};assert.deepStrictEqual(useRestDays(Q,t),[]);const R={days:{},freezes:2};assert.deepStrictEqual(useRestDays(R,t),[],'no streak to save')}

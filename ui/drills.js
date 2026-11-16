@@ -148,7 +148,10 @@ function checkStory(s){
 // One audio element for stories and dialogues: plays a recorded line, resolves when it ends
 const sAudio=new Audio(),sQueue={on:false,i:-1,run:0};
 // ☆ next to a story or conversation sentence: saves it to My words
-const saveBtn=(key,ko)=>{const on=inNotebook(ko);return`<button class="icon-btn sm s-save${on?' on':''}" data-ssave="${key}" aria-pressed="${on}" title="${on?'Saved in My words: tap to remove':'Save this sentence to My words'}" aria-label="Save sentence">${icon('star')}</button>`};
+// and a Papago button that translates the sentence in the browser
+const lookBtn=ko=>`<button class="icon-btn s-look" data-slook="${esc(ko)}" title="Translate in Papago (browser)" aria-label="Translate sentence in Papago">${icon('search')}</button>`;
+const saveBtn=(key,ko)=>lookBtn(ko)+saveBtn1(key,ko);
+const saveBtn1=(key,ko)=>{const on=inNotebook(ko);return`<button class="icon-btn sm s-save${on?' on':''}" data-ssave="${key}" aria-pressed="${on}" title="${on?'Saved in My words: tap to remove':'Save this sentence to My words'}" aria-label="Save sentence">${icon('star')}</button>`};
 const playLine=(text,male)=>new Promise(r=>{sAudio.src='audio/'+(male?'m-':'')+audioName(text);sAudio.playbackRate=PX.slow?SLOW:1;sAudio.onended=sAudio.onerror=()=>setTimeout(r,350);sAudio.play().catch(r)});
 async function hearAll(s){
   const run=++sQueue.run;sQueue.on=true;
@@ -162,7 +165,19 @@ async function hearAll(s){
 const stopHearAll=()=>{sQueue.run++;sQueue.on=false;sQueue.i=-1;sAudio.pause();TK.run++};
 
 // ---- Talk: role-play a dialogue. The app says the other part; on your turn you hear it, record yourself and compare ----
-const TK={id:null,role:null,i:-1,run:0,rec:false,urls:{}};
+const TK={id:null,role:null,i:-1,run:0,rec:false,urls:{},check:null}; // check: pronunciation result for the current line
+// Pronunciation check on your turn (Windows speech recognition, like the word card): the line plus the other lines of
+// this conversation as look-alikes, so Windows has to tell them apart
+const canCheck=()=>!!tauri&&navigator.userAgent.includes('Windows');
+async function talkCheck(d){
+  const i=TK.i,line=d.lines[i][1];TK.check={i,busy:true};renderPractice();
+  let msg,ok=false;
+  try{const heard=(await tauri.core.invoke('recognize',{phrases:[line,...d.lines.filter((l,k)=>k!==i).map(l=>l[1]).slice(0,12)]})).trim();ok=heard===line;
+    msg=ok?'Windows understood your line ✓':heard?'Windows heard a different line. Listen again and retry.':'Didn’t catch it. Try again, a little closer to the microphone.'}
+  catch(e){msg=String(e).includes('NO_KOREAN')?'Needs Windows’ Korean speech pack (Settings › Time & language › Language › Korean › Speech).':'Could not listen: '+e}
+  if(ok){P.totals.pron=(P.totals.pron||0)+1;save()}
+  sfx(ok?'ok':'bad');if(TK.i===i){TK.check={i,msg,ok};renderPractice()}
+}
 const talkDone=d=>!!P.talks?.[d.id];
 function talkList(){
   return`<p class="muted" style="margin:0 0 14px">Pick a conversation and a part. The app plays the other person; on your turn, say your line, record it and compare it with the native speaker.</p>
@@ -181,7 +196,7 @@ function talkView(d){
   <div class="talk-bar">${!TK.role?'<span class="muted">Choose your part to start.</span>'
     :ended?`<b>Conversation done!</b><button class="btn" data-tstart>${icon('rotate')}Again</button>`
     :TK.i<0?`<button class="btn btn-ink" data-tstart>${icon('play')}Start</button>`
-    :mine?`<span class="kicker">Your turn</span><button class="btn" data-thear>${icon('volume')}Hear it</button><button class="btn btn-red${TK.rec?' recording':''}" data-trec><span class="rec-dot"></span>${TK.rec?'Recording… say it':'Record me'}</button>${TK.urls[TK.i]?`<button class="btn" data-tboth>${icon('repeat')}Native, then me</button>`:''}<button class="btn btn-ink" data-tnext>Next${icon('arrow')}</button>`
+    :mine?`<span class="kicker">Your turn</span><button class="btn" data-thear>${icon('volume')}Hear it</button><button class="btn btn-red${TK.rec?' recording':''}" data-trec><span class="rec-dot"></span>${TK.rec?'Recording… say it':'Record me'}</button>${TK.urls[TK.i]?`<button class="btn" data-tboth>${icon('repeat')}Native, then me</button>`:''}${canCheck()?`<button class="btn" data-tcheck${TK.check?.busy?' disabled':''}>${icon('check')}${TK.check?.busy?'Listening…':'Check'}</button>`:''}${TK.check?.i===TK.i&&TK.check.msg?`<span class="t-check ${TK.check.ok?'good':'bad'}">${esc(TK.check.msg)}</span>`:''}<button class="btn btn-ink" data-tnext>Next${icon('arrow')}</button>`
     :`<span class="muted">${esc(who(cur[0]))} is speaking…</span>`}</div>`;
 }
 // moves to line i: the other part plays and moves on by itself; your part waits for Next
@@ -226,6 +241,7 @@ $('pBody').addEventListener('click',e=>{
   if(t.dataset.story!=null){stopHearAll();Object.assign(PX,{story:t.dataset.story||null,shown:new Set(),pick:{},checked:false});renderPractice();return scrollTo(0,0)}
   if(t.dataset.talk!=null){talkReset();Object.assign(TK,{id:t.dataset.talk||null,role:null});renderPractice();return scrollTo(0,0)}
   if(t.hasAttribute('data-sen')){PX.en=!PX.en;return renderPractice()}
+  if(t.dataset.slook)return openLink(papagoUrl(t.dataset.slook));
   if(t.dataset.ssave){ // save a whole sentence to My words (with its English); again removes it
     const k=t.dataset.ssave,i=+k.slice(1),line=k[0]==='s'?STORIES.find(x=>x.id===PX.story)?.lines[i]:DIALOGUES.find(x=>x.id===TK.id)?.lines[i]?.slice(1);if(!line)return;
     const[ko,en]=line;if(inNotebook(ko))removeFromNotebook(ko);else{addToNotebook(ko,en);toast('sync','Sentence saved','In My words, and in Smart review from today','star')}
@@ -238,6 +254,7 @@ $('pBody').addEventListener('click',e=>{
     if(t.dataset.tline!=null){const i=+t.dataset.tline;if(TK.role&&TK.i>=0&&TK.i<d.lines.length&&d.lines[TK.i][0]!==TK.role)return;stopHearAll();sayLine(d.lines[i]);return}
     if(t.hasAttribute('data-thear'))return sayLine(d.lines[TK.i]);
     if(t.hasAttribute('data-trec'))return talkRecord(d);
+    if(t.hasAttribute('data-tcheck'))return talkCheck(d);
     if(t.dataset.tmine!=null)return playUrl(TK.urls[+t.dataset.tmine]);
     if(t.hasAttribute('data-tboth')){const i=TK.i;return sayLine(d.lines[i]).then(()=>TK.urls[i]&&playUrl(TK.urls[i]))}
     if(t.hasAttribute('data-tnext'))return talkGo(d,TK.i+1);

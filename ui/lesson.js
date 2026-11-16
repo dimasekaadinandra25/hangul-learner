@@ -1,5 +1,6 @@
 // Game logic, no DOM: exercises, steps, streaks, quests, achievements. Tested by tools/check.js.
-const HEARTS=5,DAILY_GOAL=30,QUEST_XP=10,WEEKLY_XP=40;
+const HEARTS=5,QUEST_XP=10,WEEKLY_XP=40,GOALS=[10,30,50,100];
+let DAILY_GOAL=30; // XP per day; the learner picks it in Settings (P.goal), set on every render
 const shuffle=a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);
 const pickOne=a=>a[Math.floor(Math.random()*a.length)];
 
@@ -158,6 +159,18 @@ function buildTest(si,n=20){
 }
 
 // mistakes: {itemKey: unitId}. Each mistaken item is practised twice, up to 10 questions.
+// Daily mix: 10 questions from every unit you have passed (words and grammar), shuffled together.
+function buildMix(P){
+  const items=UNITS.flatMap((u,i)=>(P.units[u.id]||0)>0?u.items.map(it=>[i,it]):[]);
+  return fillTo(items,Math.min(10,items.length)).map(([i,it])=>makeExercise(i,it,'mixed'));
+}
+// TOPIK exam plan: days until the exam and units of the target level (and below) still to pass.
+function examPlan(P,today=new Date()){
+  const e=P.exam;if(!e?.date||!(+e.level>=1))return null;
+  const days=Math.round((new Date(e.date+'T00:00')-new Date(dayKey(today)+'T00:00'))/864e5);
+  const left=UNITS.filter(u=>u.section>=1&&u.section<=+e.level&&!((P.units[u.id]||0)>0)).length;
+  return{days,left,level:+e.level,every:left&&days>0?Math.max(1,Math.floor(days/left)):0};
+}
 function buildReview(mistakes,P={}){
   const list=Object.entries(mistakes).flatMap(([key,uid])=>{
     const r=itemFor(P,key,uid);

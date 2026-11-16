@@ -132,6 +132,70 @@ fn show_in_folder(app: AppHandle, path: String) -> Result<(), String> {
     cmd.spawn().map(|_| ()).map_err(|e| e.to_string())
 }
 
+/// Offline podcasts live in <app data>/episodes; the page plays them through the asset protocol (scope: that folder).
+fn episodes_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("episodes");
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir)
+}
+
+/// Downloads an episode with the system's curl (like feeds) and returns its file path. Name = hash of the URL.
+#[tauri::command]
+async fn download_episode(app: AppHandle, url: String) -> Result<String, String> {
+    https_only(&url)?;
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    for b in url.bytes() {
+        h = (h ^ b as u64).wrapping_mul(0x100_0000_01b3);
+    }
+    let path = episodes_dir(&app)?.join(format!("{h:016x}.mp3"));
+    let part = path.with_extension("part");
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut cmd = Command::new(if cfg!(windows) { "curl.exe" } else { "curl" });
+        cmd.args(["-sSL", "--fail", "--max-time", "1800", "--max-filesize", "400000000", "-A", "Mozilla/5.0 HangulLearner", "-o"]);
+        cmd.arg(&part).arg(&url);
+        #[cfg(windows)]
+        cmd.creation_flags(0x0800_0000);
+        let out = cmd.output().map_err(|e| format!("curl: {e}"))?;
+        if !out.status.success() {
+            let _ = fs::remove_file(&part);
+            return Err(String::from_utf8_lossy(&out.stderr).trim().to_string());
+        }
+        fs::rename(&part, &path).map_err(|e| e.to_string())?;
+        Ok(path.to_string_lossy().into_owned())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Deletes one downloaded episode, or all of them when `path` is empty (only files in the episodes folder).
+#[tauri::command]
+fn delete_episodes(app: AppHandle, path: String) -> Result<(), String> {
+    let dir = episodes_dir(&app)?.canonicalize().map_err(|e| e.to_string())?;
+    if path.is_empty() {
+        for f in fs::read_dir(&dir).map_err(|e| e.to_string())?.flatten() {
+            let _ = fs::remove_file(f.path());
+        }
+        return Ok(());
+    }
+    let file = PathBuf::from(&path).canonicalize().map_err(|e| e.to_string())?;
+    if !file.starts_with(&dir) {
+        return Err("not a downloaded episode".into());
+    }
+    fs::remove_file(file).map_err(|e| e.to_string())
+}
+
+/// Number of downloaded episodes and their total size in bytes.
+#[tauri::command]
+fn episodes_size(app: AppHandle) -> Result<(usize, u64), String> {
+    let files: Vec<u64> = fs::read_dir(episodes_dir(&app)?)
+        .map_err(|e| e.to_string())?
+        .flatten()
+        .filter(|f| f.path().extension().is_some_and(|x| x == "mp3"))
+        .filter_map(|f| f.metadata().ok().map(|m| m.len()))
+        .collect();
+    Ok((files.len(), files.iter().sum()))
+}
+
 /// Opens a link in the default browser: explorer.exe on Windows, open on macOS, xdg-open on Linux.
 fn open_with_system(target: &str) -> Result<(), String> {
     let opener = if cfg!(windows) { "explorer.exe" } else if cfg!(target_os = "macos") { "open" } else { "xdg-open" };
@@ -214,7 +278,7 @@ fn alarm(app: AppHandle, ms: u64) {
 /// Needs Windows' Korean speech pack; without it the error is "NO_KOREAN".
 #[tauri::command]
 async fn recognize(phrases: Vec<String>) -> Result<String, String> {
-    if phrases.is_empty() || phrases.len() > 20 || phrases.iter().any(|p| p.trim().is_empty() || p.chars().count() > 40) {
+    if phrases.is_empty() || phrases.len() > 20 || phrases.iter().any(|p| p.trim().is_empty() || p.chars().count() > 120) {
         return Err("bad phrases".into());
     }
     #[cfg(windows)]
@@ -522,7 +586,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             load_progress, save_progress, fetch_text, open_external, close_to_tray, toggle_mini, hide_mini, show_main, mini_video, mini_visible,
-            set_shortcuts, autostart, export_backup, show_in_folder, clip_watch, alarm, sync_default, sync_read, sync_write, recognize, prune_backups
+            set_shortcuts, autostart, export_backup, show_in_folder, clip_watch, alarm, sync_default, sync_read, sync_write, recognize, prune_backups, download_episode, delete_episodes, episodes_size
         ])
         .run(tauri::generate_context!())
         .expect("failed to start Hangul Learner");

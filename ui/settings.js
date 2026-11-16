@@ -4,7 +4,7 @@ const swSet=(id,on)=>$(id).setAttribute('aria-checked',!!on);
 const swOn=id=>$(id).getAttribute('aria-checked')==='true';
 const setMsg=(id,text,bad)=>{$(id).textContent=text;$(id).classList.toggle('bad',!!bad)};
 
-function openSettings(){renderSettings();$('settings').showModal();$('setClose').focus({focusVisible:false})}
+function openSettings(){renderSettings();renderGoals();renderDownloads();$('settings').showModal();$('setClose').focus({focusVisible:false})}
 document.addEventListener('click',e=>{if(e.target.closest('[data-settings]'))openSettings()});
 $('setClose').onclick=()=>$('settings').close();
 // ? anywhere (except while typing) shows every keyboard shortcut
@@ -66,6 +66,23 @@ tauri?.event.listen('player-cmd',e=>{
   if(dueKeys(P).length&&!L)startLesson(()=>buildSmart(P),{step:null,smart:true});
 });
 
+// ---- Downloads: offline podcast episodes ----
+$('dlGroup').hidden=!tauri;
+async function renderDownloads(){
+  if(!tauri)return;
+  const[n,bytes]=await tauri.core.invoke('episodes_size').catch(()=>[0,0]);
+  $('dlInfo').textContent=n?`${n} episode${n===1?'':'s'} kept for offline listening · ${(bytes/1048576).toFixed(0)} MB`:'Tap ↓ next to an episode on the Listen page to keep it for listening without internet.';
+  $('dlClear').disabled=!n;
+}
+$('dlClear').onclick=async()=>{
+  if(!await ask({title:'Delete all downloaded episodes?',text:'They will stream from the internet again.',ok:'Delete all',danger:true,sealText:'×'}))return;
+  await tauri.core.invoke('delete_episodes',{path:''}).catch(()=>{});DL={};lsSet('dl',DL);renderDownloads();if(view==='listen')renderListen();
+};
+// ---- Goals: daily XP goal and TOPIK exam date (both in progress, so they sync) ----
+function renderGoals(){$('goalSel').value=String(GOALS.includes(+P.goal)?+P.goal:30);$('examDate').value=P.exam?.date||'';$('examLevel').value=String(P.exam?.level||2)}
+$('goalSel').onchange=e=>{P.goal=+e.target.value;save()};
+const setExam=()=>{const date=$('examDate').value;P.exam=date?{date,level:+$('examLevel').value}:null;save()};
+$('examDate').onchange=setExam;$('examLevel').onchange=setExam;
 // ---- Korean text size: a zoom on Korean text only (CSS --ko-size); per device ----
 $('koSize').value=String(lsGet('koSize',1));
 $('koSize').onchange=e=>{const k=+e.target.value||1;lsSet('koSize',k);document.documentElement.style.setProperty('--ko-size',k)};

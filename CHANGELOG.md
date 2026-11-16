@@ -2,6 +2,16 @@
 
 What changed in each version of Hangul Learner. Newest first. Installed apps update themselves; Settings › Updates shows your version.
 
+## 1.7.0
+
+- **TOPIK exam countdown:** set your exam date and level in Settings › Goals; Learn shows the days left and the pace (about 1 unit every N days).
+- **Daily goal:** choose 10, 30, 50 or 100 XP a day (Settings › Goals).
+- **Daily mix:** one tap on Learn gives 10 mixed questions from every unit you have passed.
+- **Offline podcasts:** tap ↓ next to an episode to keep it; it plays without internet. Manage them in Settings › Downloads.
+- **Look up anything:** a Naver Dictionary button on word cards, and a Papago button next to every story and conversation sentence.
+- **Pronunciation check in conversations:** on your turn, Check asks Windows whether it understood your line (needs Windows’ Korean speech pack).
+- **Sentence dictation:** Write › Listen now has a “sentences” list for each TOPIK level: hear a whole sentence and type it (letters and spaces, no punctuation).
+
 ## 1.6.1
 
 - **Mac and Linux versions:** Hangul Learner now also comes for macOS (Apple Silicon and Intel; the first launch needs right-click › Open) and Linux (AppImage and .deb). They update themselves like the Windows version.

@@ -27,6 +27,7 @@ $('wsClose').onclick=closeSheet;
 $('wordSheet').addEventListener('click',e=>{if(e.target===$('wordSheet'))closeSheet()});
 $('wsHear').onclick=()=>wsW&&speak(wsW.say);
 $('wsSlow').onclick=()=>wsW&&speak(wsW.say,0.7);
+$('wsLook').onclick=()=>wsW&&openLink(naverUrl(wsW.ch));
 
 // ---- My words ----
 const inNotebook=ch=>(P.notebook||[]).some(w=>w.ch===ch);
@@ -235,10 +236,16 @@ const typeable=w=>keysFor(w).every(j=>j===' '||JAMO_KEY[j]);
 function typeLevels(){
   const opts=SECTIONS.map((s,i)=>[String(i),s.title+' words']);
   if((P.notebook||[]).length)opts.push(['mine','My words']);
+  if(wTab==='dict')SECTIONS.forEach((s,i)=>{if(dictSentences(i).length)opts.push(['s'+i,s.title+' sentences'])});
   const cur=$('tLevel').value||String(Math.min(P.section||0,SECTIONS.length-1));
   $('tLevel').innerHTML=opts.map(([v,t])=>`<option value="${v}">${esc(t)}</option>`).join('');
   $('tLevel').value=opts.some(o=>o[0]===cur)?cur:'0';
 }
+// Sentence dictation (Write › Listen): grammar examples and story lines of a level, all recorded. You type the
+// letters and spaces; punctuation is left out. Sentences with digits or Latin letters are skipped.
+const dictSentences=si=>[...GRAMMAR_ITEMS.filter(g=>g.section===si).flatMap(g=>g.ex),...STORIES.filter(s=>s.level===si).flatMap(s=>s.lines)]
+  .filter(([ko])=>RECORDED.includes(ko)&&!/[0-9A-Za-z]/.test(ko))
+  .map(([ko,en])=>({ch:ko.replace(/[^가-힣 ]/g,'').replace(/\s+/g,' ').trim(),full:ko,meaning:en,say:ko,sentence:true}));
 let TY={word:null,keys:[],wrong:0,count:0,done:0,start:0,shift:false};
 // Typing race: as many words as you can in 60 seconds; the clock starts with your first key. Best score: P.raceBest.
 const RACE_SEC=60;let raceTimer=0;
@@ -255,10 +262,10 @@ function raceTick(){
 }
 function tPick(){
   typeLevels();
-  const v=$('tLevel').value,list=(v==='mine'?(P.notebook||[]).map(w=>({ch:w.ch,meaning:w.meaning,say:w.ch})):VOCAB.filter(w=>w.section===+v)).filter(w=>typeable(w.ch)&&w.ch!==TY.word?.ch);
+  const v=$('tLevel').value,list=(v[0]==='s'?dictSentences(+v.slice(1)):v==='mine'?(P.notebook||[]).map(w=>({ch:w.ch,meaning:w.meaning,say:w.ch})):VOCAB.filter(w=>w.section===+v)).filter(w=>typeable(w.ch)&&w.ch!==TY.word?.ch);
   if(wTab==='race'&&TY.over)raceReset(); // Skip after a race starts a new one
   TY.word=list[Math.floor(Math.random()*list.length)]||VOCAB[0];TY.keys=[];TY.dict=wTab==='dict';TY.solved=false;
-  $('tWord').textContent=TY.dict?'？':TY.word.ch;$('tMean').textContent=TY.dict?'Listen, then type the word you hear. Hear plays it again.':TY.word.meaning;$('tBox').className='type-box';
+  $('tWord').textContent=TY.dict?'？':TY.word.ch;$('tMean').textContent=TY.dict?(TY.word.sentence?'Listen, then type the sentence you hear: letters and spaces, no punctuation. A wrong key turns the box red; Backspace fixes it. Hear plays it again.':'Listen, then type the word you hear. Hear plays it again.'):TY.word.meaning;$('tBox').className='type-box'+(TY.word.sentence?' long':'');$('tWord').classList.toggle('long',!!TY.word.sentence);
   if(TY.dict)setTimeout(()=>speak(TY.word.say),250);
   tRender();
 }
@@ -286,10 +293,10 @@ function tKey(j){
   TY.keys.push(j);tRender();
   if(composeJamo(TY.keys)===TY.word.ch){
     TY.done++;TY.solved=true;const d=todayStats(P);
-    if(TY.dict){P.totals.dictation=(P.totals.dictation||0)+1;d.dict=(d.dict||0)+1;$('tWord').textContent=TY.word.ch;$('tMean').textContent=TY.word.meaning}
+    if(TY.dict){P.totals.dictation=(P.totals.dictation||0)+1;d.dict=(d.dict||0)+1;$('tWord').textContent=TY.word.full||TY.word.ch;$('tMean').textContent=TY.word.meaning}
     else{P.totals.typed=(P.totals.typed||0)+1;d.typed=(d.typed||0)+1}
     const race=wTab==='race';if(!race)speak(TY.word.say); // racing: no audio, next word at once
-    $('tBox').classList.add('ok');save();tRender();const w=TY.word;setTimeout(()=>{if(TY.word===w&&!TY.over)tPick()},race?150:TY.dict?1600:900);
+    $('tBox').classList.add('ok');save();tRender();const w=TY.word;setTimeout(()=>{if(TY.word===w&&!TY.over)tPick()},race?150:TY.dict?(w.sentence?3500:1600):900);
   }
 }
 // on-screen keyboard
