@@ -59,6 +59,7 @@ button{cursor:pointer}
 .brand small{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .brand .seal{align-self:center}
 .nav-item{position:relative;display:flex;align-items:center;gap:14px;min-height:48px;padding:10px 12px;border-radius:10px;border:0;background:none;color:var(--muted);font-weight:600;text-align:left}
+.nav-more,.more-panel{display:none}
 .nav-item em{margin-left:auto;font-style:normal;font-family:var(--serif);font-size:.85rem;opacity:.7}
 .nav-item:hover{background:var(--paper-2);color:var(--ink)}
 .nav-item[aria-current=page]{color:var(--ink);background:var(--card);box-shadow:inset 0 0 0 1px var(--hair)}
@@ -75,6 +76,11 @@ main{width:100%;max-width:720px;margin:0 auto;padding:34px 32px 120px}
   .nav-item{flex:1;flex-direction:column;justify-content:center;gap:2px;min-height:56px;padding:6px 2px;font-size:.72rem}
   .nav-item[aria-current=page]{box-shadow:none;background:none;color:var(--red)}
   .nav-item[aria-current=page]::before{display:none}
+  .sidebar .nav-x{display:none}
+  .nav-more{display:flex}.nav-more.cur{color:var(--red)}
+  .more-panel:not([hidden]){position:fixed;left:12px;right:12px;bottom:calc(72px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:4px;padding:8px;
+    background:var(--card);border:1px solid var(--hair);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.14)}
+  .more-panel .nav-item{min-height:64px}
   main{padding:18px 18px 110px}
   .topbar{margin:-18px -18px 18px;padding:8px 18px}
 }
@@ -663,6 +669,10 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
 .bubble .s-save{float:right;margin:-4px -6px 0 4px}
 .ep-played{color:var(--jade);display:inline-flex;align-items:center;gap:2px}.ep-played svg{width:12px;height:12px}
 #dSleep[aria-pressed="true"]{color:var(--red)}
+.hw{border-radius:4px;transition:background .12s}.hw.on{background:color-mix(in srgb,var(--gold) 38%,transparent)}
+.dl-btn.busy{width:auto;min-width:44px;padding:0 8px;color:var(--red)}.dl-pct{font-size:.78rem;font-variant-numeric:tabular-nums}
+.add-show{margin-top:26px;max-width:560px}.add-show label{font-weight:600;display:block;margin-bottom:6px}
+.add-row{display:flex;gap:8px}.add-row input{flex:1;min-width:0;min-height:44px;padding:8px 12px;border:1px solid var(--hair);border-radius:10px;background:var(--card);color:var(--ink);font-size:1rem}.add-row input:focus{outline:none;border-color:var(--ink)}.add-show .set-msg{display:block;margin-top:6px}.rm-show{float:right}
 .shelf-head{display:flex;align-items:center;gap:8px;font-size:1rem;margin:26px 0 4px}
 .ep{align-items:center}.dl-btn{flex:none;margin-left:auto;color:var(--muted)}.dl-btn.on{color:var(--jade)}
 .t-check{flex-basis:100%;font-size:.9rem}.t-check.good{color:var(--jade)}.t-check.bad{color:var(--red)}
@@ -723,14 +733,16 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
   <nav class="sidebar" aria-label="Main">
     <div class="brand"><b>한글</b><small>Hangul<br>Learner</small></div>
     <button class="nav-item" data-tab="learn" aria-current="page"><i data-icon="map"></i>Learn<em>배우기</em></button>
-    <button class="nav-item" data-tab="quests"><i data-icon="gift"></i>Quests<em>과제</em></button>
+    <button class="nav-item nav-x" data-tab="quests"><i data-icon="gift"></i>Quests<em>과제</em></button>
     <button class="nav-item" data-tab="vocab"><i data-icon="layers"></i>Words<em>단어</em></button>
-    <button class="nav-item" data-tab="letters"><i data-icon="type"></i>Letters<em>글자</em></button>
-    <button class="nav-item" data-tab="write"><i data-icon="pen"></i>Write<em>쓰기</em></button>
+    <button class="nav-item nav-x" data-tab="letters"><i data-icon="type"></i>Letters<em>글자</em></button>
+    <button class="nav-item nav-x" data-tab="write"><i data-icon="pen"></i>Write<em>쓰기</em></button>
     <button class="nav-item" data-tab="practice"><i data-icon="target"></i>Practice<em>연습</em></button>
     <button class="nav-item" data-tab="listen"><i data-icon="headphones"></i>Listen<em>듣기</em></button>
-    <button class="nav-item" data-tab="test"><i data-icon="award"></i>Test<em>시험</em></button>
-    <button class="nav-item" data-tab="stats"><i data-icon="chart"></i>Stats<em>기록</em></button>
+    <button class="nav-item nav-x" data-tab="test"><i data-icon="award"></i>Test<em>시험</em></button>
+    <button class="nav-item nav-x" data-tab="stats"><i data-icon="chart"></i>Stats<em>기록</em></button>
+    <button class="nav-item nav-more" id="navMore" aria-expanded="false" aria-controls="morePanel"><i data-icon="more"></i>More<em>더보기</em></button>
+    <div class="more-panel" id="morePanel" hidden role="group" aria-label="More pages"><button class="nav-item" data-tab="quests"><i data-icon="gift"></i>Quests<em>과제</em></button><button class="nav-item" data-tab="letters"><i data-icon="type"></i>Letters<em>글자</em></button><button class="nav-item" data-tab="write"><i data-icon="pen"></i>Write<em>쓰기</em></button><button class="nav-item" data-tab="test"><i data-icon="award"></i>Test<em>시험</em></button><button class="nav-item" data-tab="stats"><i data-icon="chart"></i>Stats<em>기록</em></button></div>
     <div class="side-foot"><span class="side-label">Theme</span><div class="theme-seg" role="group" aria-label="Theme"><button data-set-theme="auto" title="Auto: follow your system" aria-label="Auto theme"><i data-icon="monitor"></i></button><button data-set-theme="light" title="Light" aria-label="Light theme"><i data-icon="sun"></i></button><button data-set-theme="dark" title="Dark" aria-label="Dark theme"><i data-icon="moon"></i></button></div><button class="link" data-settings>Settings</button></div>
   </nav>
 
@@ -818,7 +830,7 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
 
     <section id="practice" hidden>
       <div class="page-head"><span class="kicker">연습</span><h1>Practice</h1><p>Short drills for the tricky parts of Korean: numbers, verb endings, particles, graded stories, role-play conversations and the sound changes between spelling and speech. Each right answer is +1 XP; wrong ones come back in Mistakes.</p></div>
-      <div class="seg seg-text" id="pTabs" role="group" aria-label="Drill"><button data-ptab="num">Numbers</button><button data-ptab="verb">Verbs</button><button data-ptab="part">Particles</button><button data-ptab="read">Reading</button><button data-ptab="talk">Talk</button><button data-ptab="reply">Reply</button><button data-ptab="sound">Sounds</button><button data-ptab="pair">Pairs</button><button data-ptab="tricky">Tricky</button></div>
+      <div class="seg seg-text" id="pTabs" role="group" aria-label="Drill"><button data-ptab="num">Numbers</button><button data-ptab="verb">Verbs</button><button data-ptab="part">Particles</button><button data-ptab="read">Reading</button><button data-ptab="talk">Talk</button><button data-ptab="reply">Reply</button><button data-ptab="sound">Sounds</button><button data-ptab="pair">Pairs</button><button data-ptab="casual">Casual</button><button data-ptab="tricky">Tricky</button></div>
       <div id="pBody"></div>
     </section>
 
@@ -914,7 +926,8 @@ dialog.ask::backdrop{background:rgb(30 26 22/.38);backdrop-filter:blur(3px)}
     <div class="set-group"><h3>Text</h3>
       <div class="set-row"><div><b>Korean text size</b><small>Makes Hangul bigger everywhere: words, stories, conversations. Handy for dense syllables like 읽 and 됐.</small></div><select id="koSize" aria-label="Korean text size"><option value="1">Normal</option><option value="1.15">Large</option><option value="1.3">Larger</option><option value="1.5">Largest</option></select></div></div>
     <div class="set-group"><h3>Sound</h3>
-      <div class="set-row"><div><b>Sound effects</b><small>Bell, wood block and stamp sounds in lessons</small></div><button class="link" id="sfxToggle"></button></div></div>
+      <div class="set-row"><div><b>Sound effects</b><small>Bell, wood block and stamp sounds in lessons</small></div><button class="link" id="sfxToggle"></button></div>
+      <div class="set-row"><div><b>Voice</b><small>Who says letters, syllables and words. Sentences and stories keep their voices.</small></div><select id="voiceSel" aria-label="Voice"><option value="female">선희 · female</option><option value="male">인준 · male</option></select></div></div>
     <div class="set-group" id="dlGroup"><h3>Downloads</h3>
       <div class="set-row"><div><b>Offline podcast episodes</b><small id="dlInfo">Tap ↓ next to an episode on the Listen page to keep it for listening without internet.</small></div><button class="btn" id="dlClear"><i data-icon="trash"></i>Delete all</button></div></div>
     <div class="set-group"><h3>Desktop</h3>
@@ -1039,6 +1052,7 @@ const ICONS={
   back:'<path d="M19 12H5M12 19l-7-7 7-7"/>',
   gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
   chart:'<path d="M3 3v18h18"/><path d="M8 17V11M13 17V7M18 17v-4"/>',
+  more:'<circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/>',
   keyboard:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M18 13h.01M10 13h4M7 16h10"/>',
   mic:'<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
@@ -1167,17 +1181,26 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('inbox').hidden)
 
 // ---- Sound: pre-recorded neural voice; computer's own voice only for unrecorded builder syllables ----
 const player=new Audio();
+const COMMON_SET=new Set(COMMON_SYLL);
 function speak(text,rate=1){ // rate < 1 plays slower (same pitch)
+  speak.run=(speak.run||0)+1;player.onended=null; // stops a syllable-by-syllable word still playing
   if('speechSynthesis' in window)speechSynthesis.cancel();
   if(RECORDED.includes(text)){
     const slow=rate<1&&SLOW_CLIPS.has(text); // a real slow recording instead of a stretched one
-    player.src='audio/'+(slow?'s-':'')+audioName(text);player.defaultPlaybackRate=player.playbackRate=slow?1:rate;player.play().catch(()=>{});
+    const male=!slow&&MALE_CLIPS.has(text)&&lsGet('voice','female')==='male';
+    player.src='audio/'+(slow?'s-':male?'m-':'')+audioName(text);player.defaultPlaybackRate=player.playbackRate=slow?1:rate;player.play().catch(()=>{});
     if(typeof PL!=='undefined'&&PL.playing()){duck(15000);player.addEventListener('ended',unduck,{once:true})} // the podcast goes quiet while a word plays
     return;
   }
   if(!('speechSynthesis' in window))return;
-  if(!speechSynthesis.getVoices().some(v=>v.lang.replace('_','-').toLowerCase().startsWith('ko'))&&!speak.warned){speak.warned=true;
-    toast('sync','No Korean voice on this computer','Your own words are read by the system voice. Add Korean in your system’s language or speech settings to hear them.','volume')}
+  if(!speechSynthesis.getVoices().some(v=>v.lang.replace('_','-').toLowerCase().startsWith('ko'))){
+    const syl=[...text].filter(c=>c!==' ');
+    if(syl.length&&syl.every(c=>COMMON_SET.has(c))){ // no Korean system voice: say it syllable by syllable from the recordings
+      const run=speak.run=(speak.run||0)+1,next=i=>{if(run!==speak.run||i>=syl.length)return;player.src='audio/'+audioName(syl[i]);player.playbackRate=rate;player.onended=()=>next(i+1);player.play().catch(()=>{})};
+      return next(0);
+    }
+    if(!speak.warned){speak.warned=true;toast('sync','No Korean voice on this computer','Some of your own words can’t be said. Add Korean in your system’s language or speech settings to hear them.','volume')}
+  }
   const u=new SpeechSynthesisUtterance(text);u.lang='ko-KR';u.rate=0.8*rate;
   const v=speechSynthesis.getVoices().find(v=>v.lang.replace('_','-').toLowerCase().startsWith('ko'));if(v)u.voice=v;
   speechSynthesis.speak(u);
@@ -1232,11 +1255,17 @@ document.querySelectorAll('[data-set-theme]').forEach(b=>b.onclick=()=>setTheme(
 let view='learn';
 function show(v){
   view=v;
-  document.querySelectorAll('.nav-item').forEach(x=>x.dataset.tab===v?x.setAttribute('aria-current','page'):x.removeAttribute('aria-current'));
+  document.querySelectorAll('.nav-item[data-tab]').forEach(x=>x.dataset.tab===v?x.setAttribute('aria-current','page'):x.removeAttribute('aria-current'));
+  $('navMore').classList.toggle('cur',['quests','letters','write','test','stats'].includes(v));
   document.querySelectorAll('main>section').forEach(s=>s.hidden=s.id!==v);
   render();scrollTo(0,0);
 }
-document.querySelectorAll('.nav-item').forEach(b=>b.onclick=()=>show(b.dataset.tab));
+document.querySelectorAll('.nav-item[data-tab]').forEach(b=>b.onclick=()=>{moreOpen(false);show(b.dataset.tab)});
+// More (narrow windows): the pages that don't fit in the bottom bar
+const moreOpen=on=>{$('morePanel').hidden=!on;$('navMore').setAttribute('aria-expanded',on);if(on)$('morePanel').querySelector('button').focus({focusVisible:false})};
+$('navMore').onclick=()=>moreOpen($('morePanel').hidden);
+document.addEventListener('click',e=>{if(!$('morePanel').hidden&&!e.target.closest('#morePanel,#navMore'))moreOpen(false)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('morePanel').hidden){moreOpen(false);$('navMore').focus()}});
 
 function render(){
   DAILY_GOAL=GOALS.includes(+P.goal)?+P.goal:30;

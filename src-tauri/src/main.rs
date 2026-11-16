@@ -5,7 +5,10 @@ use std::{
     fs, io,
     path::PathBuf,
     process::Command,
-    sync::atomic::{AtomicBool, Ordering},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Mutex,
+    },
 };
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
@@ -139,32 +142,69 @@ fn episodes_dir(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(dir)
 }
 
-/// Downloads an episode with the system's curl (like feeds) and returns its file path. Name = hash of the URL.
-#[tauri::command]
-async fn download_episode(app: AppHandle, url: String) -> Result<String, String> {
-    https_only(&url)?;
+/// An episode's file in the episodes folder: name = hash of its URL
+fn episode_path(app: &AppHandle, url: &str) -> Result<PathBuf, String> {
     let mut h: u64 = 0xcbf2_9ce4_8422_2325;
     for b in url.bytes() {
         h = (h ^ b as u64).wrapping_mul(0x100_0000_01b3);
     }
-    let path = episodes_dir(&app)?.join(format!("{h:016x}.mp3"));
+    Ok(episodes_dir(app)?.join(format!("{h:016x}.mp3")))
+}
+
+/// URLs whose download should stop (Cancel on the Listen page)
+static CANCELLED: Mutex<Vec<String>> = Mutex::new(Vec::new());
+
+/// Downloads an episode with the system's curl (like feeds) and returns its file path.
+/// download_progress tells how far it is; cancel_download stops it.
+#[tauri::command]
+async fn download_episode(app: AppHandle, url: String) -> Result<String, String> {
+    https_only(&url)?;
+    let path = episode_path(&app, &url)?;
     let part = path.with_extension("part");
+    CANCELLED.lock().unwrap().retain(|u| u != &url);
     tauri::async_runtime::spawn_blocking(move || {
         let mut cmd = Command::new(if cfg!(windows) { "curl.exe" } else { "curl" });
         cmd.args(["-sSL", "--proto", "=https", "--proto-redir", "=https", "--fail", "--max-time", "1800", "--max-filesize", "400000000", "-A", "Mozilla/5.0 HangulLearner", "-o"]);
-        cmd.arg(&part).arg(&url);
+        cmd.arg(&part).arg(&url).stderr(std::process::Stdio::piped()).stdout(std::process::Stdio::null());
         #[cfg(windows)]
         cmd.creation_flags(0x0800_0000);
-        let out = cmd.output().map_err(|e| format!("curl: {e}"))?;
-        if !out.status.success() {
+        let mut child = cmd.spawn().map_err(|e| format!("curl: {e}"))?;
+        let status = loop {
+            if CANCELLED.lock().unwrap().contains(&url) {
+                let _ = child.kill();
+                let _ = child.wait();
+                let _ = fs::remove_file(&part);
+                return Err("cancelled".into());
+            }
+            match child.try_wait().map_err(|e| e.to_string())? {
+                Some(s) => break s,
+                None => std::thread::sleep(std::time::Duration::from_millis(200)),
+            }
+        };
+        if !status.success() {
+            let mut err = String::new();
+            if let Some(mut e) = child.stderr.take() {
+                let _ = std::io::Read::read_to_string(&mut e, &mut err);
+            }
             let _ = fs::remove_file(&part);
-            return Err(String::from_utf8_lossy(&out.stderr).trim().to_string());
+            return Err(err.trim().to_string());
         }
         fs::rename(&part, &path).map_err(|e| e.to_string())?;
         Ok(path.to_string_lossy().into_owned())
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+/// Bytes downloaded so far of an episode that is downloading (0 if none)
+#[tauri::command]
+fn download_progress(app: AppHandle, url: String) -> u64 {
+    episode_path(&app, &url).ok().and_then(|p| fs::metadata(p.with_extension("part")).ok()).map_or(0, |m| m.len())
+}
+
+#[tauri::command]
+fn cancel_download(url: String) {
+    CANCELLED.lock().unwrap().push(url);
 }
 
 /// Deletes one downloaded episode, or all of them when `path` is empty (only files in the episodes folder).
@@ -627,7 +667,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             load_progress, save_progress, fetch_text, open_external, close_to_tray, toggle_mini, hide_mini, show_main, mini_video, mini_visible,
-            set_shortcuts, autostart, export_backup, show_in_folder, clip_watch, alarm, sync_default, sync_read, sync_write, recognize, prune_backups, download_episode, delete_episodes, episodes_size
+            set_shortcuts, autostart, export_backup, show_in_folder, clip_watch, alarm, sync_default, sync_read, sync_write, recognize, prune_backups, download_episode, delete_episodes, episodes_size, download_progress, cancel_download
         ])
         .run(tauri::generate_context!())
         .expect("failed to start Hangul Learner");

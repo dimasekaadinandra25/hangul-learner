@@ -41,7 +41,7 @@ function parsePodcast(xml){
   const about=plain(tag(ch,'itunes:summary')||[...ch.children].find(c=>c.tagName==='description')?.textContent||'');
   const items=[...doc.getElementsByTagName('item')].map(it=>{
     const d=tag(it,'itunes:duration');
-    return{title:tag(it,'title'),desc:plain(tag(it,'description')||tag(it,'itunes:summary')).slice(0,1500),date:Date.parse(tag(it,'pubDate'))||0,url:it.getElementsByTagName('enclosure')[0]?.getAttribute('url')||'',
+    return{title:tag(it,'title'),desc:plain(tag(it,'description')||tag(it,'itunes:summary')).slice(0,1500),date:Date.parse(tag(it,'pubDate'))||0,url:it.getElementsByTagName('enclosure')[0]?.getAttribute('url')||'',size:+it.getElementsByTagName('enclosure')[0]?.getAttribute('length')||0,
       dur:/^\d+$/.test(d)?fmt(+d):d.replace(/^00:/,'')};
   }).map(e=>({...e,url:e.url.replace(/^http:\/\//,'https://')})).filter(e=>/^https:\/\//.test(e.url));
   return{items:newestFirst(items).slice(0,40),about:about.length>220?about.slice(0,217)+'…':about};
@@ -53,6 +53,36 @@ function parseYouTube(xml){
   const long=all.filter(v=>!v.short); // Shorts only when the channel has few full videos
   return{items:newestFirst(long.length>=6?long:all),about:'Latest videos from this channel.'};
 }
+// ---- Your own shows: any podcast RSS link or YouTube channel, kept on this computer after the built-in ones ----
+const MY_SHOWS=lsGet('myShows',{pod:[],yt:[]});PODCASTS.push(...MY_SHOWS.pod);CHANNELS.push(...MY_SHOWS.yt);
+const sealOf=name=>[...String(name).replace(/[^가-힣A-Za-z0-9]/g,'')].slice(0,2).join('')||'♪';
+async function addShow(tab,input){
+  const v=String(input||'').trim();
+  if(tab==='pod'){
+    if(!/^https:\/\/[^\s"]+$/.test(v))throw Error('Paste the podcast’s RSS link (it starts with https://).');
+    if(PODCASTS.some(p=>p.feed===v))throw Error('That podcast is already on the list.');
+    const xml=await fetchText(v),ch=new DOMParser().parseFromString(xml,'text/xml').getElementsByTagName('channel')[0];
+    if(!ch)throw Error('That link is not a podcast feed. Look for “RSS” on the podcast’s page.');
+    const name=(tag(ch,'title')||'My podcast').slice(0,80),s={id:'u'+(hashFrac(v)*1e9|0).toString(36),name,level:'Added by you',seal:sealOf(name),color:'',feed:v,mine:true};
+    PODCASTS.push(s);MY_SHOWS.pod.push(s);lsSet('myShows',MY_SHOWS);return s;
+  }
+  const id=(v.match(/UC[\w-]{22}/)||[])[0];
+  if(!id)throw Error('Paste the channel ID (it starts with UC) or a youtube.com/channel/UC… link. On a channel page: About › Share › Copy channel ID.');
+  if(CHANNELS.some(c=>c.id===id))throw Error('That channel is already on the list.');
+  let name='YouTube channel';
+  try{name=tag(new DOMParser().parseFromString(await fetchFeed({id}),'text/xml'),'title').slice(0,80)||name}catch(e){} // the name, if YouTube’s list answers
+  const s={id,name,level:'Added by you',seal:sealOf(name),color:'',mine:true};
+  CHANNELS.push(s);MY_SHOWS.yt.push(s);lsSet('myShows',MY_SHOWS);return s;
+}
+async function removeShow(src){
+  if(!await ask({title:'Remove this show?',text:'“'+src.name+'” leaves your list. You can add it again any time.',ok:'Remove',danger:true,sealText:'×'}))return;
+  const k=src.feed?'pod':'yt',list=src.feed?PODCASTS:CHANNELS;
+  list.splice(list.indexOf(src),1);MY_SHOWS[k]=MY_SHOWS[k].filter(s=>s.id!==src.id);lsSet('myShows',MY_SHOWS);
+  delete feeds[src.id];localStorage.removeItem('feed:'+src.id);LV.open=null;renderListen();
+}
+const addShowForm=tab=>`<form class="add-show" data-addshow><label for="addShowIn">${tab==='pod'?'Add a podcast':'Add a YouTube channel'}</label>
+  <div class="add-row"><input id="addShowIn" autocomplete="off" spellcheck="false" placeholder="${tab==='pod'?'RSS link: https://…':'Channel ID (UC…) or youtube.com/channel/UC… link'}"><button class="btn" type="submit">${icon('plus')}Add</button></div>
+  <small class="set-msg" id="addShowMsg"></small></form>`;
 const savedFeed=src=>feeds[src.id]||(feeds[src.id]=lsGet('feed:'+src.id,null)||undefined);
 // Always asks the publisher for the current list. On failure it throws and the saved copy (if any) stays on screen.
 // YouTube's feed service sometimes answers 404/500 for a moment: try again (also via the channel's uploads playlist)
@@ -142,20 +172,26 @@ const dropRemote=()=>{if(remote){remote=null;tauri?.event.emit('mini-video',null
 // ---- Offline episodes: downloaded into the app's data folder, played from there (works without internet) ----
 let DL=lsGet('dl',{}); // episode url -> local file path
 let DLM=lsGet('dlMeta',{}); // episode url -> {title, src (show id), date, dur}: for the Downloaded shelf
-const DLING=new Set(); // urls downloading right now
+const DLING=new Map(); // urls downloading right now -> {got: bytes so far, size: bytes in all (0 = unknown)}
 const epSrc=url=>DL[url]&&tauri?tauri.core.convertFileSrc(DL[url]):url;
 async function toggleDownload(it){
-  if(!tauri||DLING.has(it.url))return;
+  if(!tauri)return;
+  if(DLING.has(it.url))return tauri.core.invoke('cancel_download',{url:it.url}); // tap again while downloading: stop
   if(DL[it.url]){
     if(!await ask({title:'Delete this download?',text:'“'+it.title+'” will stream from the internet again.',ok:'Delete',danger:true,sealText:'×'}))return;
     await tauri.core.invoke('delete_episodes',{path:DL[it.url]}).catch(()=>{});delete DL[it.url];delete DLM[it.url];lsSet('dl',DL);lsSet('dlMeta',DLM);return renderListen();
   }
-  DLING.add(it.url);renderListen();
+  DLING.set(it.url,{got:0,size:+it.size||0});renderListen();
   try{DL[it.url]=await tauri.core.invoke('download_episode',{url:it.url});lsSet('dl',DL);DLM[it.url]={title:it.title,src:LV.open,date:it.date||0,dur:it.dur||''};lsSet('dlMeta',DLM);toast('sync','Downloaded','Plays without internet now','download')}
-  catch(e){toast('sync','Download failed',String(e).slice(0,120),'download')}
+  catch(e){String(e).includes('cancelled')?toast('sync','Download stopped','The episode still streams from the internet.','download'):toast('sync','Download failed',String(e).slice(0,120),'download')}
   finally{DLING.delete(it.url);if(view==='listen')renderListen()}
 }
-const dlBtn=(it,i)=>!tauri||!it.url?'':`<button class="icon-btn dl-btn${DL[it.url]?' on':''}" data-dl="${i}" title="${DLING.has(it.url)?'Downloading…':DL[it.url]?'Downloaded: tap to delete':'Download to listen offline'}" aria-label="${DL[it.url]?'Delete download':'Download'}"${DLING.has(it.url)?' disabled':''}>${icon(DLING.has(it.url)?'clock':DL[it.url]?'check':'download')}</button>`;
+const dlText=u=>{const d=DLING.get(u);if(!d)return'';const mb=d.got/1048576;return d.size>d.got&&d.got?Math.floor(d.got/d.size*100)+'%':mb>=1?mb.toFixed(0)+' MB':d.got?Math.max(1,Math.round(d.got/1024))+' KB':'…'};
+setInterval(async()=>{ // download progress, shown on the button while it runs
+  for(const[u,d]of DLING){d.got=await tauri.core.invoke('download_progress',{url:u}).catch(()=>d.got);
+    document.querySelectorAll('[data-dlurl]').forEach(b=>{if(b.dataset.dlurl===u)b.querySelector('.dl-pct').textContent=dlText(u)})}
+},700);
+const dlBtn=(it,i)=>!tauri||!it.url?'':`<button class="icon-btn dl-btn${DL[it.url]?' on':''}${DLING.has(it.url)?' busy':''}" data-dl="${i}" data-dlurl="${esc(it.url)}" title="${DLING.has(it.url)?'Downloading… tap to stop':DL[it.url]?'Downloaded: tap to delete':'Download to listen offline'}" aria-label="${DLING.has(it.url)?'Stop download':DL[it.url]?'Delete download':'Download'}">${DLING.has(it.url)?`<span class="dl-pct">${dlText(it.url)}</span>`:icon(DL[it.url]?'check':'download')}</button>`;
 function dlShelf(){
   const urls=Object.keys(DL);if(!tauri||!urls.length)return'';
   const on=PL.playing();
@@ -319,7 +355,7 @@ function renderListen(){
   $('ytMini').hidden=!(LV.tab==='yt'&&remote);
   if(!src){
     $('lBody').innerHTML=`<div class="shows">${list.map(s=>`<button class="show${NP?.src===s.id?' now':''}" data-show="${s.id}">${seal(esc(s.seal),'m',s.color)}<span><b>${esc(s.name)}</b><small>${esc(s.level)}</small></span>${NP?.src===s.id?`<span class="eq" aria-label="Playing">${icon('headphones')}</span>`:''}</button>`).join('')}</div>`;
-    if(LV.tab==='pod')$('lBody').insertAdjacentHTML('beforeend',dlShelf());
+    $('lBody').insertAdjacentHTML('beforeend',(LV.tab==='pod'?dlShelf():'')+(tauri?addShowForm(LV.tab):''));
     return;
   }
   const kept=savedFeed(src);
@@ -334,7 +370,7 @@ function renderListen(){
     :LV.err?`Couldn’t ${f?'check for new episodes':'load this feed'} (${esc(LV.err)}).${f?' Showing the last saved list.':src.feed?' Check your internet connection.':''} <button class="link" data-refresh>Try again</button>`
     :f?`Updated ${timeAgo(f.at)} · <button class="link" data-refresh>Refresh</button>`:'';
   const head=`<button class="link back" data-show="">${icon('back')}All ${LV.tab==='pod'?'podcasts':'channels'}</button>
-    <div class="show-head">${seal(esc(src.seal),'m',src.color)}<div><h2>${esc(src.name)}</h2><p class="muted">${esc(f?.about||src.level)}</p></div></div>
+    ${src.mine?'<button class="link rm-show" data-rmshow>Remove from my list</button>':''}<div class="show-head">${seal(esc(src.seal),'m',src.color)}<div><h2>${esc(src.name)}</h2><p class="muted">${esc(f?.about||src.level)}</p></div></div>
     <p class="feed-status muted">${status}</p>`;
   if(!f){$('lBody').innerHTML=head;return}
   const on=PL.playing();
@@ -343,10 +379,17 @@ function renderListen(){
       return`<div class="ep${now?' now':''}"><button class="play-btn" data-ep="${i}" aria-label="${now&&on?'Pause':'Play'}: ${esc(e.title)}">${icon(now&&on?'pause':'play')}</button><div><b>${esc(e.title)}</b><small>${dateOf(e.date)}${e.dur?' · '+esc(e.dur):''}${epMark(e.url)}${wordsChip(e)}</small></div>${dlBtn(e,i)}</div>`}).join('')}</div>`
     :`<div class="vids">${f.items.map((v,i)=>`<button class="vid${NP?.id===v.id?' now':''}" data-vid="${i}"><span class="thumb"><img src="https://i.ytimg.com/vi/${v.id}/mqdefault.jpg" alt="" loading="lazy">${NP?.id===v.id?`<span class="eq">${icon(on?'pause':'play')}</span>`:''}</span><b>${esc(v.title)}</b><small>${dateOf(v.date)}${wordsChip(v)}</small></button>`).join('')}</div>`);
 }
+$('listen').addEventListener('submit',async e=>{
+  if(!e.target.matches('[data-addshow]'))return;e.preventDefault();
+  const msg=$('addShowMsg'),btn=e.target.querySelector('button');msg.textContent='Checking…';msg.classList.remove('bad');btn.disabled=true;
+  try{const s=await addShow(LV.tab,$('addShowIn').value);LV.open=s.id;LV.fetched=null;renderListen();toast('sync','Added',s.name,'plus')}
+  catch(err){msg.textContent=String(err.message||err);msg.classList.add('bad');btn.disabled=false}
+});
 $('listen').addEventListener('click',e=>{
   const t=e.target.closest('[data-ltab]');if(t){LV={tab:t.dataset.ltab,open:null,err:'',loading:false};return renderListen()}
   const s=e.target.closest('[data-show]');if(s){LV.open=s.dataset.show||null;LV.err='';LV.fetched=null;renderListen();return scrollTo(0,0)}
   if(e.target.closest('[data-refresh]')){LV.fetched=null;LV.force=true;return renderListen()}
+  if(e.target.closest('[data-rmshow]')){const src=(LV.tab==='pod'?PODCASTS:CHANNELS).find(x=>x.id===LV.open);return src&&removeShow(src)}
   const dp=e.target.closest('[data-dlplay]');if(dp){const u=dp.dataset.dlplay,m=DLM[u]||{};if(NP?.url===u)return PL.toggle();
     return playEp(PODCASTS.find(p=>p.id===m.src)||{id:'dl',name:'Downloaded',seal:'↓',color:''},{title:m.title||'Downloaded episode',url:u})}
   const dd=e.target.closest('[data-dldel]');if(dd)return toggleDownload({url:dd.dataset.dldel,title:DLM[dd.dataset.dldel]?.title||'this episode'});

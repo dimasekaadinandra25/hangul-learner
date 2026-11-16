@@ -2,7 +2,7 @@
 // Loaded after practice.js (uses shuffle, pickOne from lesson.js; esc, lsGet, lsSet, openWord, addToNotebook, inNotebook,
 // recordClip, playUrl and the main script's helpers).
 let PT=lsGet('ptab','num'),DQ=null; // tab, current question
-const PX={numType:'all',numMode:'read',verbLevel:'1',verbForm:'all',partType:'all',miss:false,slow:false,sound:null,story:null,en:false,shown:new Set(),pick:{},checked:false};
+const PX={casGroup:'all',casMode:'casual',numType:'all',numMode:'read',verbLevel:'1',verbForm:'all',partType:'all',miss:false,slow:false,sound:null,story:null,en:false,shown:new Set(),pick:{},checked:false};
 const drillStats=kind=>{P.drills??={};return P.drills[kind]??={right:0,tries:0}};
 const SLOW=0.7; // "Slow" playback speed
 
@@ -81,13 +81,24 @@ const PAIRS=[
   {s:['우','으'],label:'ㅜ · ㅡ',note:'ㅜ has rounded lips; ㅡ keeps the lips flat, as in a small smile.'},
   {s:['이','에'],label:'ㅣ · ㅔ',note:'ㅣ is like “ee”; ㅔ is like the “e” in “bed”, the mouth a little more open.'},
 ];
+// Casual vs textbook: how people really talk. Both ways: say a textbook form the casual way, or read a casual form.
+const CAS_GROUPS={short:'Short forms',banmal:'With friends',slang:'Slang',written:'Written vs spoken'};
+function casualQ(ref){
+  let[i,dir]=(ref||'').split('|');i=+i;
+  if(!CASUAL[i]||!'ct'.includes(dir||'x')){const pool=CASUAL.map((c,k)=>k).filter(k=>PX.casGroup==='all'||CASUAL[k][4]===PX.casGroup);
+    i=pickOne(pool.length>1&&DQ?.kind==='casual'?pool.filter(k=>k!==+DQ.ref.split('|')[0]):pool);dir=PX.casMode==='mixed'?pickOne(['c','t']):PX.casMode==='casual'?'c':'t'}
+  const[book,cas,en,note,g]=CASUAL[i],toCas=dir==='c',col=toCas?1:0;
+  const others=shuffle(CASUAL.filter((c,k)=>k!==i)).sort((a,b)=>(b[4]===g)-(a[4]===g)).map(c=>c[col]);
+  return makeQ({kind:'casual',ref:`${i}|${dir}`,kicker:`${CAS_GROUPS[g]} · ${toCas?'textbook → casual':'casual → textbook'}`,big:toCas?book:cas,bigKo:true,
+    sub:toCas?`“${en}”. How do people say this casually?`:`“${en}”. What is this in textbook Korean?`,say:toCas?cas:book,ko:true,right:toCas?cas:book,wrong:others,note:`${book} → ${cas}. ${note}`});
+}
 function pairQ(ref){
   let[si,k]=(ref||'').split('|').map(Number);
   if(!PAIRS[si]?.s[k]){si=Math.floor(Math.random()*PAIRS.length);k=Math.floor(Math.random()*PAIRS[si].s.length)}
   const p=PAIRS[si],w=p.s[k];
   return makeQ({kind:'pair',ref:`${si}|${k}`,kicker:`${p.label} · listening`,sub:'Listen: which one do you hear?',say:w,listen:true,ko:true,right:w,wrong:p.s.filter(x=>x!==w),note:p.note});
 }
-const BUILD={num:numQ,verb:verbQ,part:partQ,sound:soundQ,tricky:trickyQ,reply:replyQ,pair:pairQ};
+const BUILD={num:numQ,verb:verbQ,part:partQ,sound:soundQ,tricky:trickyQ,reply:replyQ,pair:pairQ,casual:casualQ};
 function newQ(kind){
   if(PX.miss){const l=missList(kind);if(l.length)return BUILD[kind](pickOne(l.length>1&&DQ?.kind===kind?l.filter(r=>r!==DQ.ref):l));PX.miss=false}
   return BUILD[kind]();
@@ -129,7 +140,8 @@ function renderPractice(){
     if(DQ?.kind!==PT)DQ=newQ(PT);
     const bar=PT==='num'?chips('numType',[['all','All'],...Object.entries(NUM_TYPES).map(([k,t])=>[k,t.label])],PX.numType)+chips('numMode',[['read','Read'],['listen','Listen']],PX.numMode)
       :PT==='verb'?chips('verbLevel',[['1','TOPIK 1'],['2','TOPIK 2'],['3','TOPIK 3'],['all','All']],PX.verbLevel)+chips('verbForm',[['all','All endings'],...Object.entries(VERB_FORMS).map(([k,f])=>[k,f.label])],PX.verbForm)
-      :PT==='part'?chips('partType',[['all','All'],...Object.entries(PARTICLES).map(([k,p])=>[k,p.label])],PX.partType):'';
+      :PT==='part'?chips('partType',[['all','All'],...Object.entries(PARTICLES).map(([k,p])=>[k,p.label])],PX.partType)
+      :PT==='casual'?chips('casGroup',[['all','All'],...Object.entries(CAS_GROUPS)],PX.casGroup)+chips('casMode',[['casual','To casual'],['book','To textbook'],['mixed','Both']],PX.casMode):'';
     html=(PT==='sound'?`<button class="link back" data-squiz="">${icon('back')}All rules</button>`:'')+`<div class="drill-bar">${bar}${missChip(PT)}${slowChip()}</div>`+quizHtml(DQ);
   }else if(PT==='sound')html=soundList();
   else if(PT==='talk'){const d=DIALOGUES.find(x=>x.id===TK.id);html=d?talkView(d):talkList()}
@@ -153,7 +165,7 @@ function storyView(s){
   return`<button class="link back" data-story="">${icon('back')}All stories</button>
   <div class="story-head"><div><span class="kicker">TOPIK ${s.level} · 읽기</span><h2 class="ko" lang="ko">${s.title}</h2><p class="muted">${s.en}</p></div>
     <div class="btn-row"><button class="btn" data-sall>${icon(sQueue.on?'pause':'play')}${sQueue.on?'Stop':'Hear all'}</button>${slowChip()}<button class="btn" data-sen aria-pressed="${PX.en}">${PX.en?'Hide':'Show'} English</button></div></div>
-  <div class="panel story-text">${s.lines.map((l,i)=>`<div class="sent-row"><button class="sent${PX.en||PX.shown.has(i)?' open':''}${sQueue.on&&sQueue.i===i?' now':''}" data-sline="${i}"><span class="ko" lang="ko">${esc(l[0])}</span><small>${esc(l[1])}</small></button>${saveBtn('s'+i,l[0])}</div>`).join('')}</div>
+  <div class="panel story-text">${s.lines.map((l,i)=>`<div class="sent-row"><button class="sent${PX.en||PX.shown.has(i)?' open':''}${sQueue.on&&sQueue.i===i?' now':''}" data-sline="${i}"><span class="ko" lang="ko" data-ko="${esc(l[0])}">${esc(l[0])}</span><small>${esc(l[1])}</small></button>${saveBtn('s'+i,l[0])}</div>`).join('')}</div>
   <p class="muted" style="font-size:.9rem;margin:8px 0 0">Tap a sentence to hear it and see what it means.</p>
   <h2 class="section-title">Words in this story</h2>
   <div class="wchips">${words.map(w=>`<button class="wc" data-word="${esc(w.ch)}" title="Hear it, save it or say it"><b class="ko">${esc(w.ch)}</b><small>${esc(w.meaning)}</small></button>`).join('')}
@@ -178,7 +190,22 @@ const sAudio=new Audio(),sQueue={on:false,i:-1,run:0};
 const lookBtn=ko=>`<button class="icon-btn s-look" data-slook="${esc(ko)}" title="Translate in Papago (browser)" aria-label="Translate sentence in Papago">${icon('search')}</button>`;
 const saveBtn=(key,ko)=>lookBtn(ko)+saveBtn1(key,ko);
 const saveBtn1=(key,ko)=>{const on=inNotebook(ko);return`<button class="icon-btn sm s-save${on?' on':''}" data-ssave="${key}" aria-pressed="${on}" title="${on?'Saved in My words: tap to remove':'Save this sentence to My words'}" aria-label="Save sentence">${icon('star')}</button>`};
-const playLine=(text,male)=>new Promise(r=>{sAudio.src='audio/'+(male?'m-':'')+audioName(text);sAudio.playbackRate=PX.slow?SLOW:1;sAudio.onended=sAudio.onerror=()=>setTimeout(r,350);sAudio.play().catch(r)});
+const playLine=(text,male)=>new Promise(r=>{const name=(male?'m-':'')+audioName(text);sAudio.src='audio/'+name;sAudio.playbackRate=PX.slow?SLOW:1;if(PL.playing())duck(30000); // the podcast goes quiet while the line plays
+  sAudio.onended=sAudio.onerror=()=>{unduck();setTimeout(r,350)};sAudio.play().then(()=>highlightWords(text,name)).catch(r)});
+// Word highlighting: audio/words.json says when each word of a story or conversation line is said (recorded with the line)
+let WORD_TIMES=null;fetch('audio/words.json').then(r=>r.json()).then(j=>{WORD_TIMES=j}).catch(()=>{});
+function highlightWords(text,name){
+  const el=[...document.querySelectorAll('[data-ko]')].find(e=>e.dataset.ko===text),w=WORD_TIMES?.[name];if(!el||!w?.length)return;
+  const toks=text.split(' ');el.innerHTML=toks.map(t=>`<span class="hw">${esc(t)}</span>`).join(' ');
+  const spans=[...el.children];let j=0;
+  const at=w.map(([,,word])=>{const k=toks.findIndex((t,i)=>i>=j&&t.includes(word));if(k>=0)j=k;return j}); // boundary -> word on screen
+  const src=sAudio.src,tick=()=>{
+    if(!el.isConnected||sAudio.src!==src||sAudio.ended||sAudio.paused){spans.forEach(s=>s.classList.remove('on'));return}
+    const t=sAudio.currentTime*1000;let k=-1;for(let i=0;i<w.length&&w[i][0]<=t;i++)k=i;
+    spans.forEach((s,i)=>s.classList.toggle('on',k>=0&&i===at[k]));requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
 async function hearAll(s){
   const run=++sQueue.run;sQueue.on=true;
   for(let i=0;i<s.lines.length;i++){
@@ -217,7 +244,7 @@ function talkView(d){
   <div class="story-head"><div><span class="kicker">TOPIK ${d.level} · 대화</span><h2 class="ko" lang="ko">${d.title}</h2><p class="muted">${d.en}</p></div>${roles}</div>
   <div class="panel talk">${d.lines.map(([r,ko,en],i)=>{const me=r===TK.role,now=i===TK.i;
     return`<div class="bubble${me?' me':''}${now?' now':''}${TK.role&&i>TK.i&&!ended?' later':''}"><small>${esc(who(r))}${me?' · you':''}</small>
-      <button class="b-line" data-tline="${i}" title="Hear it"><span class="ko" lang="ko">${esc(ko)}</span>${PX.en||now&&me?`<em>${esc(en)}</em>`:''}</button>
+      <button class="b-line" data-tline="${i}" title="Hear it"><span class="ko" lang="ko" data-ko="${esc(ko)}">${esc(ko)}</span>${PX.en||now&&me?`<em>${esc(en)}</em>`:''}</button>
       ${TK.urls[i]?`<button class="link" data-tmine="${i}">${icon('play')}My recording</button>`:''}${saveBtn('t'+i,ko)}</div>`}).join('')}</div>
   <div class="talk-bar">${!TK.role?'<span class="muted">Choose your part to start.</span>'
     :ended?`<b>Conversation done!</b><button class="btn" data-tstart>${icon('rotate')}Again</button>`
@@ -287,7 +314,7 @@ $('pBody').addEventListener('click',e=>{
     return;
   }
   const s=STORIES.find(x=>x.id===PX.story);if(!s)return;
-  if(t.dataset.sline!=null){const i=+t.dataset.sline;stopHearAll();PX.shown.has(i)?PX.shown.delete(i):PX.shown.add(i);speak(s.lines[i][0],PX.slow?SLOW:1);todayStats(P).heard++;return renderPractice()}
+  if(t.dataset.sline!=null){const i=+t.dataset.sline;stopHearAll();PX.shown.has(i)?PX.shown.delete(i):PX.shown.add(i);playLine(s.lines[i][0]);todayStats(P).heard++;return renderPractice()}
   if(t.hasAttribute('data-sall')){if(sQueue.on){stopHearAll();renderPractice()}else hearAll(s);return}
   if(t.dataset.sq!=null){PX.pick[+t.dataset.sq]=+t.dataset.so;return renderPractice()}
   if(t.hasAttribute('data-scheck'))return checkStory(s);

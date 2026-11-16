@@ -166,6 +166,90 @@ const SOUNDS=[
     ex:[['좋아요','조아요','it is good','조하요'],['놓아요','노아요','I put it down','노하요'],['많이','마니','a lot','만히'],['싫어요','시러요','I don’t like it','실허요'],['괜찮아요','괜차나요','it’s okay','괜차하요']]},
 ];
 
+// ---------------- Casual vs textbook: how people really talk ----------------
+// [textbook form, casual form, English, note, group]
+const CASUAL=[
+  ['무엇','뭐','what','무엇 is for writing; in speech everyone says 뭐.','short'],
+  ['무엇을','뭘','what (object)','무엇을 shrinks to 뭘; 뭐를 is also heard.','short'],
+  ['무엇이','뭐가','what (subject)','In speech 무엇이 becomes 뭐 + 가: 뭐가 좋아요?','short'],
+  ['이것','이거','this (thing)','것 is said 거 in everyday speech: 이거, 그거, 저거.','short'],
+  ['이것을','이걸','this (object)','이거 + 를 merges into 이걸: 이걸 주세요.','short'],
+  ['그것은','그건','that (topic)','그거 + 는 merges into 그건: 그건 몰라요.','short'],
+  ['저것이','저게','that over there (subject)','저거 + 이 merges into 저게: 저게 뭐예요?','short'],
+  ['저는','전','I (topic, polite)','저 + 는 shrinks to 전; common in polite speech too.','short'],
+  ['저를','절','me (object, polite)','저 + 를 shrinks to 절: 절 기억해요?','short'],
+  ['나는','난','I (topic, casual)','나 + 는 shrinks to 난, with friends.','short'],
+  ['나를','날','me (object, casual)','나 + 를 shrinks to 날, common in songs and chats.','short'],
+  ['너는','넌','you (topic, casual)','너 + 는 shrinks to 넌; only with close friends or younger people.','short'],
+  ['우리는','우린','we (topic)','우리 + 는 shrinks to 우린 in quick speech.','short'],
+  ['여기에서','여기서','here (at)','에서 often loses 에 after 여기, 거기, 저기.','short'],
+  ['그런데','근데','but, by the way','The everyday form of 그런데, in speech and texts.','short'],
+  ['그러면','그럼','then, in that case','그러면 shrinks to 그럼: 그럼 내일 봐요.','short'],
+  ['그러니까','그니까','so, I mean','A fast spoken 그러니까, often to agree: 그니까!','short'],
+  ['조금','좀','a little; please','좀 also softens a request: 좀 도와주세요.','short'],
+  ['이야기','얘기','talk, story','이야기 is said and often written 얘기.','short'],
+  ['어떻게 해요','어떡해요','what do I do?','어떻게 해 merges into 어떡해 when you’re worried or surprised.','short'],
+  ['할 것이에요','할 거예요','I’m going to do it','것이에요 becomes 거예요 in speech: 갈 거예요, 먹을 거예요.','short'],
+  ['마음에 들어요','맘에 들어요','I like it','마음 is often said 맘, especially in 맘에 들어요.','short'],
+  ['안녕하세요','안녕','hi; bye','With friends 안녕 means both hello and goodbye.','banmal'],
+  ['고마워요','고마워','thanks','Drop 요 for friends and younger people (반말).','banmal'],
+  ['미안해요','미안해','sorry','The 반말 apology between friends.','banmal'],
+  ['네','응','yes','응 is the casual yes; never to elders or strangers.','banmal'],
+  ['아니요','아니','no','아니 is the casual no; also “what?!” when surprised.','banmal'],
+  ['뭐 해요?','뭐 해?','what are you doing?','A typical first text to a friend.','banmal'],
+  ['어디 가요?','어디 가?','where are you going?','Friends ask this as a greeting, not to pry.','banmal'],
+  ['밥 먹었어요?','밥 먹었어?','have you eaten?','A friendly “how are you” more than a real question.','banmal'],
+  ['같이 가요','같이 가자','let’s go together','In 반말, “let’s” is -자: 먹자, 하자, 놀자.','banmal'],
+  ['잘 자요','잘 자','good night','Said to friends, family or a partner at bedtime.','banmal'],
+  ['잘 가요','잘 가','bye (to someone leaving)','Say it to the friend who is leaving; they may answer 응, 내일 봐.','banmal'],
+  ['괜찮아요?','괜찮아?','are you okay?','Drop 요 with friends; the answer is 괜찮아.','banmal'],
+  ['진짜요?','진짜?','really?','The everyday reaction among friends; 정말? is a bit softer.','banmal'],
+  ['맞아요','맞아','that’s right','A common way to agree with a friend: 맞아 맞아!','banmal'],
+  ['알았어요','알았어','got it, okay','The usual casual “okay” when a friend asks something.','banmal'],
+  ['아니에요','아니야','no, it’s not; no problem','아니에요 becomes 아니야 in 반말.','banmal'],
+  ['보고 싶어요','보고 싶어','I miss you','To a close friend, family member or partner.','banmal'],
+  ['배고파요','배고파','I’m hungry','Plain 반말: just drop 요.','banmal'],
+  ['몰라요','몰라','I don’t know','Casual; with a flat tone it can sound like “whatever”.','banmal'],
+  ['왜요?','왜?','why?','Drop 요 with friends; to elders keep 왜요?','banmal'],
+  ['이게 뭐예요?','이게 뭐야?','what is this?','-예요 / -이에요 become -야 / -이야 in 반말.','banmal'],
+  ['나중에 봐요','나중에 봐','see you later','A casual goodbye; also 이따 봐 for later today.','banmal'],
+  ['저','나','I, me','저 is the humble I; 나 is used with friends and younger people.','banmal'],
+  ['제','내','my','제 is humble, 내 is casual: 내 친구, 내 거.','banmal'],
+  ['아르바이트','알바','part-time job','Everyone says 알바; a part-timer is 알바생.','slang'],
+  ['휴대 전화','핸드폰','mobile phone','휴대 전화 is the official word; people say 핸드폰 or just 폰.','slang'],
+  ['셀프 카메라','셀카','selfie','Cut from 셀프 카메라: 셀카 찍자!','slang'],
+  ['생일 파티','생파','birthday party','First syllables of 생일 and 파티.','slang'],
+  ['맛있는 집','맛집','great place to eat','Now used everywhere, from TV to maps: 맛집 추천해 줘.','slang'],
+  ['정말 재미있다','꿀잼','super fun','꿀 (honey) + 재미; the opposite is 노잼.','slang'],
+  ['재미없다','노잼','boring, not funny','English “no” + 재미: 그 영화 노잼이야.','slang'],
+  ['남자 친구','남친','boyfriend','First syllables of 남자 and 친구.','slang'],
+  ['여자 친구','여친','girlfriend','First syllables of 여자 and 친구.','slang'],
+  ['대단하다','대박','awesome; wow','Said for anything amazing: 대박!','slang'],
+  ['갑자기 분위기 싸해짐','갑분싸','sudden awkward silence','First syllables of a whole phrase, typical of internet slang.','slang'],
+  ['아이스 아메리카노','아아','iced Americano','Café talk: 아아 한 잔 주세요. Hot is 뜨아.','slang'],
+  ['치킨과 맥주','치맥','chicken and beer','A favourite night-out combo: 치맥 할래?','slang'],
+  ['혼자 먹는 밥','혼밥','eating alone','혼자 + 밥; also 혼술 (drinking alone).','slang'],
+  ['강력 추천','강추','highly recommend','The opposite is 비추 (not recommended).','slang'],
+  ['불타는 금요일','불금','Friday night out','Literally “burning Friday”: 불금이다!','slang'],
+  ['합니다','해요','I do','-ㅂ니다 is for news, speeches and formal work; -아요/어요 for daily talk.','written'],
+  ['그렇습니까?','그래요?','is that so?','-습니까 sounds stiff in conversation; 그래요? is the everyday form.','written'],
+  ['하십시오','하세요','please do','-십시오 is for signs and announcements; say -세요 to people.','written'],
+  ['및','하고','and','및 appears only in writing; in speech use 하고 or (이)랑.','written'],
+  ['하였다','했다','did','하였다 is old-style writing; 했다 is used in speech and most modern text.','written'],
+  ['무엇입니까?','뭐예요?','what is it?','The formal question is for exams and ceremonies; ask 뭐예요?','written'],
+  ['있습니까?','있어요?','is there? do you have?','In shops and daily life, 있어요? is normal.','written'],
+  ['학생입니다','학생이에요','I’m a student','-입니다 for formal self-introductions; -이에요 in conversation.','written'],
+  ['그러나','하지만','but','그러나 is written; in speech say 하지만 or 근데.','written'],
+  ['또한','그리고','also, and','또한 is bookish; 그리고 or 또 in conversation.','written'],
+  ['매우','정말','very','매우 is mostly written; in speech 정말, 진짜 or 너무.','written'],
+  ['그러므로','그래서','therefore','그러므로 is for essays; 그래서 in everyday talk.','written'],
+  ['하지 않습니다','안 해요','I don’t do it','Long negation -지 않다 is common in writing; speech prefers 안.','written'],
+  ['드십시오','드세요','please eat','Polite to elders but not stiff: 맛있게 드세요.','written'],
+  ['보았다','봤다','saw','보았다 is written style; 봤다 is the spoken and modern form.','written'],
+  ['반갑습니다','반가워요','nice to meet you','-습니다 at a first formal meeting; 반가워요 is warmer.','written'],
+  ['안녕히 가십시오','안녕히 가세요','goodbye (to someone leaving)','-십시오 for announcements; people say 안녕히 가세요.','written'],
+];
+
 // ---------------- Reading: short graded stories ----------------
 // lines: [Korean, English]. gloss: useful words beyond the app's word list. skip: word-list matches with another meaning here.
 // qs: [question, options, index of the answer]
@@ -373,7 +457,7 @@ const HANJA=[
 const familiesOf=ch=>HANJA.filter(h=>h.words.includes(ch)&&h.words.length>1);
 
 // Every answer and example gets a recorded clip.
-for(const t of[...NUM_ITEMS.map(n=>n.ko),...VERBS.flatMap(v=>formsFor(v.ch).map(f=>conj(v.ch,f))),...NOUNS.flatMap(n=>Object.keys(PARTICLES).map(k=>withParticle(n.ch,k))),...DIALOGUES.flatMap(d=>d.lines.map(l=>l[1])),...SOUNDS.flatMap(s=>s.ex.map(e=>e[0])),...STORIES.flatMap(s=>s.lines.map(l=>l[0]))])
+for(const t of[...NUM_ITEMS.map(n=>n.ko),...VERBS.flatMap(v=>formsFor(v.ch).map(f=>conj(v.ch,f))),...NOUNS.flatMap(n=>Object.keys(PARTICLES).map(k=>withParticle(n.ch,k))),...DIALOGUES.flatMap(d=>d.lines.map(l=>l[1])),...SOUNDS.flatMap(s=>s.ex.map(e=>e[0])),...CASUAL.flatMap(c=>[c[0],c[1]]),...STORIES.flatMap(s=>s.lines.map(l=>l[0]))])
   if(!PD.RECORDED.includes(t))PD.RECORDED.push(t);
 
-if(typeof module!=='undefined')module.exports={HANJA,familiesOf,parseWordList,sino,native,month,NUM_TYPES,NUM_ITEMS,irrOf,aeo,conj,verbWrongs,VERB_FORMS,formsFor,VERBS,PARTICLES,withParticle,wrongParticle,NOUNS,DIALOGUES,IRR_NOTE,SOUNDS,STORIES,storyText,storyWords,storyGloss};
+if(typeof module!=='undefined')module.exports={HANJA,familiesOf,parseWordList,sino,native,month,NUM_TYPES,NUM_ITEMS,irrOf,aeo,conj,verbWrongs,VERB_FORMS,formsFor,VERBS,PARTICLES,withParticle,wrongParticle,NOUNS,DIALOGUES,IRR_NOTE,SOUNDS,CASUAL,STORIES,storyText,storyWords,storyGloss};

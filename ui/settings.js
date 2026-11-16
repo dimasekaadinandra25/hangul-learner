@@ -4,6 +4,7 @@ const swSet=(id,on)=>$(id).setAttribute('aria-checked',!!on);
 const swOn=id=>$(id).getAttribute('aria-checked')==='true';
 const setMsg=(id,text,bad)=>{$(id).textContent=text;$(id).classList.toggle('bad',!!bad)};
 
+$('voiceSel').value=lsGet('voice','female');$('voiceSel').onchange=e=>{lsSet('voice',e.target.value);speak('학교')};
 function openSettings(){renderSettings();renderGoals();renderDownloads();$('settings').showModal();$('setClose').focus({focusVisible:false})}
 document.addEventListener('click',e=>{if(e.target.closest('[data-settings]'))openSettings()});
 $('setClose').onclick=()=>$('settings').close();
@@ -162,11 +163,11 @@ function cleanBackup(obj){
     exam:p.exam&&day(String(p.exam.date))&&+p.exam.level>=1&&+p.exam.level<=6?{date:p.exam.date,level:+p.exam.level}:null,
     notebook:(Array.isArray(p.notebook)?p.notebook:[]).slice(0,2000).map(w=>({ch:str(w?.ch,120),meaning:str(w?.meaning,200),added:+w?.added||0})).filter(w=>w.ch&&w.meaning),
     tests:(Array.isArray(p.tests)?p.tests:[]).slice(-50).filter(t=>Number.isFinite(t?.score)&&Number.isFinite(t?.total)&&t.total>0),
-    drills:Object.fromEntries(['num','verb','part','sound','read','tricky','reply','pair'].map(k=>[k,{right:Math.max(0,+p.drills?.[k]?.right||0),tries:Math.max(0,+p.drills?.[k]?.tries||0)}])),
+    drills:Object.fromEntries(['num','verb','part','sound','read','tricky','reply','pair','casual'].map(k=>[k,{right:Math.max(0,+p.drills?.[k]?.right||0),tries:Math.max(0,+p.drills?.[k]?.tries||0)}])),
     stories:Object.fromEntries(STORIES.filter(s=>p.stories?.[s.id]).map(s=>[s.id,{best:Math.max(0,Math.min(s.qs.length,+p.stories[s.id].best||0)),at:+p.stories[s.id].at||0}])),
     section:Math.max(0,Math.min(SECTIONS.length-1,+p.section||0)),
     days:Object.fromEntries(Object.entries(p.days&&typeof p.days==='object'?p.days:{}).filter(([k,v])=>/^\d{4}-\d\d-\d\d$/.test(k)&&Number.isFinite(+v)).map(([k,v])=>[k,+v])),
-    drillMiss:Object.fromEntries(['num','verb','part','sound','tricky','reply','pair'].map(k=>[k,(Array.isArray(p.drillMiss?.[k])?p.drillMiss[k]:[]).filter(r=>typeof r==='string'&&r.length<60).slice(-60)])),
+    drillMiss:Object.fromEntries(['num','verb','part','sound','tricky','reply','pair','casual'].map(k=>[k,(Array.isArray(p.drillMiss?.[k])?p.drillMiss[k]:[]).filter(r=>typeof r==='string'&&r.length<60).slice(-60)])),
     talks:Object.fromEntries(DIALOGUES.filter(d=>p.talks?.[d.id]).map(d=>[d.id,Math.max(0,+p.talks[d.id]||0)]))};
 }
 // Replaces progress (and the shared settings) with a cleaned backup. savedAt: keep the copy's save time (sync).

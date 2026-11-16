@@ -146,7 +146,7 @@ function setLevel(section,due=[],ep=[],clip=[]){ // copied Korean, then words fr
   $('kick').textContent=clip.length?'복사 · in what you copied':ep.length?'듣기 · in this episode':due.length?'복습 · due for review':'단어 · tap to reveal'; // one line at 340px
   $('kick').title=clip.length?'An app word found in the Korean text you just copied. Tap to see the meaning.':ep.length?'An app word found in the playing episode’s title or description. Tap to see the meaning.':due.length?'A word you met in a lesson, due for Smart review today. Tap to see the meaning.':'A word from your current level. Tap to see the meaning.';if(keep){cur=keep;renderExtras()}else nextWord();
 }
-const sayWord=()=>{if(!cur)return;cmd('duck');if(vp?.setVolume){vp.setVolume(20);clearTimeout(vDuck);vDuck=setTimeout(()=>vp.setVolume(100),1800)}new Audio('audio/'+audioName(cur.say)).play().catch(()=>{})};
+const sayWord=()=>{if(!cur)return;cmd('duck');if(vp?.setVolume){vp.setVolume(20);clearTimeout(vDuck);vDuck=setTimeout(()=>vp.setVolume(100),1800)}new Audio('audio/'+(((()=>{try{return JSON.parse(localStorage.getItem('voice'))}catch(e){}})()==='male')?'m-':'')+audioName(cur.say)).play().catch(()=>{})};
 $('face').onclick=()=>{$('wMean').classList.add('show');sayWord()};
 $('say').onclick=sayWord;
 $('next').onclick=nextWord;

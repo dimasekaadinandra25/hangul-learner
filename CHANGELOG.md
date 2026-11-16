@@ -2,6 +2,16 @@
 
 What changed in each version of Hangul Learner. Newest first. Installed apps update themselves; Settings › Updates shows your version.
 
+## 1.7.2
+
+- **Practice › Casual:** 79 pairs of textbook and everyday Korean, both ways: short forms (무엇을 → 뭘, 그런데 → 근데), talking with friends (안녕하세요 → 안녕, 밥 먹었어?), slang (알바, 셀카, 꿀잼, 치맥) and written vs spoken (합니다 → 해요, 및 → 하고).
+- **Every common syllable is recorded:** all 2,350 syllables Korean uses every day now have a real voice, so the syllable builder and your own words never fall back to a computer voice.
+- **Male voice:** Settings › Sound › Voice lets 인준 say letters, syllables and words (선희 is the default).
+- **Words light up as they are said** in stories and conversations.
+- **Your own shows:** add any podcast (its RSS link) or YouTube channel on the Listen page; remove it from its page.
+- **Download progress:** the ↓ button shows how far an episode is, and tapping it again stops the download.
+- **More menu:** in narrow windows the bottom bar shows Learn, Words, Practice and Listen, and More opens the other pages.
+
 ## 1.7.1
 
 - **Practice › Pairs:** hear syllables learners mix up (가 / 카 / 까, 어 / 오 / 우, 우 / 으, 이 / 에) and pick the one you heard, with a tip on how each is said.

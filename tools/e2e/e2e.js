@@ -145,8 +145,13 @@ const visible = t => win('state', t).visible;
       eq(r.xp, 0, 'xp'); eq(r.view, 'learn', 'view'); eq(r.hero, 'Hangul basics', 'hero'); eq(r.units, 11, 'units'); eq(r.locked, 10, 'locked units'); eq(r.words, 1020, 'words');
     });
     await test('every nav item opens its page', async () => {
-      const r = await main.run(`const out={};for(const b of document.querySelectorAll('.nav-item')){b.click();out[b.dataset.tab]=!$(b.dataset.tab).hidden&&b.getAttribute('aria-current')==='page'&&[...document.querySelectorAll('main>section')].filter(s=>!s.hidden).length===1}show('learn');return out`);
+      const r = await main.run(`const out={};for(const b of document.querySelectorAll('.sidebar>.nav-item[data-tab]')){b.click();out[b.dataset.tab]=!$(b.dataset.tab).hidden&&b.getAttribute('aria-current')==='page'&&[...document.querySelectorAll('main>section')].filter(s=>!s.hidden).length===1}show('learn');return out`);
       eq(r, {learn: true, quests: true, vocab: true, letters: true, write: true, practice: true, listen: true, test: true, stats: true}, 'pages');
+    });
+    await test('narrow windows: More opens the other pages and closes again', async () => {
+      const r = await main.run(`T.click('#navMore');const open=!$('morePanel').hidden&&$('navMore').getAttribute('aria-expanded')==='true';T.click('#morePanel [data-tab=stats]');
+        const res={open,page:view==='stats',closed:$('morePanel').hidden,cur:$('navMore').classList.contains('cur'),five:$('morePanel').querySelectorAll('[data-tab]').length};show('learn');res.off=!$('navMore').classList.contains('cur');return res`);
+      eq(r, {open: true, page: true, closed: true, cur: true, five: 5, off: true}, 'more');
     });
 
     group('Lessons');
@@ -245,9 +250,9 @@ const visible = t => win('state', t).visible;
       const r = await main.run(`show('letters');T.click('#letterGrid [data-letter="ㄱ"]');return {heard:P.stats['ㄱ'].heard,task:P.tasks.includes('t-hear')}`);
       ok(r.heard >= 1, 'not heard'); ok(r.task, 'task not claimed');
     });
-    await test('Letters: syllable builder composes 가 and flags unrecorded syllables', async () => {
+    await test('Letters: syllable builder composes 가 and flags rare unrecorded syllables', async () => {
       const r = await main.run(`const set=(id,v)=>{$(id).value=v;$(id).dispatchEvent(new Event('change'))};set('bInit',0);set('bVow',0);set('bFin',0);const ga=$('bOut').textContent,gaNote=$('bNote').textContent;
-        set('bInit',7);set('bVow',16);set('bFin',8);const odd=$('bOut').textContent,note=$('bNote').textContent;const b=P.totals.built;T.click('#bSay');return {ga,gaNote,odd,note,built:P.totals.built-b,task:P.tasks.includes('t-build')}`);
+        set('bInit',8);set('bVow',19);set('bFin',18);const odd=$('bOut').textContent,note=$('bNote').textContent;const b=P.totals.built;T.click('#bSay');return {ga,gaNote,odd,note,built:P.totals.built-b,task:P.tasks.includes('t-build')}`);
       eq(r.ga, '가', 'compose'); eq(r.gaNote, '', 'recorded note'); ok(r.note.includes('Not pre-recorded'), 'unrecorded note'); eq(r.built, 1, 'built counter'); ok(r.task, 'task not claimed');
     });
     await test('Write: drawing on the pad counts once per attempt; Next, Guide and Clear work', async () => {
@@ -930,6 +935,13 @@ const visible = t => win('state', t).visible;
         const ok=q.opts[q.answer]===set[k]&&q.opts.length===set.length&&q.opts.every(o=>set.includes(o))&&RECORDED.includes(q.say);T.click('[data-ptab=num]');return ok`);
       ok(r, 'pairs question');
     });
+    await test('Practice › Casual: textbook → casual and back, filtered by group', async () => {
+      const r = await main.run(`T.mute();show('practice');T.click('[data-ptab=casual]');T.click('[data-chip=casGroup][data-v=slang]');let q=DQ,[i]=q.ref.split('|').map(Number);
+        const a=CASUAL[i][4]==='slang'&&q.big===CASUAL[i][0]&&q.opts[q.answer]===CASUAL[i][1];T.click('[data-chip=casMode][data-v=book]');q=DQ;[i]=q.ref.split('|').map(Number);
+        const b=q.big===CASUAL[i][1]&&q.opts[q.answer]===CASUAL[i][0]&&new Set(q.opts).size===q.opts.length&&RECORDED.includes(q.say);
+        const n=drillStats('casual').right;T.click('[data-dopt="'+q.answer+'"]');const c=drillStats('casual').right-n;T.click('[data-chip=casMode][data-v=casual]');T.click('[data-chip=casGroup][data-v=all]');T.click('[data-ptab=num]');return {a,b,c}`);
+      eq(r, {a: true, b: true, c: 1}, 'casual');
+    });
     await test('Write › Trace: the right shape drawn in the wrong direction is flagged', async () => {
       const r = await main.run(`show('write');T.click('[data-wtab=trace]');$('wSel').value=String(ALL.findIndex(l=>l.ch==='ㅏ'));$('wSel').dispatchEvent(new Event('change'));
         myStrokes=STROKES['ㅏ'].map(s=>[...s].reverse());T.click('#wCheck');const bad=$('wScore').textContent;myStrokes=STROKES['ㅏ'].map(s=>[...s]);T.click('#wCheck');const good=$('wScore').textContent;
@@ -966,6 +978,41 @@ const visible = t => win('state', t).visible;
       const r = await main.run(`const k='__e2e2';P.srs[k]={u:'x',iv:1,ease:2.3,due:'2000-01-01'};const s=todayStats(P).srs;todayStats(P).srs=0;lsSet('reviewSent',null);const rem=lsGet('reminder',{});
         lsSet('reminder',{...rem,on:true});const ev=new Date();ev.setHours(19,30,0,0);const quiet=!(await checkReviewReminder(ev));lsSet('reminder',rem);delete P.srs[k];todayStats(P).srs=s;lsSet('reviewSent',null);return quiet`);
       ok(r, 'review reminder should be quiet');
+    });
+
+    group('Voices, word highlighting, your own shows, stopping downloads'); await fresh();
+    await test('every common syllable and the male voice clips are recorded; Settings › Voice switches words to 인준', async () => {
+      const d = require(path.join(ROOT, 'ui', 'data.js'));
+      const missing = [...d.COMMON_SYLL.map(t => d.audioName(t)), ...[...d.MALE_CLIPS].map(t => 'm-' + d.audioName(t))].filter(n => !fs.existsSync(path.join(ROOT, 'ui', 'audio', n)));
+      eq(missing.slice(0, 5), [], missing.length + ' clips missing'); eq(d.COMMON_SYLL.length, 2350, 'common syllables');
+      const r = await main.run(`T.mute();const v=lsGet('voice','female');openSettings();$('voiceSel').value='male';$('voiceSel').dispatchEvent(new Event('change'));const male=player.src.includes('/audio/m-');
+        speak('학교');const word=player.src.includes('/audio/m-');speak('학교',.7);const slow=player.src.includes('/audio/s-');speak(STORIES[0].lines[0][0]);const sent=!player.src.includes('/audio/m-');
+        lsSet('voice',v);$('settings').close();return {male,word,slow,sent}`);
+      eq(r, {male: true, word: true, slow: true, sent: true}, 'voice');
+    });
+    await test('story lines highlight each word as it is said', async () => {
+      const r = await main.run(`T.mute();sAudio.muted=false;sAudio.volume=0;show('practice');T.click('[data-ptab=read]');T.click('[data-story=family]');await T.until(()=>WORD_TIMES,5000,'word times');
+        T.click('[data-sline="1"]');await T.until(()=>document.querySelector('.hw.on'),5000,'a highlighted word');const first=document.querySelector('.hw.on').textContent;
+        await T.until(()=>document.querySelector('.hw.on')?.textContent!==first,6000,'the next word');const spans=document.querySelectorAll('[data-sline="1"] .hw').length;
+        await T.until(()=>sAudio.ended,8000,'end');await T.sleep(100);const cleared=!document.querySelector('.hw.on');sAudio.muted=true;sAudio.volume=1;T.click('[data-story=""]');T.click('[data-ptab=num]');
+        return {spans:spans===STORIES.find(s=>s.id==='family').lines[1][0].split(' ').length,cleared}`);
+      eq(r, {spans: true, cleared: true}, 'highlight');
+    });
+    await test('Listen: add your own podcast (bad links explained) and YouTube channel, then remove it', async () => {
+      const r = await main.run(`show('listen');LV={tab:'pod',open:null,err:'',loading:false};renderListen();$('addShowIn').value='not a link';$('addShowIn').form.requestSubmit();await T.until(()=>$('addShowMsg').classList.contains('bad'),3000,'error');
+        const bad=$('addShowMsg').textContent.includes('RSS');$('addShowIn').value=PODCASTS[0].feed;$('addShowIn').form.requestSubmit();await T.until(()=>/already/.test($('addShowMsg').textContent),3000,'dup');
+        T.click('[data-ltab=yt]');const id='UC'+'e2eTestChannel00000000'.slice(0,22);$('addShowIn').value='https://www.youtube.com/channel/'+id;$('addShowIn').form.requestSubmit();
+        await T.until(()=>CHANNELS.some(c=>c.id===id),30000,'added');const saved=lsGet('myShows',{}).yt.some(c=>c.id===id),opened=LV.open===id;
+        T.click('[data-rmshow]');await T.sleep(50);T.click('#askOk');await T.sleep(100);const gone=!CHANNELS.some(c=>c.id===id)&&!lsGet('myShows',{}).yt.some(c=>c.id===id);
+        T.click('[data-ltab=pod]');return {bad,saved,opened,gone}`);
+      eq(r, {bad: true, saved: true, opened: true, gone: true}, 'my shows');
+    });
+    await test('a download shows its progress and stops when tapped again', async () => {
+      const r = await main.run(`T.mute();show('listen');LV={tab:'pod',open:'sbs',err:'',loading:false};renderListen();await T.until(()=>feeds.sbs,30000,'feed');renderListen();
+        const it=feeds.sbs.items[0],p=toggleDownload(it);await T.until(()=>DLING.get(it.url)?.got>0,30000,'progress');const shown=/%|MB|KB/.test(document.querySelector('.dl-btn.busy .dl-pct')?.textContent||'');
+        await toggleDownload(it);await p;await T.sleep(200);const stopped=!DL[it.url]&&!DLING.has(it.url)&&[...$('toasts').children].some(t=>t.textContent.includes('Download stopped'));
+        const left=await __TAURI__.core.invoke('download_progress',{url:it.url});return {shown,stopped,left}`);
+      eq(r, {shown: true, stopped: true, left: 0}, 'stop download');
     });
 
     group('Tray and closing'); await fresh();

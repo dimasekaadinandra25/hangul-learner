@@ -405,6 +405,7 @@ const TASKS=[
   {id:'t-type',group:'Tools',text:'Type 10 words correctly',xp:15,get:P=>[P.totals.typed||0,10]},
   {id:'t-stroke',group:'Tools',text:'Score 80% or more on a stroke-order check',xp:15,get:P=>[P.bestStroke||0,80]},
   {id:'t-numbers',group:'Practice',text:'Get 20 number questions right',xp:15,get:P=>[drillRight(P,'num'),20]},
+  {id:'t-casual',group:'Practice',text:'Get 15 casual-Korean questions right (Practice › Casual)',xp:15,get:P=>[drillRight(P,'casual'),15]},
   {id:'t-reply',group:'Practice',text:'Choose 10 right replies (Practice › Reply)',xp:15,get:P=>[drillRight(P,'reply'),10]},
   {id:'t-verbs',group:'Practice',text:'Get 20 verb-ending questions right',xp:15,get:P=>[drillRight(P,'verb'),20]},
   {id:'t-sounds',group:'Practice',text:'Get 15 sound-change questions right',xp:15,get:P=>[drillRight(P,'sound'),15]},

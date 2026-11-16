@@ -94,9 +94,13 @@ function findWords(text){
 }
 
 // Everything with a pre-recorded clip; file name = hex code points, e.g. 가 -> ac00.ogg (Opus)
-const RECORDED=[...new Set([...ALL.map(l=>l.say),...FINALS.map(f=>f.say),...SYLL.map(s=>s.say),...VOCAB.map(w=>w.say),...GRAMMAR_ITEMS.flatMap(g=>[...g.ex.map(e=>e[0]),fillQ(g.q)])])];
+// The 2350 everyday syllables (KS X 1001, the set Korean keyboards and fonts always cover): all recorded, so the syllable
+// builder never falls back to a computer voice
+const COMMON_SYLL=(()=>{try{const t=new TextDecoder('euc-kr'),out=[];for(let a=0xB0;a<=0xC8;a++)for(let b=0xA1;b<=0xFE;b++){const c=t.decode(new Uint8Array([a,b]));if(/^[가-힣]$/.test(c))out.push(c)}return out}catch(e){return[]}})();
+const RECORDED=[...new Set([...COMMON_SYLL,...ALL.map(l=>l.say),...FINALS.map(f=>f.say),...SYLL.map(s=>s.say),...VOCAB.map(w=>w.say),...GRAMMAR_ITEMS.flatMap(g=>[...g.ex.map(e=>e[0]),fillQ(g.q)])])];
 // Short items also have a slow recording (s-<file>), said slowly by the voice itself: clearer than stretching the normal clip
 const SLOW_CLIPS=new Set([...ALL.map(l=>l.say),...SYLL.map(s=>s.say),...FINALS.map(f=>f.say),...VOCAB.map(w=>w.say)]);
+const MALE_CLIPS=SLOW_CLIPS; // the male voice (Settings › Sound) covers the same short items
 // Revised Romanization, enough for search: 학교 -> hakgyo, 한국어 -> hangugeo, 감사합니다 -> gamsahamnida.
 // ponytail: links a final into a following ㅇ and nasalizes before ㄴ/ㅁ; other sound changes (ㄹ+ㄴ, ㅎ, tensing) are skipped.
 const RR_I=['g','kk','n','d','tt','r','m','b','pp','s','ss','','j','jj','ch','k','t','p','h'];
@@ -120,4 +124,4 @@ function romanize(s){
 // Clip file name from its text; long sentences get a short hash instead (Windows file names stop at 255 characters).
 const audioName=t=>{const n=[...t].map(c=>c.codePointAt(0).toString(16)).join('-');if(n.length<=200)return n+'.ogg';let h=0x811c9dc5;for(const c of t){h^=c.codePointAt(0);h=Math.imul(h,0x01000193)>>>0}return 'h-'+h.toString(16)+'-'+[...t].length+'.ogg'};
 
-if(typeof module!=='undefined')module.exports={SLOW_CLIPS,FINALS,keyOf,INIT,VOW,FIN,compose,decompose,ALL,LETTER,GROUPS,WORDS,SYL_C,SYL_V,SYLL,SECTIONS,UNITS,VOCAB,GRAMMAR_ITEMS,fillQ,RECORDED,audioName,findWords,romanize};
+if(typeof module!=='undefined')module.exports={COMMON_SYLL,MALE_CLIPS,SLOW_CLIPS,FINALS,keyOf,INIT,VOW,FIN,compose,decompose,ALL,LETTER,GROUPS,WORDS,SYL_C,SYL_V,SYLL,SECTIONS,UNITS,VOCAB,GRAMMAR_ITEMS,fillQ,RECORDED,audioName,findWords,romanize};
