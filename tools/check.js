@@ -77,7 +77,7 @@ assert.strictEqual(strokeOrderIssue(STROKES['ㅇ'],STROKES['ㅇ'].map(s=>[...s].
 assert.strictEqual(strokeOrderIssue(STROKES['ㅏ'],STROKES['ㅏ'].slice(0,1)),-1);
 `+`
 const keys=VOCAB.map(w=>w.ch); // a word may equal a practice syllable (코, 비); that's fine
-assert.strictEqual(parseWordList('\\ufeff학교,school\\r\\n"책, 공책","book, notebook"\\r\\n').length,2,'exported CSV reads back');
+assert.deepStrictEqual(parseWordList('\\ufeff학교,school\\r\\n"책, 공책","book, notebook"\\r\\n사과;apple, red'),[['학교','school'],['책, 공책','book, notebook'],['사과','apple, red']],'exported CSV reads back');
 // exam plan and daily mix
 {const P={units:{},exam:{date:'2026-12-13',level:1}},x=examPlan(P,new Date(2026,10,13,12));assert.strictEqual(x.days,30);assert.strictEqual(x.left,UNITS.filter(u=>u.section===1).length);assert.strictEqual(x.every,Math.max(1,Math.floor(30/x.left)));assert.strictEqual(x.perDay,Math.ceil(x.left/30));
   assert.strictEqual(examPlan({units:{}},new Date()),null);assert.strictEqual(buildMix({units:{}}).length,0);const Q={units:{[UNITS[0].id]:1,[UNITS[1].id]:1}};assert.strictEqual(buildMix(Q).length,10)}

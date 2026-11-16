@@ -706,7 +706,10 @@ const playLine = (text, male) => new Promise(resolve => {
     unduck();
     setTimeout(resolve, 350);
   };
-  sAudio.play().then(() => highlightWords(text, name)).catch(resolve);
+  sAudio.play().then(() => highlightWords(text, name)).catch(() => {
+    unduck(); // the clip didn't play: bring the podcast back now, not when the duck runs out
+    resolve();
+  });
 });
 // Word highlighting: audio/words.json says when each word of a story or conversation line is said (recorded with
 // the line). It maps a file name to a list of [start ms, length ms, word].
@@ -936,7 +939,13 @@ async function talkRecord(dialogue) {
   try {
     // Long enough for the line: 2.2 s plus 170 ms per character (more when Slow is on), at most 9 s
     const characters = [...dialogue.lines[lineIndex][1]].length;
-    const url = await recordClip(Math.min(9000, 2200 + characters * 170 / (PX.slow ? SLOW : 1)));
+    let url;
+    try {
+      url = await recordClip(Math.min(9000, 2200 + characters * 170 / (PX.slow ? SLOW : 1)));
+    } catch (e) {
+      toast('sync', 'No microphone found', micHelp(), 'mic');
+      return;
+    }
     if (TK.urls[lineIndex]) URL.revokeObjectURL(TK.urls[lineIndex]);
     TK.urls[lineIndex] = url;
     P.totals.recordings = (P.totals.recordings || 0) + 1;
@@ -944,9 +953,7 @@ async function talkRecord(dialogue) {
     today.spoken = (today.spoken || 0) + 1;
     TK.rec = false;
     save();
-    if (run === TK.run) await playUrl(url);
-  } catch (e) {
-    toast('sync', 'No microphone found', micHelp(), 'mic');
+    if (run === TK.run) await playUrl(url); // playUrl never rejects, so a playback problem isn't shown as "no microphone"
   } finally {
     TK.rec = false;
     renderPractice();

@@ -13,6 +13,10 @@ const KINDS = {
   sync: {label: 'Welcome back', seal: 'gold', icon: 'gift'},
 };
 
+// Titles and bodies are plain text (error messages and word meanings can contain < or &).
+// Own helper: this file loads before listen.js, which has esc().
+const escapeNoteText = text => String(text).replace(/[&<>"]/g, char => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'})[char]);
+
 // Adds a reward to the top of the inbox (saved in P.inbox), which keeps the newest 40
 function pushInbox(kind, title, body, ic) {
   P.inbox.unshift({kind, title, body, ic, at: Date.now()});
@@ -22,16 +26,16 @@ function pushInbox(kind, title, body, ic) {
 // Pops a notification card (at most 4 at once; the oldest goes first). ic = icon name, else the kind's icon.
 // The card closes itself when its timer bar's animation ends; hover pauses the timer.
 function toast(kind, title, body, ic) {
-  const kindInfo = KINDS[kind];
+  const kindInfo = KINDS[kind] || KINDS.task;
   const box = $('toasts');
   while (box.children.length >= 4) box.firstChild.remove();
   const card = document.createElement('div');
   card.className = `toast k-${kind}`;
   card.setAttribute('role', 'status');
-  const bodyHtml = body ? `<span>${body}</span>` : '';
+  const bodyHtml = body ? `<span>${escapeNoteText(body)}</span>` : '';
   card.innerHTML = [
     seal(icon(ic || kindInfo.icon), 'm', kindInfo.seal),
-    `<div class="t-body"><small>${kindInfo.label}</small><b>${title}</b>${bodyHtml}</div>`,
+    `<div class="t-body"><small>${kindInfo.label}</small><b>${escapeNoteText(title)}</b>${bodyHtml}</div>`,
     '\n    ', // the whitespace that has always sat between the text and the close button
     `<button class="t-x" aria-label="Dismiss">${icon('x')}</button>`,
     '<i class="t-timer"></i>',
@@ -65,11 +69,11 @@ function renderInbox() {
   $('inboxList').innerHTML = P.inbox.map(note => {
     const kindInfo = KINDS[note.kind] || KINDS.task;
     const newClass = note.at > seenBefore ? ' new' : '';
-    const bodyHtml = note.body ? `<small>${note.body}</small>` : '';
+    const bodyHtml = note.body ? `<small>${escapeNoteText(note.body)}</small>` : '';
     return [
       `<div class="inote${newClass}">`,
       seal(icon(note.ic || kindInfo.icon), 's', kindInfo.seal),
-      `<div><small>${kindInfo.label} · ${timeAgo(note.at)}</small><b>${note.title}</b>${bodyHtml}</div>`,
+      `<div><small>${kindInfo.label} · ${timeAgo(note.at)}</small><b>${escapeNoteText(note.title)}</b>${bodyHtml}</div>`,
       '</div>',
     ].join('');
   }).join('');

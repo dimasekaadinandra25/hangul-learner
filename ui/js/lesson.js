@@ -968,7 +968,11 @@ const ACHIEVEMENTS = [
   {id: 'talker', name: 'Conversation partner', desc: 'Finish all 8 role-play conversations', icon: 'mic',
     get: P => [talksDone(P), 8]},
   {id: 'drills200', name: 'Drill master', desc: 'Answer 200 Practice-page questions right', icon: 'target',
-    get: P => [['num', 'verb', 'part', 'sound', 'read'].reduce((total, kind) => total + drillRight(P, kind), 0), 200]},
+    get: P => [
+      ['num', 'verb', 'part', 'sound', 'read', 'tricky', 'reply', 'pair', 'casual']
+        .reduce((total, kind) => total + drillRight(P, kind), 0),
+      200,
+    ]},
   {id: 'bookworm', name: 'Bookworm', desc: 'Read every story', icon: 'book',
     get: P => [storiesRead(P), STORIES.length]},
   {id: 'focus10', name: 'Deep focus', desc: 'Finish 10 focus timer sessions', icon: 'clock',

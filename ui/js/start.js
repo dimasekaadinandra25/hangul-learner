@@ -12,21 +12,25 @@ store.load().then(json => {
   try {
     const saved = JSON.parse(json);
     const fresh = freshProgress();
+    // Built on the side and only used once every step worked: if one fails, the learner really starts fresh
+    // (as the message below says) instead of carrying on with a half-upgraded save.
     // `letters` = older save format
-    P = {...fresh, ...saved, totals: {...fresh.totals, ...saved.totals}, stats: saved.stats || saved.letters || {}};
+    const upgraded = {...fresh, ...saved, totals: {...fresh.totals, ...saved.totals}, stats: saved.stats || saved.letters || {}};
     if (saved.daily && !saved.log) { // older saves kept only today
-      P.log = {[saved.daily.date]: {...emptyDaily(saved.daily.date), ...saved.daily}};
+      upgraded.log = {[saved.daily.date]: {...emptyDaily(saved.daily.date), ...saved.daily}};
     }
+    upgraded.log ||= {};
     // keep 70 days of daily stats
     const cutoff = dayKey(new Date(Date.now() - 70 * 864e5));
-    for (const day of Object.keys(P.log)) {
-      if (day < cutoff) delete P.log[day];
+    for (const day of Object.keys(upgraded.log)) {
+      if (day < cutoff) delete upgraded.log[day];
     }
-    delete P.letters;
-    delete P.quiz;
-    delete P.daily;
-    seedSrs(P); // learners from before Smart review: what they know joins the schedule
-    migrateKeys(P);
+    delete upgraded.letters;
+    delete upgraded.quiz;
+    delete upgraded.daily;
+    seedSrs(upgraded); // learners from before Smart review: what they know joins the schedule
+    migrateKeys(upgraded);
+    P = upgraded;
   } catch (e) {
     // keep the unreadable file (in Documents, or localStorage in a browser) so a learner can recover it
     console.error('progress file unreadable, starting fresh', e);
@@ -34,8 +38,8 @@ store.load().then(json => {
     let keepCopy;
     if (window.__TAURI__) keepCopy = __TAURI__.core.invoke('export_backup', {name, data: json});
     else keepCopy = Promise.resolve(lsSet('progressUnreadable', json));
-    const message = 'A copy is kept in Documents › Hangul Learner as ' + name
-      + '. You start fresh; Settings › Backup › Import brings back a backup.';
+    const where = window.__TAURI__ ? 'in Documents › Hangul Learner as ' + name : 'in this browser';
+    const message = `A copy is kept ${where}. You start fresh; Settings › Backup › Import brings back a backup.`;
     keepCopy
       .then(() => toast('sync', 'Your progress file could not be read', message, 'bell'))
       .catch(err => console.error('could not keep the unreadable file', err));

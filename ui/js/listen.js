@@ -118,9 +118,10 @@ function parsePodcast(xml) {
   const channel = doc.getElementsByTagName('channel')[0];
   if (!channel) throw Error('not a podcast feed');
 
-  // The show's own <description> is a direct child of <channel>; every episode has one too
-  const channelDescription = () => [...channel.children].find(child => child.tagName === 'description')?.textContent;
-  const about = plain(tag(channel, 'itunes:summary') || channelDescription() || '');
+  // The show's own <itunes:summary> and <description> are direct children of <channel>; every episode has them too,
+  // so only direct children count (else a show without a summary would show its first episode's)
+  const ownTag = name => [...channel.children].find(child => child.tagName === name)?.textContent?.trim();
+  const about = plain(ownTag('itunes:summary') || ownTag('description') || '');
 
   const toEpisode = item => {
     const duration = tag(item, 'itunes:duration');
@@ -354,10 +355,10 @@ async function uploadsViaPlayer(src) {
 
   const fetchTitle = id => {
     const url = `https://www.youtube.com/oembed?format=json&url=https://www.youtube.com/watch?v=${id}`;
-    return fetchText(url).then(
-      text => ({id, title: String(JSON.parse(text).title || ''), desc: '', date: 0}),
-      () => null,
-    );
+    // a failed or garbled answer only loses that one video, not the whole list
+    return fetchText(url)
+      .then(text => ({id, title: String(JSON.parse(text).title || ''), desc: '', date: 0}))
+      .catch(() => null);
   };
   const validIds = ids.filter(id => /^[\w-]{11}$/.test(id)).slice(0, 20);
   const items = await Promise.all(validIds.map(fetchTitle));
@@ -610,9 +611,8 @@ setInterval(async () => {
   for (const [url, download] of DLING) {
     download.got = await tauri.core.invoke('download_progress', {url}).catch(() => download.got);
     document.querySelectorAll('[data-dlurl]').forEach(button => {
-      if (button.dataset.dlurl === url) {
-        button.querySelector('.dl-pct').textContent = dlText(url);
-      }
+      const percentLabel = button.dataset.dlurl === url && button.querySelector('.dl-pct');
+      if (percentLabel) percentLabel.textContent = dlText(url); // a button drawn before the download has no label yet
     });
   }
 }, 700);

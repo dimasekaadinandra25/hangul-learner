@@ -383,7 +383,8 @@ function verbSlips(verb, form) {
     ];
   }
   if (form === 'future') {
-    return [last.final ? stem + ' 거예요' : stem + '을 거예요', stem + '를 거예요', aeo(verb) + 'ㄹ 거예요'];
+    // the last one: ㄹ added to the 아/어 form (먹어 → 먹얼 거예요), a common slip
+    return [last.final ? stem + ' 거예요' : stem + '을 거예요', stem + '를 거예요', addFinal(aeo(verb), 'ㄹ') + ' 거예요'];
   }
   if (form === 'casual') return [aeo(verb) + '요', swapped, conj(verb, 'present', false).slice(0, -1)];
   if (form === 'honor') {
@@ -1435,6 +1436,18 @@ const storyText = story => story.lines.map(line => line[0]).join(' ');
 const storyWords = story => PD.findWords(storyText(story)).filter(w => !(story.skip || []).includes(w.ch));
 const storyGloss = story => story.gloss.filter(([ko]) => !PD.VOCAB.some(w => w.ch === ko));
 
+// Splits a CSV line at its first , or ; outside quotes, so a quoted cell may contain commas:
+// "책, 공책","book, notebook" gives ['"책, 공책"', '"book, notebook"']. The rest stays whole (meanings may have commas).
+function splitFirstCsvCell(line) {
+  let insideQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') insideQuotes = !insideQuotes; // "" inside a quoted cell toggles twice
+    else if (!insideQuotes && (char === ',' || char === ';')) return [line.slice(0, i), line.slice(i + 1)];
+  }
+  return [line];
+}
+
 // One cell of an imported word list as plain text: HTML tags and &nbsp; become spaces, CSV quotes are undone
 function cleanWordListCell(cell) {
   return cell
@@ -1455,8 +1468,8 @@ function parseWordList(text) {
   for (const rawLine of String(text).split(/\r?\n/).slice(0, 5000)) {
     const line = rawLine.trim();
     if (!line || line.startsWith('#')) continue; // blank, or an Anki header such as #separator:tab
-    // a tab-separated line, or a split at the first , or ; (the meaning may contain more commas)
-    const rawCells = line.includes('\t') ? line.split('\t') : line.split(/[,;](.*)/s);
+    // a tab-separated line, or a split at the first , or ; outside quotes (the meaning may contain more commas)
+    const rawCells = line.includes('\t') ? line.split('\t') : splitFirstCsvCell(line);
     const cells = rawCells.map(cleanWordListCell).filter(Boolean);
     if (cells.length < 2) continue;
     const koreanIndex = cells.findIndex(cell => /[가-힣]/.test(cell));
