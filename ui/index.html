@@ -1,327 +1,700 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Hangul Learner</title>
-<script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;const k=+localStorage.getItem('koSize');if(k)document.documentElement.style.setProperty('--ko-size',k)}catch(e){}</script>
-<link rel="stylesheet" href="css/theme.css">
-<link rel="stylesheet" href="css/app.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Hangul Learner</title>
+  <!-- Theme and Korean text size are applied before the CSS loads, so the page never flashes the wrong theme. -->
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;const k=+localStorage.getItem('koSize');if(k)document.documentElement.style.setProperty('--ko-size',k)}catch(e){}</script>
+  <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-<div class="app">
-  <nav class="sidebar" aria-label="Main">
-    <div class="brand"><b>한글</b><small>Hangul<br>Learner</small></div>
-    <button class="nav-item" data-tab="learn" aria-current="page"><i data-icon="map"></i>Learn<em>배우기</em></button>
-    <button class="nav-item nav-x" data-tab="quests"><i data-icon="gift"></i>Quests<em>과제</em></button>
-    <button class="nav-item" data-tab="vocab"><i data-icon="layers"></i>Words<em>단어</em></button>
-    <button class="nav-item nav-x" data-tab="letters"><i data-icon="type"></i>Letters<em>글자</em></button>
-    <button class="nav-item nav-x" data-tab="write"><i data-icon="pen"></i>Write<em>쓰기</em></button>
-    <button class="nav-item" data-tab="practice"><i data-icon="target"></i>Practice<em>연습</em></button>
-    <button class="nav-item" data-tab="listen"><i data-icon="headphones"></i>Listen<em>듣기</em></button>
-    <button class="nav-item nav-x" data-tab="test"><i data-icon="award"></i>Test<em>시험</em></button>
-    <button class="nav-item nav-x" data-tab="stats"><i data-icon="chart"></i>Stats<em>기록</em></button>
-    <button class="nav-item nav-more" id="navMore" aria-expanded="false" aria-controls="morePanel"><i data-icon="more"></i>More<em>더보기</em></button>
-    <div class="more-panel" id="morePanel" hidden role="group" aria-label="More pages"><button class="nav-item" data-tab="quests"><i data-icon="gift"></i>Quests<em>과제</em></button><button class="nav-item" data-tab="letters"><i data-icon="type"></i>Letters<em>글자</em></button><button class="nav-item" data-tab="write"><i data-icon="pen"></i>Write<em>쓰기</em></button><button class="nav-item" data-tab="test"><i data-icon="award"></i>Test<em>시험</em></button><button class="nav-item" data-tab="stats"><i data-icon="chart"></i>Stats<em>기록</em></button></div>
-    <div class="side-foot"><span class="side-label">Theme</span><div class="theme-seg" role="group" aria-label="Theme"><button data-set-theme="auto" title="Auto: follow your system" aria-label="Auto theme"><i data-icon="monitor"></i></button><button data-set-theme="light" title="Light" aria-label="Light theme"><i data-icon="sun"></i></button><button data-set-theme="dark" title="Dark" aria-label="Dark theme"><i data-icon="moon"></i></button></div><button class="link" data-settings>Settings</button></div>
-  </nav>
+  <!--
+    Main window markup only: styles are in css/, scripts in js/ (listed at the bottom, order matters).
+    Text runs with inline elements stay on one line, because a line break between them shows as a space.
+  -->
+  <div class="app">
 
-  <main>
-    <header class="topbar">
-      <span class="stat flame" title="Day streak"><i data-icon="flame"></i><b data-stat="streak">0</b>days</span>
-      <span class="stat xp" title="Total XP"><i data-icon="zap"></i><b data-stat="xp">0</b>XP</span>
-      <span class="stat" title="Daily goal"><svg class="ring sm" viewBox="0 0 36 36" aria-hidden="true"><circle class="ring-bg" cx="18" cy="18" r="15.9"/><circle class="ring-fg" cx="18" cy="18" r="15.9" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/></svg><b data-stat="today">0/30</b>today</span>
-      <div class="top-actions"><button class="bell" data-settings aria-label="Settings" title="Settings"><i data-icon="gear"></i></button><button class="bell" data-theme-btn></button><button class="bell" data-inbox aria-label="Notifications"><i data-icon="bell"></i><span class="dot" data-stat="unread"></span></button></div>
-    </header>
-
-    <section id="learn">
-      <div class="tabs scroller" id="levels" aria-label="Choose level"></div>
-      <div id="hero"></div>
-      <div id="todayStrip"></div>
-      <div id="taskSlot"></div>
-      <div id="smartSlot"></div>
-      <div id="reviewSlot"></div>
-      <div id="path"></div>
-    </section>
-
-    <section id="quests" hidden>
-      <div class="page-head"><span class="kicker">과제</span><h1>Quests</h1><p>Daily, weekly and one-time tasks. Rewards are added automatically when you finish.</p></div>
-      <div class="qsum" id="qSummary"></div>
-      <div class="qsec"><div class="qsec-head"><span class="kicker">오늘</span><h2>Daily quests</h2><span class="muted" id="qReset"></span></div><div class="panel" id="questList"></div></div>
-      <div class="qsec"><div class="qsec-head"><span class="kicker">이번 주</span><h2>Weekly quests</h2><span class="muted" id="wReset"></span></div><div class="panel" id="weeklyList"></div><p class="muted" id="restNote" style="margin:10px 2px 0;font-size:.88rem"></p></div>
-      <div class="qsec"><div class="qsec-head"><span class="kicker">할 일</span><h2>Tasks</h2><span class="muted" id="tCount"></span></div><div class="panel" id="taskList"></div></div>
-      <div class="qsec"><div class="qsec-head"><span class="kicker">도장 모음</span><h2>Stamp collection</h2><span class="muted" id="bCount"></span></div><div class="stamps" id="badgeList"></div></div>
-    </section>
-
-    <section id="vocab" hidden>
-      <div class="page-head"><span class="kicker">단어</span><h1>Words</h1><p>Tap a word to hear it, practise saying it, or save it to My words. A red stamp means mastered (3+ right answers, 75%+ accuracy).</p></div>
-      <div class="vtabs"><div class="seg seg-text" id="vTabs" role="group" aria-label="Word list"><button data-vtab="all">All words</button><button data-vtab="mine">My words <span id="mineCount"></span></button><button data-vtab="gram">Grammar</button></div></div>
-      <form class="add-word" id="addWord" hidden><input id="awKo" placeholder="Korean, e.g. 고구마" aria-label="Korean word" required class="ko" lang="ko"><input id="awEn" placeholder="Meaning, e.g. sweet potato" aria-label="Meaning" required><button class="btn btn-ink" type="submit"><i data-icon="plus"></i>Add</button></form>
-      <div class="import-row" id="importRow" hidden><label class="btn" for="importWords"><i data-icon="upload"></i>Import a word list</label><small class="muted">A .csv or .txt file with one word per line: Korean, meaning. Anki “Notes in plain text” exports work too.</small><input type="file" id="importWords" accept=".csv,.txt,.tsv,text/plain,text/csv" hidden><button class="btn" id="exportWords"><i data-icon="download"></i>Export</button><span class="set-msg" id="exportMsg"></span></div>
-      <div class="search"><i data-icon="search"></i><input type="search" id="vSearch" placeholder="Search Korean, English or romanization (hakgyo)" aria-label="Search words"></div>
-      <div class="tabs scroller" id="vLevels" aria-label="Filter by level"></div>
-      <p class="muted" id="vCount"></p>
-      <div id="vList"></div>
-      <p class="muted" style="margin-top:28px">TOPIK lists follow vocabulary commonly taught at each level; they are not the official exam word list.</p>
-    </section>
-
-    <section id="letters" hidden>
-      <div class="page-head"><span class="kicker">글자</span><h1>Letters</h1><p>Tap a letter to hear it. <b data-stat="letters">0</b> of <span id="sTotal">0</span> mastered.</p></div>
-      <div id="letterGrid"></div>
-      <h2 class="section-title">Build a syllable</h2>
-      <div class="panel">
-        <p class="muted" style="margin-top:0">A syllable block = first consonant + vowel + optional final consonant (받침).</p>
-        <div class="builder">
-          <select id="bInit" aria-label="First consonant" class="ko"></select><span>+</span>
-          <select id="bVow" aria-label="Vowel" class="ko"></select><span>+</span>
-          <select id="bFin" aria-label="Final consonant" class="ko"></select>
-          <button class="btn btn-ink" id="bSay"><i data-icon="volume"></i>Hear</button>
+    <!-- ===== Sidebar: main navigation (a bottom tab bar in narrow windows) ===== -->
+    <nav class="sidebar" aria-label="Main">
+      <div class="brand"><b>한글</b><small>Hangul<br>Learner</small></div>
+      <button class="nav-item" data-tab="learn" aria-current="page"><i data-icon="map"></i>Learn<em>배우기</em></button>
+      <button class="nav-item nav-x" data-tab="quests"><i data-icon="gift"></i>Quests<em>과제</em></button>
+      <button class="nav-item" data-tab="vocab"><i data-icon="layers"></i>Words<em>단어</em></button>
+      <button class="nav-item nav-x" data-tab="letters"><i data-icon="type"></i>Letters<em>글자</em></button>
+      <button class="nav-item nav-x" data-tab="write"><i data-icon="pen"></i>Write<em>쓰기</em></button>
+      <button class="nav-item" data-tab="practice"><i data-icon="target"></i>Practice<em>연습</em></button>
+      <button class="nav-item" data-tab="listen"><i data-icon="headphones"></i>Listen<em>듣기</em></button>
+      <button class="nav-item nav-x" data-tab="test"><i data-icon="award"></i>Test<em>시험</em></button>
+      <button class="nav-item nav-x" data-tab="stats"><i data-icon="chart"></i>Stats<em>기록</em></button>
+      <button class="nav-item nav-more" id="navMore" aria-expanded="false" aria-controls="morePanel"><i data-icon="more"></i>More<em>더보기</em></button>
+      <!-- the pages that don't fit in the bottom tab bar -->
+      <div class="more-panel" id="morePanel" hidden role="group" aria-label="More pages">
+        <button class="nav-item" data-tab="quests"><i data-icon="gift"></i>Quests<em>과제</em></button>
+        <button class="nav-item" data-tab="letters"><i data-icon="type"></i>Letters<em>글자</em></button>
+        <button class="nav-item" data-tab="write"><i data-icon="pen"></i>Write<em>쓰기</em></button>
+        <button class="nav-item" data-tab="test"><i data-icon="award"></i>Test<em>시험</em></button>
+        <button class="nav-item" data-tab="stats"><i data-icon="chart"></i>Stats<em>기록</em></button>
+      </div>
+      <div class="side-foot">
+        <span class="side-label">Theme</span>
+        <div class="theme-seg" role="group" aria-label="Theme">
+          <button data-set-theme="auto" title="Auto: follow your system" aria-label="Auto theme"><i data-icon="monitor"></i></button>
+          <button data-set-theme="light" title="Light" aria-label="Light theme"><i data-icon="sun"></i></button>
+          <button data-set-theme="dark" title="Dark" aria-label="Dark theme"><i data-icon="moon"></i></button>
         </div>
-        <div class="glyph-out" id="bOut"></div>
+        <button class="link" data-settings>Settings</button>
       </div>
-    </section>
+    </nav>
 
-    <section id="write" hidden>
-      <div class="page-head"><span class="kicker">쓰기</span><h1>Write</h1><p>Trace letters in the right stroke order, type Korean on the 2-beolsik keyboard, type the words you hear, or race the clock for 60 seconds.</p></div>
-      <div class="seg seg-text write-tabs" id="wTabs" role="group" aria-label="Practice"><button data-wtab="trace"><i data-icon="pen"></i>Trace</button><button data-wtab="type"><i data-icon="keyboard"></i>Type</button><button data-wtab="dict"><i data-icon="headphones"></i>Listen</button><button data-wtab="race"><i data-icon="clock"></i>Race</button></div>
-      <div id="wTrace">
-      <div class="toolbar">
-        <select id="wSel" aria-label="Letter to practise" class="ko"></select>
-        <button class="btn" id="wSay"><i data-icon="volume"></i>Hear</button>
-        <button class="btn" id="wGuide" aria-pressed="true">Guide on</button>
-        <button class="btn" id="wClear">Clear</button>
-        <button class="btn btn-ink" id="wNext">Next<i data-icon="arrow"></i></button>
+    <main>
+      <!-- ===== Top bar: shown when the side column is hidden ===== -->
+      <header class="topbar">
+        <span class="stat flame" title="Day streak"><i data-icon="flame"></i><b data-stat="streak">0</b>days</span>
+        <span class="stat xp" title="Total XP"><i data-icon="zap"></i><b data-stat="xp">0</b>XP</span>
+        <span class="stat" title="Daily goal">
+          <svg class="ring sm" viewBox="0 0 36 36" aria-hidden="true">
+            <circle class="ring-bg" cx="18" cy="18" r="15.9"/>
+            <circle class="ring-fg" cx="18" cy="18" r="15.9" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
+          </svg>
+          <b data-stat="today">0/30</b>today
+        </span>
+        <div class="top-actions">
+          <button class="bell" data-settings aria-label="Settings" title="Settings"><i data-icon="gear"></i></button>
+          <button class="bell" data-theme-btn></button>
+          <button class="bell" data-inbox aria-label="Notifications"><i data-icon="bell"></i><span class="dot" data-stat="unread"></span></button>
+        </div>
+      </header>
+
+      <!-- ===== Learn page ===== -->
+      <section id="learn">
+        <div class="tabs scroller" id="levels" aria-label="Choose level"></div>
+        <div id="hero"></div>
+        <div id="todayStrip"></div>
+        <div id="taskSlot"></div>
+        <div id="smartSlot"></div>
+        <div id="reviewSlot"></div>
+        <div id="path"></div>
+      </section>
+
+      <!-- ===== Quests page ===== -->
+      <section id="quests" hidden>
+        <div class="page-head">
+          <span class="kicker">과제</span>
+          <h1>Quests</h1>
+          <p>Daily, weekly and one-time tasks. Rewards are added automatically when you finish.</p>
+        </div>
+        <div class="qsum" id="qSummary"></div>
+        <div class="qsec">
+          <div class="qsec-head">
+            <span class="kicker">오늘</span>
+            <h2>Daily quests</h2>
+            <span class="muted" id="qReset"></span>
+          </div>
+          <div class="panel" id="questList"></div>
+        </div>
+        <div class="qsec">
+          <div class="qsec-head">
+            <span class="kicker">이번 주</span>
+            <h2>Weekly quests</h2>
+            <span class="muted" id="wReset"></span>
+          </div>
+          <div class="panel" id="weeklyList"></div>
+          <p class="muted" id="restNote" style="margin:10px 2px 0;font-size:.88rem"></p>
+        </div>
+        <div class="qsec">
+          <div class="qsec-head">
+            <span class="kicker">할 일</span>
+            <h2>Tasks</h2>
+            <span class="muted" id="tCount"></span>
+          </div>
+          <div class="panel" id="taskList"></div>
+        </div>
+        <div class="qsec">
+          <div class="qsec-head">
+            <span class="kicker">도장 모음</span>
+            <h2>Stamp collection</h2>
+            <span class="muted" id="bCount"></span>
+          </div>
+          <div class="stamps" id="badgeList"></div>
+        </div>
+      </section>
+
+      <!-- ===== Words page ===== -->
+      <section id="vocab" hidden>
+        <div class="page-head">
+          <span class="kicker">단어</span>
+          <h1>Words</h1>
+          <p>Tap a word to hear it, practise saying it, or save it to My words. A red stamp means mastered (3+ right answers, 75%+ accuracy).</p>
+        </div>
+        <div class="vtabs">
+          <div class="seg seg-text" id="vTabs" role="group" aria-label="Word list">
+            <button data-vtab="all">All words</button>
+            <button data-vtab="mine">My words <span id="mineCount"></span></button>
+            <button data-vtab="gram">Grammar</button>
+          </div>
+        </div>
+        <form class="add-word" id="addWord" hidden>
+          <input id="awKo" placeholder="Korean, e.g. 고구마" aria-label="Korean word" required class="ko" lang="ko">
+          <input id="awEn" placeholder="Meaning, e.g. sweet potato" aria-label="Meaning" required>
+          <button class="btn btn-ink" type="submit"><i data-icon="plus"></i>Add</button>
+        </form>
+        <div class="import-row" id="importRow" hidden>
+          <label class="btn" for="importWords"><i data-icon="upload"></i>Import a word list</label>
+          <small class="muted">A .csv or .txt file with one word per line: Korean, meaning. Anki “Notes in plain text” exports work too.</small>
+          <input type="file" id="importWords" accept=".csv,.txt,.tsv,text/plain,text/csv" hidden>
+          <button class="btn" id="exportWords"><i data-icon="download"></i>Export</button>
+          <span class="set-msg" id="exportMsg"></span>
+        </div>
+        <div class="search"><i data-icon="search"></i><input type="search" id="vSearch" placeholder="Search Korean, English or romanization (hakgyo)" aria-label="Search words"></div>
+        <div class="tabs scroller" id="vLevels" aria-label="Filter by level"></div>
+        <p class="muted" id="vCount"></p>
+        <div id="vList"></div>
+        <p class="muted" style="margin-top:28px">TOPIK lists follow vocabulary commonly taught at each level; they are not the official exam word list.</p>
+      </section>
+
+      <!-- ===== Letters page ===== -->
+      <section id="letters" hidden>
+        <div class="page-head">
+          <span class="kicker">글자</span>
+          <h1>Letters</h1>
+          <p>Tap a letter to hear it. <b data-stat="letters">0</b> of <span id="sTotal">0</span> mastered.</p>
+        </div>
+        <div id="letterGrid"></div>
+        <h2 class="section-title">Build a syllable</h2>
+        <div class="panel">
+          <p class="muted" style="margin-top:0">A syllable block = first consonant + vowel + optional final consonant (받침).</p>
+          <div class="builder">
+            <select id="bInit" aria-label="First consonant" class="ko"></select><span>+</span>
+            <select id="bVow" aria-label="Vowel" class="ko"></select><span>+</span>
+            <select id="bFin" aria-label="Final consonant" class="ko"></select>
+            <button class="btn btn-ink" id="bSay"><i data-icon="volume"></i>Hear</button>
+          </div>
+          <div class="glyph-out" id="bOut"></div>
+        </div>
+      </section>
+
+      <!-- ===== Write page: trace, type, dictation, race ===== -->
+      <section id="write" hidden>
+        <div class="page-head">
+          <span class="kicker">쓰기</span>
+          <h1>Write</h1>
+          <p>Trace letters in the right stroke order, type Korean on the 2-beolsik keyboard, type the words you hear, or race the clock for 60 seconds.</p>
+        </div>
+        <div class="seg seg-text write-tabs" id="wTabs" role="group" aria-label="Practice">
+          <button data-wtab="trace"><i data-icon="pen"></i>Trace</button>
+          <button data-wtab="type"><i data-icon="keyboard"></i>Type</button>
+          <button data-wtab="dict"><i data-icon="headphones"></i>Listen</button>
+          <button data-wtab="race"><i data-icon="clock"></i>Race</button>
+        </div>
+        <!-- trace a letter on the pad -->
+        <div id="wTrace">
+          <div class="toolbar">
+            <select id="wSel" aria-label="Letter to practise" class="ko"></select>
+            <button class="btn" id="wSay"><i data-icon="volume"></i>Hear</button>
+            <button class="btn" id="wGuide" aria-pressed="true">Guide on</button>
+            <button class="btn" id="wClear">Clear</button>
+            <button class="btn btn-ink" id="wNext">Next<i data-icon="arrow"></i></button>
+          </div>
+          <div class="toolbar">
+            <button class="btn" id="wOrder"><i data-icon="play"></i>Show stroke order</button>
+            <button class="btn" id="wCheck"><i data-icon="check"></i>Check my strokes</button>
+          </div>
+          <div class="pad">
+            <span id="wGhost"></span>
+            <canvas class="guide" id="wGuideCv" width="340" height="340" aria-hidden="true"></canvas>
+            <canvas id="wCanvas" width="340" height="340" aria-label="Drawing pad"></canvas>
+          </div>
+          <div class="stroke-result" id="wScore" aria-live="polite"></div>
+          <p class="muted" id="wCount"></p>
+        </div>
+        <!-- typing, dictation and race share this panel -->
+        <div id="wType" hidden>
+          <div class="toolbar">
+            <select id="tLevel" aria-label="Words to type"></select>
+            <button class="btn" id="tSay"><i data-icon="volume"></i>Hear</button>
+            <button class="btn" id="tSkip">Skip<i data-icon="arrow"></i></button>
+          </div>
+          <div class="type-target">
+            <b id="tWord"></b>
+            <span class="muted" id="tMean"></span>
+          </div>
+          <div class="type-box" id="tBox" tabindex="0" aria-label="Type the word here" role="textbox"></div>
+          <div class="type-stats">
+            <span><b id="tDone">0</b><span id="tDoneLbl">words</span></span>
+            <span><b id="tAcc">100%</b>accuracy</span>
+            <span><b id="tSpeed">0</b>keys / min</span>
+            <span id="tRaceBox" hidden><b id="tLeft">60</b>seconds left</span>
+          </div>
+          <div class="kb" id="tKb" aria-hidden="true"></div>
+          <p class="muted" style="margin-top:14px;font-size:.88rem">Use your normal keyboard: the keys map to the Korean 2-beolsik layout, so no Korean keyboard setting is needed. The next key glows. Shift gives ㄲ ㄸ ㅃ ㅆ ㅉ ㅒ ㅖ. Backspace undoes one key.</p>
+        </div>
+      </section>
+
+      <!-- ===== Practice page: drills (filled by drills.js / practice.js) ===== -->
+      <section id="practice" hidden>
+        <div class="page-head">
+          <span class="kicker">연습</span>
+          <h1>Practice</h1>
+          <p>Short drills for the tricky parts of Korean: numbers, verb endings, particles, graded stories, role-play conversations and the sound changes between spelling and speech. Each right answer is +1 XP; wrong ones come back in Mistakes.</p>
+        </div>
+        <div class="seg seg-text" id="pTabs" role="group" aria-label="Drill">
+          <button data-ptab="num">Numbers</button>
+          <button data-ptab="verb">Verbs</button>
+          <button data-ptab="part">Particles</button>
+          <button data-ptab="read">Reading</button>
+          <button data-ptab="talk">Talk</button>
+          <button data-ptab="reply">Reply</button>
+          <button data-ptab="sound">Sounds</button>
+          <button data-ptab="pair">Pairs</button>
+          <button data-ptab="casual">Casual</button>
+          <button data-ptab="tricky">Tricky</button>
+        </div>
+        <div id="pBody"></div>
+      </section>
+
+      <!-- ===== Test page ===== -->
+      <section id="test" hidden>
+        <div class="page-head">
+          <span class="kicker">시험</span>
+          <h1>Practice test</h1>
+          <p>20 mixed questions in TOPIK style: vocabulary, listening and grammar. 10 minutes, no hints until the end. Pass mark 60%.</p>
+        </div>
+        <div id="testBody"></div>
+      </section>
+
+      <!-- ===== Stats page ===== -->
+      <section id="stats" hidden>
+        <div class="page-head">
+          <span class="kicker">기록</span>
+          <h1>Stats</h1>
+          <p>Your study history at a glance.</p>
+        </div>
+        <div id="statsBody"></div>
+      </section>
+
+      <!-- ===== Listen page: podcasts and YouTube ===== -->
+      <section id="listen" hidden>
+        <div class="page-head">
+          <span class="kicker">듣기</span>
+          <h1>Listen</h1>
+          <p>Real Korean podcasts and YouTube lessons to play while you work. Close the window and it keeps playing from the tray, or pop out the mini player.</p>
+        </div>
+        <div class="listen-bar">
+          <div class="seg seg-text" id="lTabs" role="group" aria-label="Source">
+            <button data-ltab="pod"><i data-icon="headphones"></i>Podcasts</button>
+            <button data-ltab="yt"><i data-icon="video"></i>YouTube</button>
+          </div>
+          <div class="lb-actions">
+            <button class="btn" id="lFocus" aria-pressed="false"></button>
+            <button class="btn" id="lMini" aria-label="Mini player"><i data-icon="pip"></i><span class="lbl">Mini player</span></button>
+          </div>
+        </div>
+        <div class="yt" id="ytWrap" hidden><div id="ytPlayer"></div></div>
+        <p class="yt-note" id="ytMini" hidden>Playing in the mini player. <button class="link" id="ytBack">Bring it back here</button></p>
+        <p class="yt-note" id="ytNote" hidden>This video can’t play inside the app. <button class="link" id="ytOpen">Open it on YouTube</button></p>
+        <div id="lBody"></div>
+        <p class="muted" style="margin-top:28px;font-size:.9rem">Shows stream from their publishers and need an internet connection. Listening time counts toward your quests.</p>
+      </section>
+
+      <!-- ===== Player dock: stays at the bottom while an episode plays ===== -->
+      <div class="dock" id="dock" hidden>
+        <input type="range" id="dSeek" min="0" max="1000" value="0" step="1" aria-label="Seek">
+        <span id="dSeal"></span>
+        <div class="d-info"><b id="dTitle"></b><small id="dShow"></small></div>
+        <button class="icon-btn" id="dBack" aria-label="Back 15 seconds" title="Back 15 s"><i data-icon="rotate"></i></button>
+        <button class="d-play" id="dPlay" aria-label="Play"></button>
+        <button class="icon-btn" id="dFwd" aria-label="Forward 30 seconds" title="Forward 30 s"><i data-icon="fwd"></i></button>
+        <span class="d-time" id="dTime"></span>
+        <button class="d-rate" id="dRate" title="Playback speed" aria-label="Playback speed"></button>
+        <button class="d-rate" id="dSleep" title="Sleep timer: stop playing after 15, 30 or 60 minutes" aria-label="Sleep timer" aria-pressed="false">☾</button>
+        <button class="icon-btn" id="dShadow" aria-pressed="false" aria-label="Shadow: repeat the last 5 seconds and record yourself" title="Shadow: repeat the last 5 s"><i data-icon="mic"></i></button>
+        <button class="icon-btn" id="dMini" aria-label="Open mini player" title="Mini player"><i data-icon="pip"></i></button>
+        <button class="icon-btn" id="dClose" aria-label="Stop and close the player" title="Stop"><i data-icon="x"></i></button>
+        <!-- shadowing: replay a short piece and record yourself -->
+        <div class="shadow" id="shadow" hidden role="group" aria-label="Shadowing">
+          <span class="kicker">따라 하기</span><b id="shSeg"></b>
+          <button class="btn sm" id="shLen" title="Length of each piece">5 s</button>
+          <button class="btn sm" id="shPlay"><i data-icon="repeat"></i>Replay</button>
+          <button class="btn sm btn-red" id="shRec"><span class="rec-dot"></span><span id="shRecLbl">Record me</span></button>
+          <button class="btn sm" id="shMine" disabled><i data-icon="play"></i>Me</button>
+          <button class="btn sm" id="shBoth" disabled><i data-icon="repeat"></i>Both</button>
+          <span class="sh-nav">
+            <button class="icon-btn" id="shPrev" aria-label="Previous 5 seconds" title="Previous 5 s"><i data-icon="back"></i></button>
+            <button class="icon-btn" id="shNext" aria-label="Next 5 seconds" title="Next 5 s"><i data-icon="arrow"></i></button>
+            <button class="icon-btn" id="shClose" aria-label="Close shadowing" title="Close"><i data-icon="x"></i></button>
+          </span>
+        </div>
       </div>
-      <div class="toolbar"><button class="btn" id="wOrder"><i data-icon="play"></i>Show stroke order</button><button class="btn" id="wCheck"><i data-icon="check"></i>Check my strokes</button></div>
-      <div class="pad"><span id="wGhost"></span><canvas class="guide" id="wGuideCv" width="340" height="340" aria-hidden="true"></canvas><canvas id="wCanvas" width="340" height="340" aria-label="Drawing pad"></canvas></div>
-      <div class="stroke-result" id="wScore" aria-live="polite"></div>
-      <p class="muted" id="wCount"></p>
+    </main>
+
+    <!-- ===== Right column: today's progress (hidden in narrower windows) ===== -->
+    <aside class="rail" aria-label="Your progress">
+      <div class="rail-top">
+        <span class="kicker">오늘 · Today</span>
+        <div class="top-actions">
+          <button class="bell" data-settings aria-label="Settings" title="Settings"><i data-icon="gear"></i></button>
+          <button class="bell" data-theme-btn></button>
+          <button class="bell" data-inbox aria-label="Notifications"><i data-icon="bell"></i><span class="dot" data-stat="unread"></span></button>
+        </div>
       </div>
-      <div id="wType" hidden>
-        <div class="toolbar"><select id="tLevel" aria-label="Words to type"></select><button class="btn" id="tSay"><i data-icon="volume"></i>Hear</button><button class="btn" id="tSkip">Skip<i data-icon="arrow"></i></button></div>
-        <div class="type-target"><b id="tWord"></b><span class="muted" id="tMean"></span></div>
-        <div class="type-box" id="tBox" tabindex="0" aria-label="Type the word here" role="textbox"></div>
-        <div class="type-stats"><span><b id="tDone">0</b><span id="tDoneLbl">words</span></span><span><b id="tAcc">100%</b>accuracy</span><span><b id="tSpeed">0</b>keys / min</span><span id="tRaceBox" hidden><b id="tLeft">60</b>seconds left</span></div>
-        <div class="kb" id="tKb" aria-hidden="true"></div>
-        <p class="muted" style="margin-top:14px;font-size:.88rem">Use your normal keyboard: the keys map to the Korean 2-beolsik layout, so no Korean keyboard setting is needed. The next key glows. Shift gives ㄲ ㄸ ㅃ ㅆ ㅉ ㅒ ㅖ. Backspace undoes one key.</p>
+      <div class="panel ledger">
+        <div><b data-stat="streak">0</b><small>day streak</small></div>
+        <div><b data-stat="xp">0</b><small>total XP</small></div>
+        <div><b data-stat="words">0</b><small>words</small></div>
       </div>
-    </section>
+      <div class="panel goal">
+        <svg class="ring" viewBox="0 0 36 36" aria-hidden="true">
+          <circle class="ring-bg" cx="18" cy="18" r="15.9"/>
+          <circle class="ring-fg" cx="18" cy="18" r="15.9" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
+        </svg>
+        <div><span class="muted">Daily goal</span><br><b><span data-stat="today">0/30</span> XP</b><br><small class="muted" data-stat="hint"></small></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Daily quests</h3>
+          <button class="link" data-go="quests">All</button>
+        </div>
+        <div id="railQuests"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Stamps</h3>
+          <button class="link" data-go="quests">All</button>
+        </div>
+        <span class="muted" data-stat="badges"></span>
+        <div class="mini-stamps" id="railBadges"></div>
+      </div>
+    </aside>
+  </div>
 
-    <section id="practice" hidden>
-      <div class="page-head"><span class="kicker">연습</span><h1>Practice</h1><p>Short drills for the tricky parts of Korean: numbers, verb endings, particles, graded stories, role-play conversations and the sound changes between spelling and speech. Each right answer is +1 XP; wrong ones come back in Mistakes.</p></div>
-      <div class="seg seg-text" id="pTabs" role="group" aria-label="Drill"><button data-ptab="num">Numbers</button><button data-ptab="verb">Verbs</button><button data-ptab="part">Particles</button><button data-ptab="read">Reading</button><button data-ptab="talk">Talk</button><button data-ptab="reply">Reply</button><button data-ptab="sound">Sounds</button><button data-ptab="pair">Pairs</button><button data-ptab="casual">Casual</button><button data-ptab="tricky">Tricky</button></div>
-      <div id="pBody"></div>
-    </section>
-
-    <section id="test" hidden>
-      <div class="page-head"><span class="kicker">시험</span><h1>Practice test</h1><p>20 mixed questions in TOPIK style: vocabulary, listening and grammar. 10 minutes, no hints until the end. Pass mark 60%.</p></div>
-      <div id="testBody"></div>
-    </section>
-
-    <section id="stats" hidden>
-      <div class="page-head"><span class="kicker">기록</span><h1>Stats</h1><p>Your study history at a glance.</p></div>
-      <div id="statsBody"></div>
-    </section>
-    <section id="listen" hidden>
-      <div class="page-head"><span class="kicker">듣기</span><h1>Listen</h1><p>Real Korean podcasts and YouTube lessons to play while you work. Close the window and it keeps playing from the tray, or pop out the mini player.</p></div>
-      <div class="listen-bar"><div class="seg seg-text" id="lTabs" role="group" aria-label="Source"><button data-ltab="pod"><i data-icon="headphones"></i>Podcasts</button><button data-ltab="yt"><i data-icon="video"></i>YouTube</button></div><div class="lb-actions"><button class="btn" id="lFocus" aria-pressed="false"></button><button class="btn" id="lMini" aria-label="Mini player"><i data-icon="pip"></i><span class="lbl">Mini player</span></button></div></div>
-      <div class="yt" id="ytWrap" hidden><div id="ytPlayer"></div></div>
-      <p class="yt-note" id="ytMini" hidden>Playing in the mini player. <button class="link" id="ytBack">Bring it back here</button></p>
-      <p class="yt-note" id="ytNote" hidden>This video can’t play inside the app. <button class="link" id="ytOpen">Open it on YouTube</button></p>
-      <div id="lBody"></div>
-      <p class="muted" style="margin-top:28px;font-size:.9rem">Shows stream from their publishers and need an internet connection. Listening time counts toward your quests.</p>
-    </section>
-
-    <div class="dock" id="dock" hidden>
-      <input type="range" id="dSeek" min="0" max="1000" value="0" step="1" aria-label="Seek">
-      <span id="dSeal"></span>
-      <div class="d-info"><b id="dTitle"></b><small id="dShow"></small></div>
-      <button class="icon-btn" id="dBack" aria-label="Back 15 seconds" title="Back 15 s"><i data-icon="rotate"></i></button>
-      <button class="d-play" id="dPlay" aria-label="Play"></button>
-      <button class="icon-btn" id="dFwd" aria-label="Forward 30 seconds" title="Forward 30 s"><i data-icon="fwd"></i></button>
-      <span class="d-time" id="dTime"></span>
-      <button class="d-rate" id="dRate" title="Playback speed" aria-label="Playback speed"></button>
-      <button class="d-rate" id="dSleep" title="Sleep timer: stop playing after 15, 30 or 60 minutes" aria-label="Sleep timer" aria-pressed="false">☾</button>
-      <button class="icon-btn" id="dShadow" aria-pressed="false" aria-label="Shadow: repeat the last 5 seconds and record yourself" title="Shadow: repeat the last 5 s"><i data-icon="mic"></i></button>
-      <button class="icon-btn" id="dMini" aria-label="Open mini player" title="Mini player"><i data-icon="pip"></i></button>
-      <button class="icon-btn" id="dClose" aria-label="Stop and close the player" title="Stop"><i data-icon="x"></i></button>
-      <div class="shadow" id="shadow" hidden role="group" aria-label="Shadowing">
-        <span class="kicker">따라 하기</span><b id="shSeg"></b>
-        <button class="btn sm" id="shLen" title="Length of each piece">5 s</button>
-        <button class="btn sm" id="shPlay"><i data-icon="repeat"></i>Replay</button>
-        <button class="btn sm btn-red" id="shRec"><span class="rec-dot"></span><span id="shRecLbl">Record me</span></button>
-        <button class="btn sm" id="shMine" disabled><i data-icon="play"></i>Me</button>
-        <button class="btn sm" id="shBoth" disabled><i data-icon="repeat"></i>Both</button>
-        <span class="sh-nav"><button class="icon-btn" id="shPrev" aria-label="Previous 5 seconds" title="Previous 5 s"><i data-icon="back"></i></button><button class="icon-btn" id="shNext" aria-label="Next 5 seconds" title="Next 5 s"><i data-icon="arrow"></i></button><button class="icon-btn" id="shClose" aria-label="Close shadowing" title="Close"><i data-icon="x"></i></button></span>
+  <!-- ===== Lesson: full-window overlay ===== -->
+  <div class="lesson" id="lesson" hidden role="dialog" aria-modal="true" aria-label="Lesson">
+    <div class="lesson-top">
+      <button class="icon-btn" id="quit" aria-label="Quit lesson"><i data-icon="x"></i></button>
+      <div class="line" role="progressbar" aria-label="Lesson progress"><i id="lBar"></i></div>
+      <div class="hearts" id="hearts" aria-label="Hearts left"></div>
+      <button class="icon-btn" id="sfxBtn" aria-label="Sound effects on/off"></button>
+    </div>
+    <div class="lesson-body"><div id="exercise"></div></div>
+    <div class="lesson-foot" id="foot">
+      <div class="foot-inner">
+        <div class="fb" id="fb" aria-live="polite"></div>
+        <span class="kbd-hint" id="kbd">1–4 choose · Enter check · R replay</span>
+        <button class="btn btn-ink btn-lg" id="action">Check</button>
       </div>
     </div>
-  </main>
+  </div>
 
-  <aside class="rail" aria-label="Your progress">
-    <div class="rail-top"><span class="kicker">오늘 · Today</span><div class="top-actions"><button class="bell" data-settings aria-label="Settings" title="Settings"><i data-icon="gear"></i></button><button class="bell" data-theme-btn></button><button class="bell" data-inbox aria-label="Notifications"><i data-icon="bell"></i><span class="dot" data-stat="unread"></span></button></div></div>
-    <div class="panel ledger">
-      <div><b data-stat="streak">0</b><small>day streak</small></div>
-      <div><b data-stat="xp">0</b><small>total XP</small></div>
-      <div><b data-stat="words">0</b><small>words</small></div>
+  <!-- ===== Settings sheet ===== -->
+  <dialog class="sheet" id="settings" aria-labelledby="setTitle">
+    <div class="sheet-head">
+      <h2 id="setTitle">Settings</h2>
+      <button class="icon-btn" id="setClose" aria-label="Close settings"><i data-icon="x"></i></button>
     </div>
-    <div class="panel goal">
-      <svg class="ring" viewBox="0 0 36 36" aria-hidden="true"><circle class="ring-bg" cx="18" cy="18" r="15.9"/><circle class="ring-fg" cx="18" cy="18" r="15.9" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/></svg>
-      <div><span class="muted">Daily goal</span><br><b><span data-stat="today">0/30</span> XP</b><br><small class="muted" data-stat="hint"></small></div>
+    <div class="sheet-body">
+      <div class="set-group">
+        <h3>Goals</h3>
+        <div class="set-row">
+          <div><b>Daily goal</b><small>XP per day for the ring, the streak hint and the daily reminder</small></div>
+          <select id="goalSel" aria-label="Daily goal">
+            <option value="10">10 XP · light</option>
+            <option value="30">30 XP · normal</option>
+            <option value="50">50 XP · serious</option>
+            <option value="100">100 XP · intense</option>
+          </select>
+        </div>
+        <div class="set-row">
+          <div><b>TOPIK exam</b><small>Learn shows the days left and the pace to finish your level in time</small></div>
+          <input type="date" id="examDate" aria-label="Exam date">
+          <select id="examLevel" aria-label="Exam level">
+            <option value="1">TOPIK 1</option>
+            <option value="2">TOPIK 2</option>
+            <option value="3">TOPIK 3</option>
+            <option value="4">TOPIK 4</option>
+            <option value="5">TOPIK 5</option>
+            <option value="6">TOPIK 6</option>
+          </select>
+        </div>
+      </div>
+      <div class="set-group">
+        <h3>Text</h3>
+        <div class="set-row">
+          <div><b>Korean text size</b><small>Makes Hangul bigger everywhere: words, stories, conversations. Handy for dense syllables like 읽 and 됐.</small></div>
+          <select id="koSize" aria-label="Korean text size">
+            <option value="1">Normal</option>
+            <option value="1.15">Large</option>
+            <option value="1.3">Larger</option>
+            <option value="1.5">Largest</option>
+          </select>
+        </div>
+      </div>
+      <div class="set-group">
+        <h3>Sound</h3>
+        <div class="set-row">
+          <div><b>Sound effects</b><small>Bell, wood block and stamp sounds in lessons</small></div>
+          <button class="link" id="sfxToggle"></button>
+        </div>
+        <div class="set-row">
+          <div><b>Voice</b><small>Who says letters, syllables and words. Sentences and stories keep their voices.</small></div>
+          <select id="voiceSel" aria-label="Voice">
+            <option value="female">선희 · female</option>
+            <option value="male">인준 · male</option>
+          </select>
+        </div>
+      </div>
+      <div class="set-group" id="dlGroup">
+        <h3>Downloads</h3>
+        <div class="set-row">
+          <div><b>Offline podcast episodes</b><small id="dlInfo">Tap ↓ next to an episode on the Listen page to keep it for listening without internet.</small></div>
+          <button class="btn" id="dlClear"><i data-icon="trash"></i>Delete all</button>
+        </div>
+      </div>
+      <div class="set-group">
+        <h3>Desktop</h3>
+        <div class="set-row">
+          <div><b>Close to tray</b><small>The close button keeps the app (and audio) running in the tray</small></div>
+          <button class="link" id="trayToggle"></button>
+        </div>
+        <div class="set-row">
+          <div><b data-os="login">Start with Windows</b><small>Opens quietly in the tray when you sign in</small></div>
+          <button class="switch" id="autoSw" role="switch" aria-checked="false" aria-label="Start with Windows"></button>
+        </div>
+        <div class="set-row">
+          <div><b>Keyboard shortcuts</b><small>Work from any app: <span class="kbd">Ctrl+Alt+Space</span> play / pause · <span class="kbd">Ctrl+Alt+P</span> mini player · <span class="kbd">Ctrl+Alt+K</span> open the app · <button class="link" id="keysOpen">All shortcuts (press ?)</button></small></div>
+          <button class="switch" id="keySw" role="switch" aria-checked="false" aria-label="Keyboard shortcuts"></button>
+        </div>
+        <div class="set-row">
+          <div><b>Words in copied Korean</b><small>When you copy Korean text in any app, the mini player shows the app words in it. The text stays on this computer and is never saved.</small></div>
+          <button class="switch" id="clipSw" role="switch" aria-checked="false" aria-label="Words in copied Korean"></button>
+        </div>
+        <p class="set-msg" id="keyMsg"></p>
+      </div>
+      <div class="set-group">
+        <h3>Focus timer</h3>
+        <div class="set-row">
+          <div><b>Length</b><small>Work with Korean audio, then a short break with a word card. Start it on the Listen page, in the mini player or from the tray.</small></div>
+          <select id="focusLen" aria-label="Focus timer length">
+            <option value="25-5">25 min + 5 min break</option>
+            <option value="50-10">50 min + 10 min break</option>
+            <option value="15-3">15 min + 3 min break</option>
+          </select>
+        </div>
+      </div>
+      <div class="set-group">
+        <h3>Daily reminder</h3>
+        <div class="set-row">
+          <div><b>Remind me</b><small>Opens the mini player with a reminder if today’s goal isn’t done yet</small></div>
+          <button class="switch" id="remSw" role="switch" aria-checked="false" aria-label="Daily reminder"></button>
+        </div>
+        <div class="set-row">
+          <div><b>Time</b><small>Once a day, at or after this time</small></div>
+          <input type="time" id="remTime" value="19:00" aria-label="Reminder time">
+        </div>
+      </div>
+      <div class="set-group">
+        <h3>Notifications</h3>
+        <div class="set-row">
+          <div><b>Word of the day</b><small>One word a day, with its meaning: a word due for review, or one from your level. Works while the app is in the tray. <button class="link" id="wotdTry">Show one now</button></small></div>
+          <button class="switch" id="wotdSw" role="switch" aria-checked="false" aria-label="Word of the day"></button>
+        </div>
+        <div class="set-row">
+          <div><b>Time</b><small>At or after this time</small></div>
+          <input type="time" id="wotdTime" value="09:00" aria-label="Word of the day time">
+        </div>
+        <div class="set-row">
+          <div><b>Weekly report</b><small>Sunday evening: XP, study days, minutes and your best day this week. <button class="link" id="weekTry">Show it now</button></small></div>
+          <button class="switch" id="weekSw" role="switch" aria-checked="false" aria-label="Weekly report"></button>
+        </div>
+        <div class="set-row">
+          <div><b>Review reminder</b><small>In the evening, if Smart review words are due and you haven’t reviewed today: “15 words due”. Not sent when the daily reminder is on: that one says so too.</small></div>
+          <button class="switch" id="reviewSw" role="switch" aria-checked="false" aria-label="Review reminder"></button>
+        </div>
+        <p class="set-msg" id="wotdMsg"></p>
+      </div>
+      <div class="set-group" id="syncGroup">
+        <h3>Sync between PCs</h3>
+        <div class="set-row">
+          <div><b>Sync progress</b><small>Keeps your progress in a OneDrive or Google Drive folder, so every PC continues where you left off. Studied on two PCs at once? Both get added together. Turn it on on each PC.</small></div>
+          <button class="switch" id="syncSw" role="switch" aria-checked="false" aria-label="Sync progress"></button>
+        </div>
+        <div class="set-row">
+          <div><b>Folder</b><small>A folder your cloud drive syncs, e.g. C:\Users\you\OneDrive. The app uses a “Hangul Learner” folder inside it.</small></div>
+          <input type="text" id="syncPath" aria-label="Sync folder" spellcheck="false" style="min-width:220px">
+          <button class="btn" id="syncNow"><i data-icon="rotate"></i>Sync now</button>
+        </div>
+        <p class="set-msg" id="syncMsg"></p>
+      </div>
+      <div class="set-group">
+        <h3>Backup</h3>
+        <div class="set-row">
+          <div><b>Export progress</b><small>Saves a file to Documents\Hangul Learner. Copy it to another computer to continue there.</small></div>
+          <button class="btn" id="exportBtn"><i data-icon="download"></i>Export</button>
+        </div>
+        <div class="set-row">
+          <div><b>Weekly automatic backup</b><small>Once a week a backup file goes to Documents\Hangul Learner; the last 4 are kept. Works even with sync off.</small></div>
+          <button class="switch" id="autoBkSw" role="switch" aria-checked="false" aria-label="Weekly automatic backup"></button>
+        </div>
+        <div class="set-row">
+          <div><b>Import progress</b><small>Replaces your progress on this computer with a backup file</small></div>
+          <label class="btn" for="importFile"><i data-icon="upload"></i>Import</label>
+          <input type="file" id="importFile" accept=".json,application/json" hidden>
+        </div>
+        <p class="set-msg" id="backupMsg"></p>
+      </div>
+      <div class="set-group" id="updGroup">
+        <h3>Updates</h3>
+        <div class="set-row">
+          <div><b>Hangul Learner <span id="appVer"></span></b><small>New versions install themselves: the app checks once a day and asks before installing.</small></div>
+          <button class="btn" id="updBtn"><i data-icon="download"></i>Check for updates</button>
+        </div>
+        <div class="set-row">
+          <div><b>Changelog</b><small>Everything that changed in each version</small></div>
+          <button class="btn" id="logBtn">Open</button>
+        </div>
+        <p class="set-msg" id="updMsg"></p>
+      </div>
+      <div class="set-group">
+        <h3>Danger zone</h3>
+        <div class="set-row">
+          <div><b>Reset progress</b><small>Deletes XP, streak, stamps, quests and every passed lesson</small></div>
+          <button class="link" id="reset">Reset progress</button>
+        </div>
+      </div>
     </div>
-    <div class="panel">
-      <div class="panel-head"><h3>Daily quests</h3><button class="link" data-go="quests">All</button></div>
-      <div id="railQuests"></div>
-    </div>
-    <div class="panel">
-      <div class="panel-head"><h3>Stamps</h3><button class="link" data-go="quests">All</button></div>
-      <span class="muted" data-stat="badges"></span>
-      <div class="mini-stamps" id="railBadges"></div>
-    </div>
-  </aside>
-</div>
+  </dialog>
 
-<div class="lesson" id="lesson" hidden role="dialog" aria-modal="true" aria-label="Lesson">
-  <div class="lesson-top">
-    <button class="icon-btn" id="quit" aria-label="Quit lesson"><i data-icon="x"></i></button>
-    <div class="line" role="progressbar" aria-label="Lesson progress"><i id="lBar"></i></div>
-    <div class="hearts" id="hearts" aria-label="Hearts left"></div>
-    <button class="icon-btn" id="sfxBtn" aria-label="Sound effects on/off"></button>
-  </div>
-  <div class="lesson-body"><div id="exercise"></div></div>
-  <div class="lesson-foot" id="foot">
-    <div class="foot-inner">
-      <div class="fb" id="fb" aria-live="polite"></div>
-      <span class="kbd-hint" id="kbd">1–4 choose · Enter check · R replay</span>
-      <button class="btn btn-ink btn-lg" id="action">Check</button>
+  <!-- ===== Word sheet: one word with audio, recording and word family ===== -->
+  <dialog class="sheet" id="wordSheet" aria-labelledby="wsWord">
+    <div class="sheet-head">
+      <span class="kicker" id="wsKicker"></span>
+      <button class="icon-btn" id="wsClose" aria-label="Close"><i data-icon="x"></i></button>
     </div>
-  </div>
-</div>
-<dialog class="sheet" id="settings" aria-labelledby="setTitle">
-  <div class="sheet-head"><h2 id="setTitle">Settings</h2><button class="icon-btn" id="setClose" aria-label="Close settings"><i data-icon="x"></i></button></div>
-  <div class="sheet-body">
-    <div class="set-group"><h3>Goals</h3>
-      <div class="set-row"><div><b>Daily goal</b><small>XP per day for the ring, the streak hint and the daily reminder</small></div><select id="goalSel" aria-label="Daily goal"><option value="10">10 XP · light</option><option value="30">30 XP · normal</option><option value="50">50 XP · serious</option><option value="100">100 XP · intense</option></select></div>
-      <div class="set-row"><div><b>TOPIK exam</b><small>Learn shows the days left and the pace to finish your level in time</small></div><input type="date" id="examDate" aria-label="Exam date"><select id="examLevel" aria-label="Exam level"><option value="1">TOPIK 1</option><option value="2">TOPIK 2</option><option value="3">TOPIK 3</option><option value="4">TOPIK 4</option><option value="5">TOPIK 5</option><option value="6">TOPIK 6</option></select></div></div>
-    <div class="set-group"><h3>Text</h3>
-      <div class="set-row"><div><b>Korean text size</b><small>Makes Hangul bigger everywhere: words, stories, conversations. Handy for dense syllables like 읽 and 됐.</small></div><select id="koSize" aria-label="Korean text size"><option value="1">Normal</option><option value="1.15">Large</option><option value="1.3">Larger</option><option value="1.5">Largest</option></select></div></div>
-    <div class="set-group"><h3>Sound</h3>
-      <div class="set-row"><div><b>Sound effects</b><small>Bell, wood block and stamp sounds in lessons</small></div><button class="link" id="sfxToggle"></button></div>
-      <div class="set-row"><div><b>Voice</b><small>Who says letters, syllables and words. Sentences and stories keep their voices.</small></div><select id="voiceSel" aria-label="Voice"><option value="female">선희 · female</option><option value="male">인준 · male</option></select></div></div>
-    <div class="set-group" id="dlGroup"><h3>Downloads</h3>
-      <div class="set-row"><div><b>Offline podcast episodes</b><small id="dlInfo">Tap ↓ next to an episode on the Listen page to keep it for listening without internet.</small></div><button class="btn" id="dlClear"><i data-icon="trash"></i>Delete all</button></div></div>
-    <div class="set-group"><h3>Desktop</h3>
-      <div class="set-row"><div><b>Close to tray</b><small>The close button keeps the app (and audio) running in the tray</small></div><button class="link" id="trayToggle"></button></div>
-      <div class="set-row"><div><b data-os="login">Start with Windows</b><small>Opens quietly in the tray when you sign in</small></div><button class="switch" id="autoSw" role="switch" aria-checked="false" aria-label="Start with Windows"></button></div>
-      <div class="set-row"><div><b>Keyboard shortcuts</b><small>Work from any app: <span class="kbd">Ctrl+Alt+Space</span> play / pause · <span class="kbd">Ctrl+Alt+P</span> mini player · <span class="kbd">Ctrl+Alt+K</span> open the app · <button class="link" id="keysOpen">All shortcuts (press ?)</button></small></div><button class="switch" id="keySw" role="switch" aria-checked="false" aria-label="Keyboard shortcuts"></button></div>
-      <div class="set-row"><div><b>Words in copied Korean</b><small>When you copy Korean text in any app, the mini player shows the app words in it. The text stays on this computer and is never saved.</small></div><button class="switch" id="clipSw" role="switch" aria-checked="false" aria-label="Words in copied Korean"></button></div>
-      <p class="set-msg" id="keyMsg"></p></div>
-    <div class="set-group"><h3>Focus timer</h3>
-      <div class="set-row"><div><b>Length</b><small>Work with Korean audio, then a short break with a word card. Start it on the Listen page, in the mini player or from the tray.</small></div><select id="focusLen" aria-label="Focus timer length"><option value="25-5">25 min + 5 min break</option><option value="50-10">50 min + 10 min break</option><option value="15-3">15 min + 3 min break</option></select></div></div>
-    <div class="set-group"><h3>Daily reminder</h3>
-      <div class="set-row"><div><b>Remind me</b><small>Opens the mini player with a reminder if today’s goal isn’t done yet</small></div><button class="switch" id="remSw" role="switch" aria-checked="false" aria-label="Daily reminder"></button></div>
-      <div class="set-row"><div><b>Time</b><small>Once a day, at or after this time</small></div><input type="time" id="remTime" value="19:00" aria-label="Reminder time"></div></div>
-    <div class="set-group"><h3>Notifications</h3>
-      <div class="set-row"><div><b>Word of the day</b><small>One word a day, with its meaning: a word due for review, or one from your level. Works while the app is in the tray. <button class="link" id="wotdTry">Show one now</button></small></div><button class="switch" id="wotdSw" role="switch" aria-checked="false" aria-label="Word of the day"></button></div>
-      <div class="set-row"><div><b>Time</b><small>At or after this time</small></div><input type="time" id="wotdTime" value="09:00" aria-label="Word of the day time"></div>
-      <div class="set-row"><div><b>Weekly report</b><small>Sunday evening: XP, study days, minutes and your best day this week. <button class="link" id="weekTry">Show it now</button></small></div><button class="switch" id="weekSw" role="switch" aria-checked="false" aria-label="Weekly report"></button></div>
-      <div class="set-row"><div><b>Review reminder</b><small>In the evening, if Smart review words are due and you haven’t reviewed today: “15 words due”. Not sent when the daily reminder is on: that one says so too.</small></div><button class="switch" id="reviewSw" role="switch" aria-checked="false" aria-label="Review reminder"></button></div>
-      <p class="set-msg" id="wotdMsg"></p></div>
-    <div class="set-group" id="syncGroup"><h3>Sync between PCs</h3>
-      <div class="set-row"><div><b>Sync progress</b><small>Keeps your progress in a OneDrive or Google Drive folder, so every PC continues where you left off. Studied on two PCs at once? Both get added together. Turn it on on each PC.</small></div><button class="switch" id="syncSw" role="switch" aria-checked="false" aria-label="Sync progress"></button></div>
-      <div class="set-row"><div><b>Folder</b><small>A folder your cloud drive syncs, e.g. C:\Users\you\OneDrive. The app uses a “Hangul Learner” folder inside it.</small></div><input type="text" id="syncPath" aria-label="Sync folder" spellcheck="false" style="min-width:220px"><button class="btn" id="syncNow"><i data-icon="rotate"></i>Sync now</button></div>
-      <p class="set-msg" id="syncMsg"></p></div>
-    <div class="set-group"><h3>Backup</h3>
-      <div class="set-row"><div><b>Export progress</b><small>Saves a file to Documents\Hangul Learner. Copy it to another computer to continue there.</small></div><button class="btn" id="exportBtn"><i data-icon="download"></i>Export</button></div>
-      <div class="set-row"><div><b>Weekly automatic backup</b><small>Once a week a backup file goes to Documents\Hangul Learner; the last 4 are kept. Works even with sync off.</small></div><button class="switch" id="autoBkSw" role="switch" aria-checked="false" aria-label="Weekly automatic backup"></button></div>
-      <div class="set-row"><div><b>Import progress</b><small>Replaces your progress on this computer with a backup file</small></div><label class="btn" for="importFile"><i data-icon="upload"></i>Import</label><input type="file" id="importFile" accept=".json,application/json" hidden></div>
-      <p class="set-msg" id="backupMsg"></p></div>
-    <div class="set-group" id="updGroup"><h3>Updates</h3>
-      <div class="set-row"><div><b>Hangul Learner <span id="appVer"></span></b><small>New versions install themselves: the app checks once a day and asks before installing.</small></div><button class="btn" id="updBtn"><i data-icon="download"></i>Check for updates</button></div>
-      <div class="set-row"><div><b>Changelog</b><small>Everything that changed in each version</small></div><button class="btn" id="logBtn">Open</button></div>
-      <p class="set-msg" id="updMsg"></p></div>
-    <div class="set-group"><h3>Danger zone</h3>
-      <div class="set-row"><div><b>Reset progress</b><small>Deletes XP, streak, stamps, quests and every passed lesson</small></div><button class="link" id="reset">Reset progress</button></div></div>
-  </div>
-</dialog>
-<dialog class="sheet" id="wordSheet" aria-labelledby="wsWord">
-  <div class="sheet-head"><span class="kicker" id="wsKicker"></span><button class="icon-btn" id="wsClose" aria-label="Close"><i data-icon="x"></i></button></div>
-  <div class="sheet-body">
-    <div class="ws-word" id="wsWord" lang="ko"></div>
-    <p class="ws-mean" id="wsMean"></p>
-    <div class="ws-fam" id="wsFam"></div>
-    <div class="btn-row" style="justify-content:center;margin-bottom:16px"><button class="btn" id="wsHear"><i data-icon="volume"></i>Hear</button><button class="btn" id="wsSlow" title="Play at 0.7× speed"><i data-icon="clock"></i>Slowly</button><button class="btn" id="wsSave"></button><button class="btn" id="wsLook" title="Open this word in Naver Dictionary (browser)"><i data-icon="search"></i>Naver</button></div>
-    <div class="sayit">
-      <h3>Say it</h3>
-      <p class="muted" style="margin:2px 0 12px;font-size:.9rem">Record yourself, then compare with the native speaker. Match the length and the rise and fall.</p>
-      <div class="btn-row"><button class="btn btn-red" id="wsRec"><span class="rec-dot"></span><span id="wsRecLbl">Record</span></button><button class="btn" id="wsMine" disabled><i data-icon="play"></i>You</button><button class="btn" id="wsBoth" disabled><i data-icon="repeat"></i>Native, then you</button><button class="btn" id="wsCheck" title="Windows speech recognition listens and tells you whether it understood the word"><i data-icon="check"></i>Check pronunciation</button></div>
-      <canvas class="wave" id="wsWave" width="1000" height="240" aria-label="Sound shapes: native speaker and you"></canvas>
-      <div class="wave-key"><span><i style="background:var(--ink)"></i>Native speaker</span><span><i style="background:var(--red)"></i>You</span><span id="wsLen"></span></div>
-      <p class="set-msg" id="wsMsg"></p>
+    <div class="sheet-body">
+      <div class="ws-word" id="wsWord" lang="ko"></div>
+      <p class="ws-mean" id="wsMean"></p>
+      <div class="ws-fam" id="wsFam"></div>
+      <div class="btn-row" style="justify-content:center;margin-bottom:16px">
+        <button class="btn" id="wsHear"><i data-icon="volume"></i>Hear</button>
+        <button class="btn" id="wsSlow" title="Play at 0.7× speed"><i data-icon="clock"></i>Slowly</button>
+        <button class="btn" id="wsSave"></button>
+        <button class="btn" id="wsLook" title="Open this word in Naver Dictionary (browser)"><i data-icon="search"></i>Naver</button>
+      </div>
+      <div class="sayit">
+        <h3>Say it</h3>
+        <p class="muted" style="margin:2px 0 12px;font-size:.9rem">Record yourself, then compare with the native speaker. Match the length and the rise and fall.</p>
+        <div class="btn-row">
+          <button class="btn btn-red" id="wsRec"><span class="rec-dot"></span><span id="wsRecLbl">Record</span></button>
+          <button class="btn" id="wsMine" disabled><i data-icon="play"></i>You</button>
+          <button class="btn" id="wsBoth" disabled><i data-icon="repeat"></i>Native, then you</button>
+          <button class="btn" id="wsCheck" title="Windows speech recognition listens and tells you whether it understood the word"><i data-icon="check"></i>Check pronunciation</button>
+        </div>
+        <canvas class="wave" id="wsWave" width="1000" height="240" aria-label="Sound shapes: native speaker and you"></canvas>
+        <div class="wave-key">
+          <span><i style="background:var(--ink)"></i>Native speaker</span>
+          <span><i style="background:var(--red)"></i>You</span>
+          <span id="wsLen"></span>
+        </div>
+        <p class="set-msg" id="wsMsg"></p>
+      </div>
     </div>
-  </div>
-</dialog>
-<dialog class="sheet" id="keysSheet" aria-labelledby="keysTitle">
-  <div class="sheet-head"><h2 id="keysTitle">Keyboard shortcuts</h2><button class="icon-btn" id="keysClose" aria-label="Close"><i data-icon="x"></i></button></div>
-  <div class="sheet-body">
-    <div class="set-group"><h3 data-os="your computer">Anywhere in Windows</h3>
-      <div class="key-row"><span class="kbd">Ctrl</span>+<span class="kbd">Alt</span>+<span class="kbd">Space</span><span>Play / pause</span></div>
-      <div class="key-row"><span class="kbd">Ctrl</span>+<span class="kbd">Alt</span>+<span class="kbd">P</span><span>Mini player</span></div>
-      <div class="key-row"><span class="kbd">Ctrl</span>+<span class="kbd">Alt</span>+<span class="kbd">K</span><span>Open the app</span></div></div>
-    <div class="set-group"><h3>Lessons and tests</h3>
-      <div class="key-row"><span class="kbd">1</span> / <span class="kbd">2</span> / <span class="kbd">3</span> / <span class="kbd">4</span><span>Choose an answer</span></div>
-      <div class="key-row"><span class="kbd">Enter</span><span>Check, then continue</span></div>
-      <div class="key-row"><span class="kbd">R</span><span>Hear it again</span></div>
-      <div class="key-row"><span class="kbd">Esc</span><span>Leave the lesson</span></div></div>
-    <div class="set-group"><h3>Practice page</h3>
-      <div class="key-row"><span class="kbd">1</span> / <span class="kbd">2</span> / <span class="kbd">3</span> / <span class="kbd">4</span><span>Choose an answer</span></div>
-      <div class="key-row"><span class="kbd">Enter</span><span>Next question</span></div>
-      <div class="key-row"><span class="kbd">R</span><span>Hear it again</span></div></div>
-    <div class="set-group"><h3>Typing (Write page)</h3>
-      <div class="key-row"><span class="kbd">Your keyboard</span><span>Type Korean (2-beolsik layout)</span></div>
-      <div class="key-row"><span class="kbd">Backspace</span><span>Delete a letter</span></div>
-      <div class="key-row"><span class="kbd">Enter</span><span>Next word</span></div></div>
-    <div class="set-group"><h3>Everywhere in the app</h3>
-      <div class="key-row"><span class="kbd">?</span><span>Show this list</span></div>
-      <div class="key-row"><span class="kbd">Esc</span><span>Close a window or card</span></div></div>
-  </div>
-</dialog>
-<dialog class="ask" id="ask" aria-labelledby="askTitle" aria-describedby="askText">
-  <form method="dialog">
-    <div class="ask-body"><span id="askSeal"></span><div><h3 id="askTitle"></h3><p id="askText"></p></div></div>
-    <div class="ask-actions"><button class="btn" value="cancel" id="askCancel"></button><button class="btn" value="ok" id="askOk"></button></div>
-  </form>
-</dialog>
-<div id="toasts" aria-live="polite"></div>
-<div class="inbox" id="inbox" hidden role="dialog" aria-label="Notifications">
-  <div class="inbox-head"><h3>Notifications</h3><span class="kicker">알림</span><button class="icon-btn" id="inboxClose" aria-label="Close notifications"><i data-icon="x"></i></button></div>
-  <div id="inboxList"></div>
-</div>
+  </dialog>
 
-<script src="content/vocab.js"></script>
-<script src="content/grammar.js"></script>
-<script src="js/data.js"></script>
-<script src="js/lesson.js"></script>
-<script src="js/hangul-ime.js"></script>
-<script src="js/strokes.js"></script>
-<script src="content/practice-data.js"></script>
-<script src="js/icons.js"></script>
-<script src="js/save.js"></script>
-<script src="js/notify.js"></script>
-<script src="js/sound.js"></script>
-<script src="js/theme.js"></script>
-<script src="js/views.js"></script>
-<script src="js/path.js"></script>
-<script src="js/player.js"></script>
-<script src="js/quests.js"></script>
-<script src="js/words.js"></script>
-<script src="js/letters.js"></script>
-<script src="js/write.js"></script>
-<script src="js/start.js"></script>
-<script src="js/listen.js"></script>
-<script src="js/settings.js"></script>
-<script src="js/practice.js"></script>
-<script src="js/progress.js"></script>
-<script src="js/drills.js"></script>
-<script src="js/desk.js"></script>
+  <!-- ===== Keyboard shortcuts sheet ===== -->
+  <dialog class="sheet" id="keysSheet" aria-labelledby="keysTitle">
+    <div class="sheet-head">
+      <h2 id="keysTitle">Keyboard shortcuts</h2>
+      <button class="icon-btn" id="keysClose" aria-label="Close"><i data-icon="x"></i></button>
+    </div>
+    <div class="sheet-body">
+      <div class="set-group">
+        <h3 data-os="your computer">Anywhere in Windows</h3>
+        <div class="key-row"><span class="kbd">Ctrl</span>+<span class="kbd">Alt</span>+<span class="kbd">Space</span><span>Play / pause</span></div>
+        <div class="key-row"><span class="kbd">Ctrl</span>+<span class="kbd">Alt</span>+<span class="kbd">P</span><span>Mini player</span></div>
+        <div class="key-row"><span class="kbd">Ctrl</span>+<span class="kbd">Alt</span>+<span class="kbd">K</span><span>Open the app</span></div>
+      </div>
+      <div class="set-group">
+        <h3>Lessons and tests</h3>
+        <div class="key-row"><span class="kbd">1</span> / <span class="kbd">2</span> / <span class="kbd">3</span> / <span class="kbd">4</span><span>Choose an answer</span></div>
+        <div class="key-row"><span class="kbd">Enter</span><span>Check, then continue</span></div>
+        <div class="key-row"><span class="kbd">R</span><span>Hear it again</span></div>
+        <div class="key-row"><span class="kbd">Esc</span><span>Leave the lesson</span></div>
+      </div>
+      <div class="set-group">
+        <h3>Practice page</h3>
+        <div class="key-row"><span class="kbd">1</span> / <span class="kbd">2</span> / <span class="kbd">3</span> / <span class="kbd">4</span><span>Choose an answer</span></div>
+        <div class="key-row"><span class="kbd">Enter</span><span>Next question</span></div>
+        <div class="key-row"><span class="kbd">R</span><span>Hear it again</span></div>
+      </div>
+      <div class="set-group">
+        <h3>Typing (Write page)</h3>
+        <div class="key-row"><span class="kbd">Your keyboard</span><span>Type Korean (2-beolsik layout)</span></div>
+        <div class="key-row"><span class="kbd">Backspace</span><span>Delete a letter</span></div>
+        <div class="key-row"><span class="kbd">Enter</span><span>Next word</span></div>
+      </div>
+      <div class="set-group">
+        <h3>Everywhere in the app</h3>
+        <div class="key-row"><span class="kbd">?</span><span>Show this list</span></div>
+        <div class="key-row"><span class="kbd">Esc</span><span>Close a window or card</span></div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ===== Confirm dialog (replaces the browser's confirm box) ===== -->
+  <dialog class="ask" id="ask" aria-labelledby="askTitle" aria-describedby="askText">
+    <form method="dialog">
+      <div class="ask-body">
+        <span id="askSeal"></span>
+        <div>
+          <h3 id="askTitle"></h3>
+          <p id="askText"></p>
+        </div>
+      </div>
+      <div class="ask-actions">
+        <button class="btn" value="cancel" id="askCancel"></button>
+        <button class="btn" value="ok" id="askOk"></button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===== Notifications: toasts (kept empty: notify.js removes firstChild) and the inbox panel ===== -->
+  <div id="toasts" aria-live="polite"></div>
+  <div class="inbox" id="inbox" hidden role="dialog" aria-label="Notifications">
+    <div class="inbox-head">
+      <h3>Notifications</h3>
+      <span class="kicker">알림</span>
+      <button class="icon-btn" id="inboxClose" aria-label="Close notifications"><i data-icon="x"></i></button>
+    </div>
+    <div id="inboxList"></div>
+  </div>
+
+  <!-- ===== Scripts: classic scripts sharing one global scope, so the order matters ===== -->
+  <script src="content/vocab.js"></script>
+  <script src="content/grammar.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/lesson.js"></script>
+  <script src="js/hangul-ime.js"></script>
+  <script src="js/strokes.js"></script>
+  <script src="content/practice-data.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/save.js"></script>
+  <script src="js/notify.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/views.js"></script>
+  <script src="js/path.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/quests.js"></script>
+  <script src="js/words.js"></script>
+  <script src="js/letters.js"></script>
+  <script src="js/write.js"></script>
+  <script src="js/start.js"></script>
+  <script src="js/listen.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/practice.js"></script>
+  <script src="js/progress.js"></script>
+  <script src="js/drills.js"></script>
+  <script src="js/desk.js"></script>
 </body>
 </html>

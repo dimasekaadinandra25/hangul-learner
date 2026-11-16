@@ -1,199 +1,803 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<title>Hangul Learner mini player</title>
-<script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
-<link rel="stylesheet" href="css/theme.css">
+  <meta charset="utf-8">
+  <title>Hangul Learner mini player</title>
+  <!-- theme before the CSS loads, so the window never flashes the wrong theme -->
+  <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+  <link rel="stylesheet" href="css/theme.css">
 <style>
 /* Always-on-top mini window (340x268, no title bar): now playing + a word card to learn while you work */
-*{box-sizing:border-box}
-[hidden]{display:none!important}
-html,body{height:100%;margin:0;overflow:hidden}
-body{display:flex;flex-direction:column;font:400 14px/1.45 var(--sans);color:var(--ink-2);background:var(--paper) var(--grain);border:1px solid var(--hair);user-select:none}
-button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
-:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:6px}
-.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.i.fill{fill:currentColor;stroke-width:1.2}
-header{display:flex;align-items:center;gap:8px;height:38px;padding:0 6px 0 14px;border-bottom:1px solid var(--hair);cursor:move}
-header b{font-family:var(--serif);font-size:1.05rem;color:var(--ink)}
-header span{font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:600;flex:1}
-.hb{display:grid;place-items:center;width:30px;height:30px;border-radius:7px;color:var(--muted)}
-.hb:hover{background:var(--paper-2);color:var(--ink)}
-.hb.close:hover{background:var(--red);color:#fff}
-.seal{display:inline-grid;place-items:center;flex:none;width:40px;height:40px;border-radius:8px;font-family:var(--serif);font-size:.95rem;color:#fff;background:var(--red);rotate:-6deg;box-shadow:inset 0 0 0 2px rgb(255 255 255/.25)}
-.seal.gold{background:var(--gold)}.seal.jade{background:var(--jade);color:var(--on-accent)}.seal.blue{background:var(--blue);color:var(--on-accent)}
-.np{padding:12px 14px 8px}
-.np-top{display:flex;gap:12px;align-items:center}
-.np-top div{min-width:0}
-.np-top b,.np-top small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.np-top b{color:var(--ink);font-weight:600}
-.np-top small{color:var(--muted);font-size:.8rem}
-.bar{height:3px;margin:10px 0 6px;border-radius:2px;background:var(--hair-2);overflow:hidden}
-.bar i{display:block;height:100%;width:0;background:var(--red);transition:width .9s linear}
-.ctl{display:flex;align-items:center;gap:6px}
-.ctl .t{margin-left:auto;font-variant-numeric:tabular-nums;font-size:.78rem;color:var(--muted)}
-.cb{display:grid;place-items:center;width:34px;height:34px;border-radius:8px;color:var(--ink-2)}
-.cb:hover{background:var(--paper-2)}
-.cb.play{width:40px;height:40px;border-radius:50%;background:var(--ink);color:var(--paper)}
-.cb.play:hover{opacity:.88;background:var(--ink)}
-.idle{display:flex;align-items:center;gap:10px;padding:14px;color:var(--muted)}
-.idle button{margin-left:auto;padding:6px 12px;border-radius:8px;border:1px solid var(--hair);background:var(--card);color:var(--ink);font-weight:600;font-size:.85rem}
-.word{flex:1;display:flex;align-items:center;gap:10px;margin:0 10px 10px;padding:10px 12px;border:1px solid var(--hair);border-radius:12px;background:var(--card)}
-.word .face{flex:1;min-width:0;text-align:left;padding:2px 0}
-.word .ko{display:block;font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;font-size:1.5rem;font-weight:700;color:var(--ink);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.word .mean{display:block;font-size:.85rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.word .mean:not(.show){color:transparent;background:var(--paper-2);border-radius:4px;width:110px}
-.video{flex:none;height:180px;margin:0 10px 10px;border-radius:10px;overflow:hidden;background:#000;border:1px solid var(--hair)}
-.video iframe,#vp{display:block;width:100%;height:100%;border:0}
-.remind{display:flex;align-items:center;gap:10px;margin:8px 10px 0;padding:10px 12px;border-radius:12px;background:var(--red);color:#fff}
-.remind div{flex:1;min-width:0}.remind b{display:block;font-family:var(--serif)}.remind span{display:block;font-size:.78rem;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.remind button{flex:none;padding:6px 12px;border-radius:8px;background:#fff;color:var(--red);font-weight:700;font-size:.85rem}.remind .x{padding:4px 6px;background:none;color:#fff}
-.kick{font-family:var(--serif);font-size:.72rem;color:var(--red);letter-spacing:.06em}
-header span.timer{color:var(--red);letter-spacing:.08em;font-variant-numeric:tabular-nums}
-.hb[aria-pressed=true]{color:var(--red)}
-#star[aria-pressed=true]{color:var(--gold)}
+
+/* base */
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none!important;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  font: 400 14px/1.45 var(--sans);
+  color: var(--ink-2);
+  background: var(--paper) var(--grain);
+  border: 1px solid var(--hair);
+  user-select: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: 0;
+  background: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.i {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.i.fill {
+  fill: currentColor;
+  stroke-width: 1.2;
+}
+
+/* title bar: drag region, focus timer, open and hide buttons */
+header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 6px 0 14px;
+  border-bottom: 1px solid var(--hair);
+  cursor: move;
+}
+
+header b {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+
+header span {
+  font-size: .68rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  flex: 1;
+}
+
+.hb {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  color: var(--muted);
+}
+
+.hb:hover {
+  background: var(--paper-2);
+  color: var(--ink);
+}
+
+.hb.close:hover {
+  background: var(--red);
+  color: #fff;
+}
+
+/* show seal (color comes from the show) */
+.seal {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  font-family: var(--serif);
+  font-size: .95rem;
+  color: #fff;
+  background: var(--red);
+  rotate: -6deg;
+  box-shadow: inset 0 0 0 2px rgb(255 255 255/.25);
+}
+
+.seal.gold {
+  background: var(--gold);
+}
+
+.seal.jade {
+  background: var(--jade);
+  color: var(--on-accent);
+}
+
+.seal.blue {
+  background: var(--blue);
+  color: var(--on-accent);
+}
+
+/* now playing: title, progress bar, controls */
+.np {
+  padding: 12px 14px 8px;
+}
+
+.np-top {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.np-top div {
+  min-width: 0;
+}
+
+.np-top b,
+.np-top small {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.np-top b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.np-top small {
+  color: var(--muted);
+  font-size: .8rem;
+}
+
+.bar {
+  height: 3px;
+  margin: 10px 0 6px;
+  border-radius: 2px;
+  background: var(--hair-2);
+  overflow: hidden;
+}
+
+.bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--red);
+  transition: width .9s linear;
+}
+
+.ctl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ctl .t {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-size: .78rem;
+  color: var(--muted);
+}
+
+.cb {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  color: var(--ink-2);
+}
+
+.cb:hover {
+  background: var(--paper-2);
+}
+
+.cb.play {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.cb.play:hover {
+  opacity: .88;
+  background: var(--ink);
+}
+
+/* nothing playing */
+.idle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  color: var(--muted);
+}
+
+.idle button {
+  margin-left: auto;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--hair);
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: .85rem;
+}
+
+/* word card: tap to reveal the meaning and hear it */
+.word {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 10px 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--hair);
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.word .face {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 2px 0;
+}
+
+.word .ko {
+  display: block;
+  font-family: "Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.word .mean {
+  display: block;
+  font-size: .85rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.word .mean:not(.show) {
+  color: transparent;
+  background: var(--paper-2);
+  border-radius: 4px;
+  width: 110px;
+}
+
+/* video panel (YouTube handed over from the main window) */
+.video {
+  flex: none;
+  height: 180px;
+  margin: 0 10px 10px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid var(--hair);
+}
+
+.video iframe,
+#vp {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* daily reminder banner */
+.remind {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 10px 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--red);
+  color: #fff;
+}
+
+.remind div {
+  flex: 1;
+  min-width: 0;
+}
+
+.remind b {
+  display: block;
+  font-family: var(--serif);
+}
+
+.remind span {
+  display: block;
+  font-size: .78rem;
+  opacity: .9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.remind button {
+  flex: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--red);
+  font-weight: 700;
+  font-size: .85rem;
+}
+
+.remind .x {
+  padding: 4px 6px;
+  background: none;
+  color: #fff;
+}
+
+/* word card label, focus timer label, pressed buttons */
+.kick {
+  font-family: var(--serif);
+  font-size: .72rem;
+  color: var(--red);
+  letter-spacing: .06em;
+}
+
+header span.timer {
+  color: var(--red);
+  letter-spacing: .08em;
+  font-variant-numeric: tabular-nums;
+}
+
+.hb[aria-pressed=true] {
+  color: var(--red);
+}
+
+#star[aria-pressed=true] {
+  color: var(--gold);
+}
 </style>
 </head>
 <body>
-<header data-tauri-drag-region>
-  <b data-tauri-drag-region>한글</b><span data-tauri-drag-region id="hlabel">mini player</span>
-  <button class="hb" id="focus" title="Focus timer" aria-label="Focus timer" aria-pressed="false"></button>
-  <button class="hb" id="open" title="Open the app" aria-label="Open the app"></button>
-  <button class="hb close" id="close" title="Hide mini player" aria-label="Hide mini player"></button>
-</header>
-<section class="remind" id="remind" hidden role="alert"><div><b id="rmTitle"></b><span id="rmBody"></span></div><button id="rmGo">Start</button><button class="x" id="rmX" aria-label="Dismiss">×</button></section>
-<section class="np" id="np" hidden>
-  <div class="np-top"><span class="seal" id="seal"></span><div><b id="title"></b><small id="show"></small></div></div>
-  <div class="bar"><i id="bar"></i></div>
-  <div class="ctl">
-    <button class="cb" id="back" title="Back 15 s" aria-label="Back 15 seconds"></button>
-    <button class="cb play" id="play" aria-label="Play"></button>
-    <button class="cb" id="fwd" title="Forward 30 s" aria-label="Forward 30 seconds"></button>
-    <span class="t" id="time"></span>
-  </div>
-</section>
-<section class="video" id="video" hidden aria-label="Video"><div id="vp"></div></section>
-<section class="idle" id="idle"><span>Nothing playing</span><button id="pick">Choose a podcast</button></section>
-<section class="word" aria-label="Word card">
-  <button class="face" id="face" title="Show the meaning and hear it"><span class="kick" id="kick">단어 · tap to reveal</span><span class="ko" id="wKo"></span><span class="mean" id="wMean"></span></button>
-  <button class="cb" id="star" title="Save to My words" aria-label="Save to My words" aria-pressed="false"></button>
-  <button class="cb" id="say" title="Hear it" aria-label="Hear the word"></button>
-  <button class="cb" id="next" title="Next word" aria-label="Next word"></button>
-</section>
-<script src="content/vocab.js"></script>
-<script src="content/grammar.js"></script>
-<script src="js/data.js"></script>
+  <!-- title bar: drag to move the window -->
+  <header data-tauri-drag-region>
+    <b data-tauri-drag-region>한글</b><span data-tauri-drag-region id="hlabel">mini player</span>
+    <button class="hb" id="focus" title="Focus timer" aria-label="Focus timer" aria-pressed="false"></button>
+    <button class="hb" id="open" title="Open the app" aria-label="Open the app"></button>
+    <button class="hb close" id="close" title="Hide mini player" aria-label="Hide mini player"></button>
+  </header>
+
+  <!-- daily reminder -->
+  <section class="remind" id="remind" hidden role="alert">
+    <div><b id="rmTitle"></b><span id="rmBody"></span></div>
+    <button id="rmGo">Start</button>
+    <button class="x" id="rmX" aria-label="Dismiss">×</button>
+  </section>
+
+  <!-- now playing -->
+  <section class="np" id="np" hidden>
+    <div class="np-top">
+      <span class="seal" id="seal"></span>
+      <div><b id="title"></b><small id="show"></small></div>
+    </div>
+    <div class="bar"><i id="bar"></i></div>
+    <div class="ctl">
+      <button class="cb" id="back" title="Back 15 s" aria-label="Back 15 seconds"></button>
+      <button class="cb play" id="play" aria-label="Play"></button>
+      <button class="cb" id="fwd" title="Forward 30 s" aria-label="Forward 30 seconds"></button>
+      <span class="t" id="time"></span>
+    </div>
+  </section>
+
+  <!-- video handed over from the main window -->
+  <section class="video" id="video" hidden aria-label="Video"><div id="vp"></div></section>
+
+  <!-- nothing playing -->
+  <section class="idle" id="idle">
+    <span>Nothing playing</span>
+    <button id="pick">Choose a podcast</button>
+  </section>
+
+  <!-- word card -->
+  <section class="word" aria-label="Word card">
+    <button class="face" id="face" title="Show the meaning and hear it"><span class="kick" id="kick">단어 · tap to reveal</span><span class="ko" id="wKo"></span><span class="mean" id="wMean"></span></button>
+    <button class="cb" id="star" title="Save to My words" aria-label="Save to My words" aria-pressed="false"></button>
+    <button class="cb" id="say" title="Hear it" aria-label="Hear the word"></button>
+    <button class="cb" id="next" title="Next word" aria-label="Next word"></button>
+  </section>
+
+  <script src="content/vocab.js"></script>
+  <script src="content/grammar.js"></script>
+  <script src="js/data.js"></script>
 <script>
-const T=window.__TAURI__,$=id=>document.getElementById(id);
-const ICON={
-  play:'<path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z"/>',
-  pause:'<rect x="6" y="4" width="4" height="16" rx="1.2"/><rect x="14" y="4" width="4" height="16" rx="1.2"/>',
-  back:'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
-  fwd:'<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>',
-  open:'<path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
-  x:'<path d="M18 6 6 18M6 6l12 12"/>',
-  volume:'<path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/>',
-  next:'<path d="M5 12h14M12 5l7 7-7 7"/>',
-  star:'<path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/>',
-  clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+// Mini player window: always on top, no title bar. Shows what the main window is playing, a word card to
+// learn while you work and, while it is open, the YouTube video handed over from the Listen page.
+// It talks to the main window only through Tauri events and commands.
+// Needs from earlier scripts: VOCAB (content/vocab.js) and audioName (js/data.js).
+// Top-level names (shared scope with those scripts, and used by the e2e tests): T, $, ICON, ic, fmt, cmd,
+// S, words, cur, render, renderExtras, rmCmd, nextWord, wordsKey, setLevel, sayWord, vp, vpApi, vid,
+// vStart, vReport, vDuck, ytApi, vState, report, showVideo, videoCmd, handBack.
+
+const T = window.__TAURI__;
+const $ = id => document.getElementById(id);
+
+// ---------- icons ----------
+
+const ICON = {
+  play: '<path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z"/>',
+  pause: '<rect x="6" y="4" width="4" height="16" rx="1.2"/><rect x="14" y="4" width="4" height="16" rx="1.2"/>',
+  back: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+  fwd: '<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>',
+  open: '<path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+  x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  volume: '<path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/>',
+  next: '<path d="M5 12h14M12 5l7 7-7 7"/>',
+  star: '<path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
 };
-const ic=(n,fill=n==='play'||n==='pause')=>`<svg class="i${fill?' fill':''}" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
-const fmt=s=>{s=Math.max(0,Math.floor(s||0));const h=Math.floor(s/3600),m=Math.floor(s/60)%60,x=String(s%60).padStart(2,'0');return h?`${h}:${String(m).padStart(2,'0')}:${x}`:`${m}:${x}`};
-const cmd=c=>T?.event.emit('player-cmd',c).catch(()=>{});
-[['open','open'],['close','x'],['back','back'],['fwd','fwd'],['say','volume'],['next','next'],['focus','clock'],['star','star']].forEach(([id,n])=>$(id).innerHTML=ic(n));
 
-// Now playing, sent by the main window every second
-let S={section:-1},words=[],cur=null;
-function render(){
-  const on=!!S.title;$('np').hidden=!on;$('idle').hidden=on;
-  if(!on)return;
-  $('seal').textContent=S.seal||'';$('seal').className='seal '+(S.color||'');
-  $('title').textContent=S.title;$('show').textContent=S.show||'';
-  $('play').innerHTML=ic(S.playing?'pause':'play');$('play').setAttribute('aria-label',S.playing?'Pause':'Play');
-  $('bar').style.width=(S.d?Math.min(100,S.t/S.d*100):0)+'%';
-  $('time').textContent=S.d?`${fmt(S.t)} / ${fmt(S.d)}`:fmt(S.t);
-}
-// focus timer (runs in the main window) and the saved star
-function renderExtras(){
-  const f=S.focus;$('hlabel').textContent=f?`${f.phase==='work'?'집중 focus':'휴식 break'} ${fmt(f.left)}`:'mini player';$('hlabel').classList.toggle('timer',!!f);
-  $('focus').setAttribute('aria-pressed',!!f);$('focus').title=f?'Stop the focus timer':'Start a focus timer';
-  const on=!!cur&&(S.saved||[]).includes(cur.ch);$('star').innerHTML=ic('star',on);$('star').setAttribute('aria-pressed',on);
-  $('star').title=$('star').ariaLabel=on?'Saved in My words: tap to remove':'Save to My words';
-}
-$('focus').onclick=()=>cmd('focus');
-$('star').onclick=()=>{if(!cur)return;T?.event.emit('mini-save',{ch:cur.ch,meaning:cur.meaning}).catch(()=>{});S.saved=(S.saved||[]).includes(cur.ch)?S.saved.filter(c=>c!==cur.ch):[...(S.saved||[]),cur.ch];renderExtras()};
-$('play').onclick=()=>cmd('toggle');$('back').onclick=()=>cmd('back');$('fwd').onclick=()=>cmd('fwd');
-$('pick').onclick=()=>cmd('listen');
-$('rmGo').onclick=()=>{$('remind').hidden=true;if(rmCmd)cmd(rmCmd)};
-let rmCmd='study';
-$('rmX').onclick=()=>{$('remind').hidden=true};
-$('open').onclick=()=>T?.core.invoke('show_main');
-$('close').onclick=()=>T?.core.invoke('hide_mini');
+// SVG markup for an icon; play and pause are filled shapes, the others outlines
+const ic = (name, fill = name === 'play' || name === 'pause') =>
+  `<svg class="i${fill ? ' fill' : ''}" viewBox="0 0 24 24" aria-hidden="true">${ICON[name]}</svg>`;
 
-// Word card: random words from the level you are studying in the app
-function nextWord(){
-  if(!words.length)return;
-  let w;do w=words[Math.floor(Math.random()*words.length)];while(words.length>1&&w===cur);cur=w;
-  $('wKo').textContent=w.ch;$('wMean').textContent=w.meaning;$('wMean').classList.remove('show');renderExtras();
-}
-let wordsKey='';
-function setLevel(section,due=[],ep=[],clip=[]){ // copied Korean, then words from the playing episode, then due words (Smart review), then your level
-  const key=clip.length?'clip:'+clip.map(w=>w.ch).join():ep.length?'ep:'+ep.map(w=>w.ch).join():due.length?'due:'+due.map(w=>w.ch).join():'lvl:'+section;
-  if(key===wordsKey)return;wordsKey=key;
-  words=clip.length?clip:ep.length?ep:due.length?due:VOCAB.filter(w=>w.section===section);if(!words.length)words=VOCAB;
-  const keep=cur&&words.find(w=>w.ch===cur.ch);
-  $('kick').textContent=clip.length?'복사 · in what you copied':ep.length?'듣기 · in this episode':due.length?'복습 · due for review':'단어 · tap to reveal'; // one line at 340px
-  $('kick').title=clip.length?'An app word found in the Korean text you just copied. Tap to see the meaning.':ep.length?'An app word found in the playing episode’s title or description. Tap to see the meaning.':due.length?'A word you met in a lesson, due for Smart review today. Tap to see the meaning.':'A word from your current level. Tap to see the meaning.';if(keep){cur=keep;renderExtras()}else nextWord();
-}
-const sayWord=()=>{if(!cur)return;cmd('duck');if(vp?.setVolume){vp.setVolume(20);clearTimeout(vDuck);vDuck=setTimeout(()=>vp.setVolume(100),1800)}new Audio('audio/'+(((()=>{try{return JSON.parse(localStorage.getItem('voice'))}catch(e){}})()==='male')?'m-':'')+audioName(cur.say)).play().catch(()=>{})};
-$('face').onclick=()=>{$('wMean').classList.add('show');sayWord()};
-$('say').onclick=sayWord;
-$('next').onclick=nextWord;
+// Seconds as m:ss, or h:mm:ss from one hour on
+const fmt = seconds => {
+  seconds = Math.max(0, Math.floor(seconds || 0));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor(seconds / 60) % 60;
+  const secs = String(seconds % 60).padStart(2, '0');
+  if (hours) return `${hours}:${String(minutes).padStart(2, '0')}:${secs}`;
+  return `${minutes}:${secs}`;
+};
 
-// Video panel: the main window hands its YouTube video here while this window is open, and takes it back on close
-let vp=null,vpApi=null,vid=null,vStart=null,vReport=0,vDuck=0;
-const ytApi=()=>vpApi??=new Promise((res,rej)=>{window.onYouTubeIframeAPIReady=res;const s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';s.onerror=()=>{vpApi=null;s.remove();rej()};document.head.append(s)});
-const vState=()=>vp?.getPlayerState?vp.getPlayerState():-1;
-const report=()=>{if(vid&&vp?.getCurrentTime)T?.event.emit('mini-video-state',{id:vid,t:vp.getCurrentTime(),d:vp.getDuration(),state:vState()}).catch(()=>{})};
-async function showVideo(v){
+// Send a player command (toggle, back, fwd, duck, focus, listen...) to the main window
+const cmd = command => T?.event.emit('player-cmd', command).catch(() => {});
+
+[
+  ['open', 'open'],
+  ['close', 'x'],
+  ['back', 'back'],
+  ['fwd', 'fwd'],
+  ['say', 'volume'],
+  ['next', 'next'],
+  ['focus', 'clock'],
+  ['star', 'star'],
+].forEach(([id, name]) => {
+  $(id).innerHTML = ic(name);
+});
+
+// ---------- now playing, sent by the main window every second ----------
+
+let S = {section: -1};
+let words = [];
+let cur = null;
+
+// Show the now-playing panel from S, or "Nothing playing"
+function render() {
+  const hasEpisode = !!S.title;
+  $('np').hidden = !hasEpisode;
+  $('idle').hidden = hasEpisode;
+  if (!hasEpisode) return;
+  $('seal').textContent = S.seal || '';
+  $('seal').className = 'seal ' + (S.color || '');
+  $('title').textContent = S.title;
+  $('show').textContent = S.show || '';
+  $('play').innerHTML = ic(S.playing ? 'pause' : 'play');
+  $('play').setAttribute('aria-label', S.playing ? 'Pause' : 'Play');
+  $('bar').style.width = (S.d ? Math.min(100, S.t / S.d * 100) : 0) + '%';
+  $('time').textContent = S.d ? `${fmt(S.t)} / ${fmt(S.d)}` : fmt(S.t);
+}
+
+// Focus timer label (the timer runs in the main window) and the saved star on the word card
+function renderExtras() {
+  const focus = S.focus;
+  let label = 'mini player';
+  if (focus) label = `${focus.phase === 'work' ? '집중 focus' : '휴식 break'} ${fmt(focus.left)}`;
+  $('hlabel').textContent = label;
+  $('hlabel').classList.toggle('timer', !!focus);
+  $('focus').setAttribute('aria-pressed', !!focus);
+  $('focus').title = focus ? 'Stop the focus timer' : 'Start a focus timer';
+
+  const saved = !!cur && (S.saved || []).includes(cur.ch);
+  $('star').innerHTML = ic('star', saved);
+  $('star').setAttribute('aria-pressed', saved);
+  const starLabel = saved ? 'Saved in My words: tap to remove' : 'Save to My words';
+  $('star').ariaLabel = starLabel;
+  $('star').title = starLabel;
+}
+
+$('focus').onclick = () => cmd('focus');
+
+// The main window saves or removes the word; the star changes here right away
+$('star').onclick = () => {
+  if (!cur) return;
+  T?.event.emit('mini-save', {ch: cur.ch, meaning: cur.meaning}).catch(() => {});
+  const saved = S.saved || [];
+  S.saved = saved.includes(cur.ch) ? saved.filter(ch => ch !== cur.ch) : [...saved, cur.ch];
+  renderExtras();
+};
+
+$('play').onclick = () => cmd('toggle');
+$('back').onclick = () => cmd('back');
+$('fwd').onclick = () => cmd('fwd');
+$('pick').onclick = () => cmd('listen');
+
+// ---------- reminder banner ----------
+
+$('rmGo').onclick = () => {
+  $('remind').hidden = true;
+  if (rmCmd) cmd(rmCmd);
+};
+// the player command the reminder's button sends; each reminder can set its own
+let rmCmd = 'study';
+$('rmX').onclick = () => {
+  $('remind').hidden = true;
+};
+
+$('open').onclick = () => T?.core.invoke('show_main');
+$('close').onclick = () => T?.core.invoke('hide_mini');
+
+// ---------- word card: random words from the level you are studying in the app ----------
+
+// Show another random word, never the same one twice in a row
+function nextWord() {
+  if (!words.length) return;
+  let word;
+  do {
+    word = words[Math.floor(Math.random() * words.length)];
+  } while (words.length > 1 && word === cur);
+  cur = word;
+  $('wKo').textContent = word.ch;
+  $('wMean').textContent = word.meaning;
+  $('wMean').classList.remove('show');
+  renderExtras();
+}
+
+let wordsKey = '';
+
+// Choose the card's words: copied Korean first, then words from the playing episode,
+// then words due for Smart review, then your level.
+// Called every second, so it returns early when the word list would not change.
+function setLevel(section, due = [], ep = [], clip = []) {
+  let key;
+  if (clip.length) key = 'clip:' + clip.map(w => w.ch).join();
+  else if (ep.length) key = 'ep:' + ep.map(w => w.ch).join();
+  else if (due.length) key = 'due:' + due.map(w => w.ch).join();
+  else key = 'lvl:' + section;
+  if (key === wordsKey) return;
+  wordsKey = key;
+
+  let kicker;
+  let kickerTitle;
+  if (clip.length) {
+    words = clip;
+    kicker = '복사 · in what you copied';
+    kickerTitle = 'An app word found in the Korean text you just copied. Tap to see the meaning.';
+  } else if (ep.length) {
+    words = ep;
+    kicker = '듣기 · in this episode';
+    kickerTitle = 'An app word found in the playing episode’s title or description. Tap to see the meaning.';
+  } else if (due.length) {
+    words = due;
+    kicker = '복습 · due for review';
+    kickerTitle = 'A word you met in a lesson, due for Smart review today. Tap to see the meaning.';
+  } else {
+    words = VOCAB.filter(w => w.section === section);
+    kicker = '단어 · tap to reveal';
+    kickerTitle = 'A word from your current level. Tap to see the meaning.';
+  }
+  if (!words.length) words = VOCAB;
+  const keep = cur && words.find(w => w.ch === cur.ch);
+  $('kick').textContent = kicker; // each label fits on one line at 340px
+  $('kick').title = kickerTitle;
+  if (keep) {
+    cur = keep;
+    renderExtras();
+  } else {
+    nextWord();
+  }
+}
+
+// Say the card's word in the chosen voice, turning the podcast (main window) and the video (here) down meanwhile
+const sayWord = () => {
+  if (!cur) return;
+  cmd('duck');
+  if (vp?.setVolume) {
+    vp.setVolume(20);
+    clearTimeout(vDuck);
+    vDuck = setTimeout(() => vp.setVolume(100), 1800);
+  }
+  // the main window saves the voice setting as JSON in localStorage
+  let voice;
+  try {
+    voice = JSON.parse(localStorage.getItem('voice'));
+  } catch (e) {}
+  const voicePrefix = voice === 'male' ? 'm-' : '';
+  new Audio('audio/' + voicePrefix + audioName(cur.say)).play().catch(() => {});
+};
+
+$('face').onclick = () => {
+  $('wMean').classList.add('show');
+  sayWord();
+};
+$('say').onclick = sayWord;
+$('next').onclick = nextWord;
+
+// ---------- video panel ----------
+// The main window hands its YouTube video here while this window is open, and takes it back on close.
+
+let vp = null;      // the YT.Player in #vp
+let vpApi = null;   // promise for the YouTube iframe API script
+let vid = null;     // id of the video shown here
+let vStart = null;  // the video as handed over (its time and playing state, until the player is ready)
+let vReport = 0;    // interval that reports the video time to the main window
+let vDuck = 0;      // timeout that turns the video up again after a word was said
+
+// Load the YouTube iframe API once; after a failure the next call tries again
+const ytApi = () => vpApi ??= new Promise((resolve, reject) => {
+  window.onYouTubeIframeAPIReady = resolve;
+  const script = document.createElement('script');
+  script.src = 'https://www.youtube.com/iframe_api';
+  script.onerror = () => {
+    vpApi = null;
+    script.remove();
+    reject();
+  };
+  document.head.append(script);
+});
+
+// YouTube player state: 1 playing, 2 paused, 3 buffering...; -1 before the player is ready
+const vState = () => vp?.getPlayerState ? vp.getPlayerState() : -1;
+
+// Tell the main window where the video is
+const report = () => {
+  if (vid && vp?.getCurrentTime) {
+    T?.event.emit('mini-video-state', {
+      id: vid,
+      t: vp.getCurrentTime(),
+      d: vp.getDuration(),
+      state: vState(),
+    }).catch(() => {});
+  }
+};
+
+// Show a video ({id, t, playing, rate}) in the panel, or close the panel when video is null
+async function showVideo(video) {
   clearInterval(vReport);
-  if(!v){if(vid){vid=null;vp?.stopVideo?.();$('video').hidden=true;T?.core.invoke('mini_video',{on:false})}return}
-  if(!vid)T?.core.invoke('mini_video',{on:true}); // grow the window for the panel
-  vid=v.id;vStart=v;$('video').hidden=false;
-  try{await ytApi()}catch(e){return}
-  if(vid!==v.id)return;
-  if(vp?.loadVideoById){v.playing?vp.loadVideoById({videoId:v.id,startSeconds:v.t}):vp.cueVideoById({videoId:v.id,startSeconds:v.t});vp.setPlaybackRate(v.rate||1)}
-  else vp=new YT.Player('vp',{videoId:v.id,host:'https://www.youtube-nocookie.com',
-    playerVars:{autoplay:v.playing?1:0,start:Math.floor(v.t),rel:0,playsinline:1,cc_load_policy:1,cc_lang_pref:'ko',...(location.origin.startsWith('http')?{origin:location.origin}:{})},
-    events:{onReady:e=>{e.target.setPlaybackRate(v.rate||1);if(v.playing)e.target.playVideo()},onStateChange:report}});
-  vReport=setInterval(report,1000);
+  if (!video) {
+    if (vid) {
+      vid = null;
+      vp?.stopVideo?.();
+      $('video').hidden = true;
+      T?.core.invoke('mini_video', {on: false});
+    }
+    return;
+  }
+  if (!vid) T?.core.invoke('mini_video', {on: true}); // grow the window for the panel
+  vid = video.id;
+  vStart = video;
+  $('video').hidden = false;
+  try {
+    await ytApi();
+  } catch (e) {
+    return;
+  }
+  if (vid !== video.id) return;
+  if (vp?.loadVideoById) {
+    if (video.playing) vp.loadVideoById({videoId: video.id, startSeconds: video.t});
+    else vp.cueVideoById({videoId: video.id, startSeconds: video.t});
+    vp.setPlaybackRate(video.rate || 1);
+  } else {
+    vp = new YT.Player('vp', {
+      videoId: video.id,
+      host: 'https://www.youtube-nocookie.com',
+      playerVars: {
+        autoplay: video.playing ? 1 : 0,
+        start: Math.floor(video.t),
+        rel: 0,
+        playsinline: 1,
+        cc_load_policy: 1,
+        cc_lang_pref: 'ko',
+        // pass the page's origin only when it is a web origin
+        ...(location.origin.startsWith('http') ? {origin: location.origin} : {}),
+      },
+      events: {
+        onReady: event => {
+          event.target.setPlaybackRate(video.rate || 1);
+          if (video.playing) event.target.playVideo();
+        },
+        onStateChange: report,
+      },
+    });
+  }
+  vReport = setInterval(report, 1000);
 }
-function videoCmd(c){
-  if(!vp?.getPlayerState)return;
-  if(c.cmd==='toggle')vState()===1?vp.pauseVideo():vp.playVideo();
-  else if(c.cmd==='seek')vp.seekTo(c.t,true);
-  else if(c.cmd==='rate')vp.setPlaybackRate(c.r);
-  setTimeout(report,200);
+
+// Play / pause, seek or change the speed of the video, as asked by the main window
+function videoCmd(command) {
+  if (!vp?.getPlayerState) return;
+  if (command.cmd === 'toggle') {
+    if (vState() === 1) vp.pauseVideo();
+    else vp.playVideo();
+  } else if (command.cmd === 'seek') {
+    vp.seekTo(command.t, true);
+  } else if (command.cmd === 'rate') {
+    vp.setPlaybackRate(command.r);
+  }
+  setTimeout(report, 200);
 }
-// Hidden: give the video back to the main window at the current second
-function handBack(){
-  if(!vid)return;
-  const ready=!!vp?.getCurrentTime;
-  T?.event.emit('mini-video-end',{id:vid,t:ready?vp.getCurrentTime():vStart.t,playing:ready?vState()===1||vState()===3:vStart.playing}).catch(()=>{});
+
+// Window hidden: give the video back to the main window at the current second
+function handBack() {
+  if (!vid) return;
+  const ready = !!vp?.getCurrentTime;
+  const time = ready ? vp.getCurrentTime() : vStart.t;
+  const playing = ready ? vState() === 1 || vState() === 3 : vStart.playing;
+  T?.event.emit('mini-video-end', {id: vid, t: time, playing}).catch(() => {});
   showVideo(null);
 }
 
-addEventListener('storage',e=>{if(e.key==='theme'){const t=e.newValue;if(t)document.documentElement.dataset.theme=t;else delete document.documentElement.dataset.theme}});
-setLevel(0);S.section=0;render();
-if(T){
-  T.event.listen('mini-video',e=>showVideo(e.payload));
-  T.event.listen('mini-video-cmd',e=>videoCmd(e.payload));
-  T.event.listen('mini-hidden',handBack);
-  T.event.listen('player-state',e=>{const p=e.payload||{};S=p;setLevel(p.section??0,p.due||[],p.ep||[],p.clip||[]);render();renderExtras()});
+// ---------- start ----------
+
+// Follow theme changes made in the main window (both windows share localStorage)
+addEventListener('storage', event => {
+  if (event.key === 'theme') {
+    const theme = event.newValue;
+    if (theme) document.documentElement.dataset.theme = theme;
+    else delete document.documentElement.dataset.theme;
+  }
+});
+
+setLevel(0);
+S.section = 0;
+render();
+if (T) {
+  T.event.listen('mini-video', event => showVideo(event.payload));
+  T.event.listen('mini-video-cmd', event => videoCmd(event.payload));
+  T.event.listen('mini-hidden', handBack);
+  T.event.listen('player-state', event => {
+    const state = event.payload || {};
+    S = state;
+    setLevel(state.section ?? 0, state.due || [], state.ep || [], state.clip || []);
+    render();
+    renderExtras();
+  });
   // daily reminder from the main window
-  T.event.listen('reminder',e=>{const m=e.payload;$('rmTitle').textContent=m.title;$('rmBody').textContent=m.body;$('rmGo').textContent=m.go||'Start';rmCmd=m.cmd===undefined?'study':m.cmd;$('remind').hidden=false});
-  T.event.emit('mini-ready').catch(()=>{});
+  T.event.listen('reminder', event => {
+    const message = event.payload;
+    $('rmTitle').textContent = message.title;
+    $('rmBody').textContent = message.body;
+    $('rmGo').textContent = message.go || 'Start';
+    rmCmd = message.cmd === undefined ? 'study' : message.cmd;
+    $('remind').hidden = false;
+  });
+  T.event.emit('mini-ready').catch(() => {});
 }
 </script>
 </body>

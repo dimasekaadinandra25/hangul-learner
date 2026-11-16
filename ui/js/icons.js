@@ -1,7 +1,12 @@
-const $=id=>document.getElementById(id);
+// Icons and other small shared helpers for the page.
+// The first of the page scripts (after the logic files data.js, lesson.js, ...): needs nothing from earlier files.
+// Provides: $ (element by id), ICONS (Lucide-style inline SVG paths), icon(), seal(), long().
 
-// ---- Icons (Lucide-style, inline SVG) ----
-const ICONS={
+// Element by id
+const $ = id => document.getElementById(id);
+
+// ---- Icons (Lucide-style, inline SVG): name -> the SVG's inner markup on a 24x24 grid ----
+const ICONS = {
   map:'<path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/>',
   target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
   layers:'<path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5M2 12l10 5 10-5"/>',
@@ -48,9 +53,23 @@ const ICONS={
   sparkles:'<path d="M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/><path d="M19 17v4M17 19h4"/>',
   clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
 };
-const FILLED=new Set(['heart','play','pause','star']);
-const icon=(n,fill=FILLED.has(n))=>`<svg class="i${fill?' fill':''}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
-document.querySelectorAll('[data-icon]').forEach(e=>e.outerHTML=icon(e.dataset.icon));
-const long=t=>[...t].length>5;
-// A red seal stamp (도장). size s|m|l, content = Korean text or an icon
-const seal=(content,size='s',cls='')=>`<span class="seal ${size} ${cls}" aria-hidden="true">${content}</span>`;
+
+// Icons drawn filled instead of outlined
+const FILLED = new Set(['heart', 'play', 'pause', 'star']);
+
+// An icon as SVG markup; fill defaults to whether the icon is one of FILLED
+const icon = (name, fill = FILLED.has(name)) => {
+  const fillClass = fill ? ' fill' : '';
+  return `<svg class="i${fillClass}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
+};
+
+// Placeholders in index.html (<i data-icon="name">) become real icons
+document.querySelectorAll('[data-icon]').forEach(placeholder => {
+  placeholder.outerHTML = icon(placeholder.dataset.icon);
+});
+
+// Korean text longer than 5 characters (layouts use a smaller size for it)
+const long = text => [...text].length > 5;
+
+// A red seal stamp (도장). size s|m|l, content = Korean text or an icon, cls = extra classes (gold, jade, ...)
+const seal = (content, size = 's', cls = '') => `<span class="seal ${size} ${cls}" aria-hidden="true">${content}</span>`;
